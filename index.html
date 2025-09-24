@@ -1533,7 +1533,30 @@
                     .eq('id', user.id)
                     .maybeSingle();
 
-                currentUser = userProfile || { id: user.id, email: user.email, role: 'startup' };
+                // Create user profile if it doesn't exist
+                if (!userProfile) {
+                    const { error: userCreateError } = await supabaseClient
+                        .from('users')
+                        .insert({
+                            id: user.id,
+                            email: user.email,
+                            name: user.user_metadata?.name || user.email.split('@')[0],
+                            phone: user.user_metadata?.phone || '',
+                            role: user.user_metadata?.role || 'startup'
+                        });
+
+                    if (userCreateError) {
+                        console.warn('Could not create user profile:', userCreateError);
+                    }
+                }
+
+                currentUser = userProfile || {
+                    id: user.id,
+                    email: user.email,
+                    name: user.user_metadata?.name || user.email.split('@')[0],
+                    phone: user.user_metadata?.phone || '',
+                    role: user.user_metadata?.role || 'startup'
+                };
 
                 // Get user's startup (optional)
                 const { data: startup } = await supabaseClient
@@ -1542,7 +1565,34 @@
                     .eq('user_id', user.id)
                     .maybeSingle();
 
-                currentStartup = startup || null;
+                // Create startup profile if user doesn't have one and has startup metadata
+                if (!startup && user.user_metadata?.startup_name && currentUser.role === 'startup') {
+                    console.log('Creating missing startup profile for user...');
+                    const { error: startupCreateError } = await supabaseClient
+                        .from('startups')
+                        .insert({
+                            user_id: user.id,
+                            name: user.user_metadata.startup_name,
+                            contact_person: user.user_metadata.name || user.email.split('@')[0],
+                            phone: user.user_metadata.phone || '',
+                            email: user.email,
+                            status: 'active'
+                        });
+
+                    if (startupCreateError) {
+                        console.error('Could not create startup profile:', startupCreateError);
+                    } else {
+                        // Reload startup data
+                        const { data: newStartup } = await supabaseClient
+                            .from('startups')
+                            .select('*')
+                            .eq('user_id', user.id)
+                            .maybeSingle();
+                        currentStartup = newStartup;
+                    }
+                } else {
+                    currentStartup = startup || null;
+                }
 
                 // Update UI based on user role
                 updateUIForUserRole(currentUser.role);
@@ -1657,7 +1707,8 @@
 
             setSignupLoading(true);
             try {
-                const { data, error } = await supabaseClient.auth.signUp({
+                // Step 1: Create user account
+                const { data: authData, error: authError } = await supabaseClient.auth.signUp({
                     email,
                     password,
                     options: {
@@ -1669,9 +1720,49 @@
                         }
                     }
                 });
-                if (error) throw error;
 
-                showSignupSuccess('Account created successfully! Please check your email to verify your account, then sign in.');
+                if (authError) throw authError;
+
+                // Step 2: Create user profile in users table
+                if (authData.user) {
+                    const { error: userError } = await supabaseClient
+                        .from('users')
+                        .insert({
+                            id: authData.user.id,
+                            email: email,
+                            name: contactPerson,
+                            phone: phone,
+                            role: 'startup'
+                        });
+
+                    if (userError) {
+                        console.warn('User profile creation error:', userError);
+                        // Don't fail signup if user profile creation fails
+                    }
+
+                    // Step 3: Create startup profile
+                    const { error: startupError } = await supabaseClient
+                        .from('startups')
+                        .insert({
+                            user_id: authData.user.id,
+                            name: startupName,
+                            contact_person: contactPerson,
+                            phone: phone,
+                            email: email,
+                            status: 'active'
+                        });
+
+                    if (startupError) {
+                        console.error('Startup profile creation error:', startupError);
+                        // This is critical - show warning but don't fail signup
+                        showSignupSuccess('Account created successfully! However, there was an issue creating your startup profile. Please contact support if you cannot make bookings.');
+                    } else {
+                        showSignupSuccess('Account and startup profile created successfully! Please check your email to verify your account, then sign in.');
+                    }
+                } else {
+                    showSignupSuccess('Account created successfully! Please check your email to verify your account, then sign in.');
+                }
+
                 showAuth('login');
 
             } catch (err) {
@@ -1931,17 +2022,622 @@
             setTimeout(() => alertDiv.remove(), 5000);
         }
 
-        // ===== PLACEHOLDER FUNCTIONS FOR OTHER TABS =====
+        // ===== INTERACTIVE CALENDAR SYSTEM =====
+        let currentCalendarDate = new Date();
+        let selectedDate = null;
+
         async function loadScheduleData() {
-            console.log('Loading schedule data...');
+            console.log('Loading interactive schedule data...');
+            initializeCalendar();
+            setupCalendarEventListeners();
         }
 
+        function initializeCalendar() {
+            renderCalendar(currentCalendarDate);
+            // Select today by default
+            const today = new Date();
+            selectDate(today.toISOString().split('T')[0]);
+        }
+
+        function renderCalendar(date) {
+            const monthYearEl = document.getElementById('month-year');
+            const calendarGrid = document.getElementById('calendar-grid');
+
+            if (!monthYearEl || !calendarGrid) return;
+
+            // Set month/year header
+            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                'July', 'August', 'September', 'October', 'November', 'December'];
+            monthYearEl.textContent = `${monthNames[date.getMonth()]} ${date.getFullYear()}`;
+
+            // Clear calendar grid
+            calendarGrid.innerHTML = '';
+
+            // Add day headers
+            const dayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            dayHeaders.forEach(day => {
+                const dayHeader = document.createElement('div');
+                dayHeader.className = 'text-center text-sm font-semibold text-gray-600 py-2';
+                dayHeader.textContent = day;
+                calendarGrid.appendChild(dayHeader);
+            });
+
+            // Get first day of month and number of days
+            const firstDay = new Date(date.getFullYear(), date.getMonth(), 1);
+            const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+            const startDate = new Date(firstDay);
+            startDate.setDate(startDate.getDate() - firstDay.getDay());
+
+            // Generate calendar days
+            for (let i = 0; i < 42; i++) {
+                const currentDate = new Date(startDate);
+                currentDate.setDate(startDate.getDate() + i);
+
+                const dayElement = document.createElement('div');
+                dayElement.className = 'calendar-day text-center py-2 cursor-pointer hover:bg-gray-100 rounded';
+                dayElement.textContent = currentDate.getDate();
+                dayElement.dataset.date = currentDate.toISOString().split('T')[0];
+
+                // Style current month vs other months
+                if (currentDate.getMonth() !== date.getMonth()) {
+                    dayElement.className += ' text-gray-400';
+                } else {
+                    dayElement.className += ' text-gray-900';
+                }
+
+                // Highlight today
+                const today = new Date();
+                if (currentDate.toDateString() === today.toDateString()) {
+                    dayElement.className += ' bg-blue-100 text-blue-800 font-semibold';
+                }
+
+                // Highlight selected date
+                if (selectedDate && currentDate.toISOString().split('T')[0] === selectedDate) {
+                    dayElement.className += ' bg-green-100 text-green-800 font-semibold';
+                }
+
+                calendarGrid.appendChild(dayElement);
+            }
+        }
+
+        function setupCalendarEventListeners() {
+            const prevMonthBtn = document.getElementById('prev-month');
+            const nextMonthBtn = document.getElementById('next-month');
+            const calendarGrid = document.getElementById('calendar-grid');
+
+            if (prevMonthBtn) {
+                prevMonthBtn.addEventListener('click', () => {
+                    currentCalendarDate.setMonth(currentCalendarDate.getMonth() - 1);
+                    renderCalendar(currentCalendarDate);
+                });
+            }
+
+            if (nextMonthBtn) {
+                nextMonthBtn.addEventListener('click', () => {
+                    currentCalendarDate.setMonth(currentCalendarDate.getMonth() + 1);
+                    renderCalendar(currentCalendarDate);
+                });
+            }
+
+            if (calendarGrid) {
+                calendarGrid.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('calendar-day') && e.target.dataset.date) {
+                        selectDate(e.target.dataset.date);
+                        renderCalendar(currentCalendarDate); // Re-render to update selection
+                    }
+                });
+            }
+        }
+
+        async function selectDate(dateString) {
+            selectedDate = dateString;
+            console.log('Selected date:', dateString);
+            await loadScheduleForDate(dateString);
+        }
+
+        async function loadScheduleForDate(dateString) {
+            const scheduleDetails = document.getElementById('schedule-details');
+            if (!scheduleDetails) return;
+
+            try {
+                // Show loading state
+                scheduleDetails.innerHTML = `
+                    <h4 class="text-lg font-semibold text-gray-900 mb-4">Schedule for ${formatDate(dateString)}</h4>
+                    <div class="text-center py-4">
+                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500 mx-auto"></div>
+                        <p class="text-gray-500 mt-2">Loading schedule...</p>
+                    </div>
+                `;
+
+                // Load bookings for the selected date
+                const { data: bookings, error } = await supabaseClient
+                    .from('bookings')
+                    .select(`
+                        *,
+                        startups (name, contact_person)
+                    `)
+                    .eq('booking_date', dateString)
+                    .order('start_time');
+
+                if (error) {
+                    console.error('Error loading schedule:', error);
+                    scheduleDetails.innerHTML = `
+                        <h4 class="text-lg font-semibold text-gray-900 mb-4">Schedule for ${formatDate(dateString)}</h4>
+                        <p class="text-red-600">Error loading schedule data.</p>
+                    `;
+                    return;
+                }
+
+                // Generate time slots (9 AM to 6 PM)
+                const timeSlots = [];
+                for (let hour = 9; hour <= 17; hour++) {
+                    timeSlots.push(`${hour.toString().padStart(2, '0')}:00`);
+                }
+
+                // Create schedule display
+                let scheduleHTML = `
+                    <h4 class="text-lg font-semibold text-gray-900 mb-4">Schedule for ${formatDate(dateString)}</h4>
+                    <div class="space-y-2">
+                `;
+
+                timeSlots.forEach(timeSlot => {
+                    const slotBookings = bookings.filter(booking => {
+                        const bookingStart = booking.start_time;
+                        const bookingEnd = addHours(bookingStart, booking.duration);
+                        return timeSlot >= bookingStart && timeSlot < bookingEnd;
+                    });
+
+                    if (slotBookings.length > 0) {
+                        slotBookings.forEach(booking => {
+                            const startupName = booking.startups?.name || 'Unknown Startup';
+                            const endTime = addHours(booking.start_time, booking.duration);
+                            scheduleHTML += `
+                                <div class="flex items-center justify-between p-3 bg-red-50 border border-red-200 rounded-lg cursor-pointer hover:bg-red-100"
+                                     onclick="showBookingDetails('${booking.id}')">
+                                    <div class="flex-1">
+                                        <div class="flex items-center space-x-3">
+                                            <div class="w-3 h-3 bg-red-500 rounded-full"></div>
+                                            <span class="font-medium text-gray-900">${formatTime(booking.start_time)} - ${formatTime(endTime)}</span>
+                                            <span class="text-gray-600">${booking.room_name}</span>
+                                        </div>
+                                        <div class="ml-6 text-sm text-gray-600">
+                                            Booked by: ${startupName}
+                                            ${booking.is_confidential ? ' • <span class="text-orange-600">Confidential</span>' : ''}
+                                        </div>
+                                    </div>
+                                    <div class="text-xs text-gray-500">
+                                        ${booking.duration} hour${booking.duration > 1 ? 's' : ''}
+                                    </div>
+                                </div>
+                            `;
+                        });
+                    } else {
+                        scheduleHTML += `
+                            <div class="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-3 h-3 bg-green-500 rounded-full"></div>
+                                    <span class="font-medium text-gray-900">${formatTime(timeSlot)} - ${formatTime(addHours(timeSlot, 1))}</span>
+                                    <span class="text-gray-600">All rooms available</span>
+                                </div>
+                                <div class="text-xs text-green-600 font-medium">
+                                    Available
+                                </div>
+                            </div>
+                        `;
+                    }
+                });
+
+                scheduleHTML += '</div>';
+
+                if (bookings.length === 0) {
+                    scheduleHTML += `
+                        <div class="text-center py-8">
+                            <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                            </div>
+                            <h3 class="text-lg font-medium text-gray-900 mb-2">No bookings for this date</h3>
+                            <p class="text-gray-600">All rooms are available for booking.</p>
+                        </div>
+                    `;
+                }
+
+                scheduleDetails.innerHTML = scheduleHTML;
+
+            } catch (error) {
+                console.error('Error loading schedule:', error);
+                scheduleDetails.innerHTML = `
+                    <h4 class="text-lg font-semibold text-gray-900 mb-4">Schedule for ${formatDate(dateString)}</h4>
+                    <p class="text-red-600">Error loading schedule data.</p>
+                `;
+            }
+        }
+
+        // Utility functions for calendar
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-US', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+        }
+
+        function formatTime(timeString) {
+            const [hours, minutes] = timeString.split(':');
+            const hour = parseInt(hours);
+            const ampm = hour >= 12 ? 'PM' : 'AM';
+            const displayHour = hour % 12 || 12;
+            return `${displayHour}:${minutes} ${ampm}`;
+        }
+
+        function addHours(timeString, hours) {
+            const [hour, minute] = timeString.split(':').map(Number);
+            const newHour = hour + hours;
+            return `${newHour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+        }
+
+        function showBookingDetails(bookingId) {
+            // This could be enhanced to show a modal with full booking details
+            console.log('Show booking details for:', bookingId);
+            // For now, just show an alert - could be enhanced with a modal
+            alert('Booking details feature - could show full booking information in a modal');
+        }
+
+        // ===== REAL-TIME ROOM DISPLAYS SYSTEM =====
+        let roomDisplaysInterval = null;
+
         async function loadRoomDisplaysData() {
-            console.log('Loading room displays data...');
+            console.log('Loading real-time room displays...');
+            await renderRoomStatusDashboard();
+            setupRoomDisplaysRefresh();
+        }
+
+        async function renderRoomStatusDashboard() {
+            const roomCardsContainer = document.getElementById('room-cards-container');
+            if (!roomCardsContainer) return;
+
+            try {
+                // Show loading state
+                roomCardsContainer.innerHTML = `
+                    <div class="col-span-full text-center py-8">
+                        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500 mx-auto mb-4"></div>
+                        <p class="text-gray-500">Loading real-time room status...</p>
+                    </div>
+                `;
+
+                // Get current date and time
+                const now = new Date();
+                const currentDate = now.toISOString().split('T')[0];
+                const currentTime = now.toTimeString().split(' ')[0].substring(0, 5);
+
+                // Load today's bookings
+                const { data: todaysBookings, error } = await supabaseClient
+                    .from('bookings')
+                    .select(`
+                        *,
+                        startups (name, contact_person)
+                    `)
+                    .eq('booking_date', currentDate)
+                    .order('start_time');
+
+                if (error) {
+                    console.error('Error loading room status:', error);
+                    roomCardsContainer.innerHTML = `
+                        <div class="col-span-full text-center py-8">
+                            <p class="text-red-600">Error loading room status data.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Generate room status cards
+                let roomCardsHTML = '';
+
+                availableRooms.forEach(room => {
+                    const roomBookings = todaysBookings.filter(booking => booking.room_name === room.name);
+                    const status = getRoomStatus(roomBookings, currentTime);
+
+                    roomCardsHTML += `
+                        <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 ${status.borderColor}">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-xl font-bold text-gray-900">${room.name}</h3>
+                                <div class="flex items-center space-x-2">
+                                    <div class="w-3 h-3 rounded-full ${status.indicatorColor}"></div>
+                                    <span class="text-sm font-medium ${status.textColor}">${status.text}</span>
+                                </div>
+                            </div>
+
+                            <div class="space-y-2 text-sm text-gray-600">
+                                <div class="flex justify-between">
+                                    <span>Capacity:</span>
+                                    <span class="font-medium">${room.capacity} people</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>Type:</span>
+                                    <span class="font-medium">${room.type === 'focus' ? 'Focus Room' : 'Special Room'}</span>
+                                </div>
+                            </div>
+
+                            <div class="mt-4 pt-4 border-t border-gray-200">
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="text-sm font-medium text-gray-700">Current Status:</span>
+                                    <span class="text-xs text-gray-500">${formatTime(currentTime)}</span>
+                                </div>
+
+                                ${status.currentBooking ? `
+                                    <div class="bg-red-50 border border-red-200 rounded-lg p-3">
+                                        <div class="flex items-center space-x-2 mb-1">
+                                            <svg class="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+                                            </svg>
+                                            <span class="text-sm font-medium text-red-800">Occupied</span>
+                                        </div>
+                                        <div class="text-xs text-red-700">
+                                            ${status.currentBooking.startups?.name || 'Unknown'}<br>
+                                            Until ${formatTime(addHours(status.currentBooking.start_time, status.currentBooking.duration))}
+                                        </div>
+                                    </div>
+                                ` : `
+                                    <div class="bg-green-50 border border-green-200 rounded-lg p-3">
+                                        <div class="flex items-center space-x-2 mb-1">
+                                            <svg class="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                                            </svg>
+                                            <span class="text-sm font-medium text-green-800">Available</span>
+                                        </div>
+                                        ${status.nextBooking ? `
+                                            <div class="text-xs text-green-700">
+                                                Next: ${formatTime(status.nextBooking.start_time)} - ${status.nextBooking.startups?.name || 'Unknown'}
+                                            </div>
+                                        ` : `
+                                            <div class="text-xs text-green-700">No upcoming bookings today</div>
+                                        `}
+                                    </div>
+                                `}
+                            </div>
+
+                            <div class="mt-4">
+                                <div class="flex flex-wrap gap-1">
+                                    ${room.equipment.slice(0, 3).map(eq =>
+                                        `<span class="inline-block bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs">${eq}</span>`
+                                    ).join('')}
+                                    ${room.equipment.length > 3 ? `<span class="text-xs text-gray-500">+${room.equipment.length - 3} more</span>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                roomCardsContainer.innerHTML = roomCardsHTML;
+
+            } catch (error) {
+                console.error('Error rendering room status:', error);
+                roomCardsContainer.innerHTML = `
+                    <div class="col-span-full text-center py-8">
+                        <p class="text-red-600">Error loading room status.</p>
+                    </div>
+                `;
+            }
+        }
+
+        function getRoomStatus(roomBookings, currentTime) {
+            const now = currentTime;
+
+            // Find current booking (if any)
+            const currentBooking = roomBookings.find(booking => {
+                const startTime = booking.start_time;
+                const endTime = addHours(startTime, booking.duration);
+                return now >= startTime && now < endTime;
+            });
+
+            // Find next booking
+            const nextBooking = roomBookings
+                .filter(booking => booking.start_time > now)
+                .sort((a, b) => a.start_time.localeCompare(b.start_time))[0];
+
+            if (currentBooking) {
+                return {
+                    text: 'Occupied',
+                    indicatorColor: 'bg-red-500',
+                    borderColor: 'border-red-500',
+                    textColor: 'text-red-600',
+                    currentBooking,
+                    nextBooking
+                };
+            } else if (nextBooking) {
+                const timeUntilNext = getTimeUntilBooking(nextBooking.start_time, now);
+                if (timeUntilNext <= 30) { // 30 minutes or less
+                    return {
+                        text: 'Available (Soon Occupied)',
+                        indicatorColor: 'bg-yellow-500',
+                        borderColor: 'border-yellow-500',
+                        textColor: 'text-yellow-600',
+                        currentBooking: null,
+                        nextBooking
+                    };
+                } else {
+                    return {
+                        text: 'Available',
+                        indicatorColor: 'bg-green-500',
+                        borderColor: 'border-green-500',
+                        textColor: 'text-green-600',
+                        currentBooking: null,
+                        nextBooking
+                    };
+                }
+            } else {
+                return {
+                    text: 'Available',
+                    indicatorColor: 'bg-green-500',
+                    borderColor: 'border-green-500',
+                    textColor: 'text-green-600',
+                    currentBooking: null,
+                    nextBooking: null
+                };
+            }
+        }
+
+        function getTimeUntilBooking(bookingTime, currentTime) {
+            const [bookingHour, bookingMinute] = bookingTime.split(':').map(Number);
+            const [currentHour, currentMinute] = currentTime.split(':').map(Number);
+
+            const bookingMinutes = bookingHour * 60 + bookingMinute;
+            const currentMinutes = currentHour * 60 + currentMinute;
+
+            return bookingMinutes - currentMinutes;
+        }
+
+        function setupRoomDisplaysRefresh() {
+            // Clear existing interval
+            if (roomDisplaysInterval) {
+                clearInterval(roomDisplaysInterval);
+            }
+
+            // Refresh every 30 seconds
+            roomDisplaysInterval = setInterval(async () => {
+                const currentPage = window.location.hash;
+                if (currentPage === '#room-displays') {
+                    await renderRoomStatusDashboard();
+                }
+            }, 30000);
         }
 
         async function loadReportsData() {
             console.log('Loading reports data...');
+        }
+
+        // ===== ADMIN CREATION SYSTEM =====
+        function showCreateAdminForm() {
+            const listEl = document.getElementById('admin-contacts-list');
+            if (!listEl) return;
+
+            const formHTML = `
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
+                    <h4 class="text-lg font-semibold text-blue-900 mb-4">Create New Admin Contact</h4>
+                    <form id="create-admin-form" class="space-y-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="admin-name" class="block text-sm font-medium text-gray-700 mb-2">Full Name *</label>
+                                <input type="text" id="admin-name" required
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            </div>
+                            <div>
+                                <label for="admin-email" class="block text-sm font-medium text-gray-700 mb-2">Email Address *</label>
+                                <input type="email" id="admin-email" required
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="admin-phone" class="block text-sm font-medium text-gray-700 mb-2">Phone Number</label>
+                                <input type="tel" id="admin-phone"
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            </div>
+                            <div>
+                                <label for="admin-password" class="block text-sm font-medium text-gray-700 mb-2">Password *</label>
+                                <input type="password" id="admin-password" required minlength="6"
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            </div>
+                        </div>
+                        <div id="admin-form-error" class="hidden text-red-600 text-sm bg-red-50 p-3 rounded-lg"></div>
+                        <div id="admin-form-success" class="hidden text-green-600 text-sm bg-green-50 p-3 rounded-lg"></div>
+                        <div class="flex space-x-3">
+                            <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition duration-200">
+                                Create Admin
+                            </button>
+                            <button type="button" onclick="hideCreateAdminForm()" class="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-400 transition duration-200">
+                                Cancel
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            `;
+
+            listEl.insertAdjacentHTML('afterbegin', formHTML);
+
+            // Add form event listener
+            const form = document.getElementById('create-admin-form');
+            if (form) {
+                form.addEventListener('submit', handleCreateAdmin);
+            }
+        }
+
+        function hideCreateAdminForm() {
+            const form = document.querySelector('#create-admin-form').closest('.bg-blue-50');
+            if (form) {
+                form.remove();
+            }
+        }
+
+        async function handleCreateAdmin(e) {
+            e.preventDefault();
+
+            const errorEl = document.getElementById('admin-form-error');
+            const successEl = document.getElementById('admin-form-success');
+
+            errorEl?.classList.add('hidden');
+            successEl?.classList.add('hidden');
+
+            const name = document.getElementById('admin-name')?.value?.trim();
+            const email = document.getElementById('admin-email')?.value?.trim();
+            const phone = document.getElementById('admin-phone')?.value?.trim();
+            const password = document.getElementById('admin-password')?.value;
+
+            if (!name || !email || !password || password.length < 6) {
+                errorEl.textContent = 'Please fill all required fields. Password must be at least 6 characters.';
+                errorEl?.classList.remove('hidden');
+                return;
+            }
+
+            try {
+                // Create auth user
+                const { data: authData, error: authError } = await supabaseClient.auth.admin.createUser({
+                    email,
+                    password,
+                    user_metadata: {
+                        name,
+                        phone,
+                        role: 'admin'
+                    }
+                });
+
+                if (authError) throw authError;
+
+                // Create user profile
+                const { error: userError } = await supabaseClient
+                    .from('users')
+                    .insert({
+                        id: authData.user.id,
+                        email,
+                        name,
+                        phone,
+                        role: 'admin'
+                    });
+
+                if (userError) {
+                    console.warn('User profile creation error:', userError);
+                }
+
+                successEl.textContent = 'Admin contact created successfully!';
+                successEl?.classList.remove('hidden');
+
+                // Reset form
+                document.getElementById('create-admin-form')?.reset();
+
+                // Reload contacts after a delay
+                setTimeout(() => {
+                    hideCreateAdminForm();
+                    loadContactData();
+                }, 2000);
+
+            } catch (error) {
+                console.error('Admin creation error:', error);
+                errorEl.textContent = error.message || 'Failed to create admin contact.';
+                errorEl?.classList.remove('hidden');
+            }
         }
 
         async function loadSettingsData() {
@@ -1969,24 +2665,120 @@
                 if (!admins || admins.length === 0) {
                     listEl.innerHTML = `
                         <div class="text-center py-8">
-                            <p class="text-gray-500 mb-4">No administrators found in the database.</p>
-                            <p class="text-sm text-gray-400">Please ensure admin users are created with role='admin'</p>
+                            <div class="mb-6">
+                                <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                                    </svg>
+                                </div>
+                                <h3 class="text-lg font-medium text-gray-900 mb-2">No administrators found</h3>
+                                <p class="text-gray-500 mb-4">No admin contacts are currently available in the system.</p>
+                            </div>
+
+                            ${currentUser && currentUser.role === 'admin' ? `
+                                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                                    <h4 class="text-sm font-medium text-blue-800 mb-2">Admin User Detected</h4>
+                                    <p class="text-sm text-blue-700 mb-3">You have admin privileges. You can create admin contact entries.</p>
+                                    <button onclick="showCreateAdminForm()" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700">
+                                        Create Admin Contact
+                                    </button>
+                                </div>
+                            ` : ''}
+
+                            <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                                <h4 class="text-sm font-medium text-gray-800 mb-2">For System Administrators</h4>
+                                <p class="text-sm text-gray-600 mb-2">To create admin contacts, you can:</p>
+                                <ul class="text-sm text-gray-600 text-left space-y-1">
+                                    <li>• Create users with role='admin' in Supabase Auth</li>
+                                    <li>• Add user profiles to the users table with role='admin'</li>
+                                    <li>• Use the admin creation form if you have admin privileges</li>
+                                </ul>
+                            </div>
                         </div>
                     `;
                     return;
                 }
-                listEl.innerHTML = admins.map(a => `
-                    <div class="py-4 flex items-start justify-between">
-                        <div>
-                            <div class="font-semibold text-gray-900">${a.name || 'Administrator'}</div>
-                            ${a.email ? `<div class=\"text-sm text-gray-600\">${a.email}</div>` : ''}
-                            ${a.phone ? `<div class=\"text-sm text-gray-600\">${a.phone}</div>` : ''}
+
+                // Display admin contacts
+                let adminHTML = '';
+                admins.forEach((admin, index) => {
+                    adminHTML += `
+                        <div class="py-6 ${index > 0 ? 'border-t border-gray-200' : ''}">
+                            <div class="flex items-start justify-between">
+                                <div class="flex items-start space-x-4">
+                                    <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                                        <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <h4 class="text-lg font-semibold text-gray-900">${admin.name || 'Administrator'}</h4>
+                                        <div class="space-y-1 mt-1">
+                                            ${admin.email ? `
+                                                <div class="flex items-center space-x-2 text-sm text-gray-600">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                                                    </svg>
+                                                    <span>${admin.email}</span>
+                                                </div>
+                                            ` : ''}
+                                            ${admin.phone ? `
+                                                <div class="flex items-center space-x-2 text-sm text-gray-600">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path>
+                                                    </svg>
+                                                    <span>${admin.phone}</span>
+                                                </div>
+                                            ` : ''}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex space-x-2">
+                                    ${admin.email ? `
+                                        <a href="mailto:${admin.email}" class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition duration-200">
+                                            Send Email
+                                        </a>
+                                    ` : ''}
+                                    ${admin.phone ? `
+                                        <a href="tel:${admin.phone}" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition duration-200">
+                                            Call
+                                        </a>
+                                    ` : ''}
+                                </div>
+                            </div>
                         </div>
-                        ${a.email ? `<a href=\"mailto:${a.email}\" class=\"text-green-600 hover:text-green-700 text-sm font-medium\">Email</a>` : ''}
-                    </div>
-                `).join('');
+                    `;
+                });
+
+                // Add admin creation button for admin users
+                if (currentUser && currentUser.role === 'admin') {
+                    adminHTML += `
+                        <div class="py-6 border-t border-gray-200">
+                            <div class="text-center">
+                                <button onclick="showCreateAdminForm()" class="bg-green-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-green-700 transition duration-200">
+                                    <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                                    </svg>
+                                    Add New Admin Contact
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                listEl.innerHTML = adminHTML;
+
             } catch (err) {
                 console.error('loadContactData error', err);
+                const listEl = document.getElementById('admin-contacts-list');
+                if (listEl) {
+                    listEl.innerHTML = `
+                        <div class="text-center py-8">
+                            <p class="text-red-600 mb-2">Error loading admin contacts</p>
+                            <p class="text-sm text-gray-500">${err.message}</p>
+                        </div>
+                    `;
+                }
             }
         }
 
