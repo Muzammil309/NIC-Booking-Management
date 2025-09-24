@@ -1,5 +1,8 @@
 -- NIC Booking Management Database Setup
 -- Run this SQL in your Supabase SQL Editor to ensure proper database structure
+-- This script is safe to run multiple times
+
+BEGIN;
 
 -- Create rooms table if it doesn't exist
 CREATE TABLE IF NOT EXISTS public.rooms (
@@ -15,13 +18,17 @@ CREATE TABLE IF NOT EXISTS public.rooms (
 -- Enable RLS on rooms table
 ALTER TABLE public.rooms ENABLE ROW LEVEL SECURITY;
 
+-- Drop existing policies if they exist (to avoid conflicts)
+DROP POLICY IF EXISTS "Allow authenticated users to read rooms" ON public.rooms;
+DROP POLICY IF EXISTS "Allow admins to manage rooms" ON public.rooms;
+
 -- Create policy for rooms (allow all authenticated users to read)
-CREATE POLICY IF NOT EXISTS "Allow authenticated users to read rooms" ON public.rooms
+CREATE POLICY "Allow authenticated users to read rooms" ON public.rooms
     FOR SELECT TO authenticated USING (true);
 
 -- Create policy for admins to manage rooms
-CREATE POLICY IF NOT EXISTS "Allow admins to manage rooms" ON public.rooms
-    FOR ALL TO authenticated 
+CREATE POLICY "Allow admins to manage rooms" ON public.rooms
+    FOR ALL TO authenticated
     USING (auth.jwt() ->> 'role' = 'admin')
     WITH CHECK (auth.jwt() ->> 'role' = 'admin');
 
@@ -55,10 +62,34 @@ CREATE TRIGGER handle_rooms_updated_at
     FOR EACH ROW
     EXECUTE FUNCTION public.handle_updated_at();
 
+COMMIT;
+
+-- Display setup results
+DO $$
+BEGIN
+    RAISE NOTICE 'Database setup completed successfully!';
+    RAISE NOTICE 'Rooms table: % rows', (SELECT COUNT(*) FROM public.rooms);
+    RAISE NOTICE 'Admin users: % found', (SELECT COUNT(*) FROM public.users WHERE role = 'admin');
+END $$;
+
 -- Display current rooms
 SELECT 'Current rooms in database:' as info;
 SELECT id, name, capacity, equipment, is_active, created_at FROM public.rooms ORDER BY name;
 
 -- Display admin users for contact verification
-SELECT 'Current admin users:' as info;
+SELECT 'Current admin users for Contact Us page:' as info;
 SELECT id, name, email, phone, role FROM public.users WHERE role = 'admin' ORDER BY name;
+
+-- If no admin users found, show instructions
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM public.users WHERE role = 'admin') THEN
+        RAISE NOTICE '';
+        RAISE NOTICE '⚠️  NO ADMIN USERS FOUND!';
+        RAISE NOTICE 'To fix the Contact Us page, create an admin user:';
+        RAISE NOTICE '1. Go to Supabase Dashboard → Authentication → Users';
+        RAISE NOTICE '2. Add a new user with email and password';
+        RAISE NOTICE '3. In User Metadata, add: {"role": "admin", "name": "Admin Name", "phone": "+92-XXX-XXXXXXX"}';
+        RAISE NOTICE '';
+    END IF;
+END $$;

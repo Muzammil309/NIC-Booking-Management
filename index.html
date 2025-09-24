@@ -1394,11 +1394,35 @@
         // Auth state handling
         async function handleAuthState() {
             if (!supabaseClient) return showAuth('login');
+
+            // Check if we should force fresh login (uncomment next line to force re-authentication every time)
+            // await supabaseClient.auth.signOut();
+
             const { data: { session }, error } = await supabaseClient.auth.getSession();
             if (error) console.warn('getSession error', error);
+
             if (session?.user) {
-                showApp();
-                await bootstrapData(session.user);
+                // Verify the session is still valid by checking user profile
+                try {
+                    const { data: userProfile, error: profileError } = await supabaseClient
+                        .from('users')
+                        .select('id, email, role')
+                        .eq('id', session.user.id)
+                        .maybeSingle();
+
+                    if (profileError && profileError.code !== 'PGRST116') {
+                        console.error('Error verifying user profile:', profileError);
+                        await supabaseClient.auth.signOut();
+                        return showAuth('login');
+                    }
+
+                    showApp();
+                    await bootstrapData(session.user);
+                } catch (err) {
+                    console.error('Session validation error:', err);
+                    await supabaseClient.auth.signOut();
+                    showAuth('login');
+                }
             } else {
                 showAuth('login');
             }
@@ -1480,9 +1504,31 @@
         // Logout
         const logoutBtn = document.getElementById('logout-btn');
         logoutBtn?.addEventListener('click', async () => {
+            console.log('User logging out...');
             await supabaseClient.auth.signOut();
+            currentUser = null;
+            currentStartup = null;
             showAuth('login');
         });
+
+        // Session timeout (optional - uncomment to enable 30-minute auto-logout)
+        /*
+        let sessionTimeout;
+        function resetSessionTimeout() {
+            clearTimeout(sessionTimeout);
+            sessionTimeout = setTimeout(async () => {
+                console.log('Session timeout - logging out user');
+                await supabaseClient.auth.signOut();
+                showAuth('login');
+                alert('Your session has expired. Please log in again.');
+            }, 30 * 60 * 1000); // 30 minutes
+        }
+
+        // Reset timeout on user activity
+        ['click', 'keypress', 'scroll', 'mousemove'].forEach(event => {
+            document.addEventListener(event, resetSessionTimeout, true);
+        });
+        */
 
         // Booking form
         const bookingFormEl = document.getElementById('booking-form');
@@ -1873,6 +1919,9 @@
 
             // Initialize database with sample data if needed
             await initializeDatabase();
+
+            // SECURITY: Uncomment the next line to force fresh login every time (clears all sessions)
+            // await supabaseClient.auth.signOut();
 
             // Check if sidebar exists
             const sidebar = document.getElementById('sidebar');
