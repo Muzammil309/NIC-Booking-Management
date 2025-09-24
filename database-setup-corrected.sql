@@ -100,24 +100,25 @@ ALTER TABLE public.rooms ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.bookings ENABLE ROW LEVEL SECURITY;
 
 -- Clean up existing policies safely
-DO $$ 
+DO $$
 BEGIN
     -- Users table policies
     DROP POLICY IF EXISTS "Users can view their own profile" ON public.users;
     DROP POLICY IF EXISTS "Users can update their own profile" ON public.users;
+    DROP POLICY IF EXISTS "Users can create their own profile" ON public.users;
     DROP POLICY IF EXISTS "Admins can view all users" ON public.users;
     DROP POLICY IF EXISTS "Admins can manage all users" ON public.users;
-    
+
     -- Startups table policies
     DROP POLICY IF EXISTS "Users can view their own startup" ON public.startups;
     DROP POLICY IF EXISTS "Users can update their own startup" ON public.startups;
     DROP POLICY IF EXISTS "Users can create their own startup" ON public.startups;
     DROP POLICY IF EXISTS "Admins can view all startups" ON public.startups;
-    
+
     -- Rooms table policies
     DROP POLICY IF EXISTS "Allow authenticated users to read rooms" ON public.rooms;
     DROP POLICY IF EXISTS "Allow admins to manage rooms" ON public.rooms;
-    
+
     -- Bookings table policies
     DROP POLICY IF EXISTS "Users can view their own bookings" ON public.bookings;
     DROP POLICY IF EXISTS "Users can create their own bookings" ON public.bookings;
@@ -126,7 +127,7 @@ BEGIN
     DROP POLICY IF EXISTS "Admins can manage all bookings" ON public.bookings;
 EXCEPTION WHEN OTHERS THEN
     RAISE NOTICE 'Some policies may not exist, continuing...';
-END $$;
+END $$ LANGUAGE plpgsql;
 
 -- Create RLS policies for users table
 CREATE POLICY "Users can view their own profile" ON public.users
@@ -136,6 +137,10 @@ CREATE POLICY "Users can view their own profile" ON public.users
 CREATE POLICY "Users can update their own profile" ON public.users
     FOR UPDATE TO authenticated
     USING (auth.uid() = id)
+    WITH CHECK (auth.uid() = id);
+
+CREATE POLICY "Users can create their own profile" ON public.users
+    FOR INSERT TO authenticated
     WITH CHECK (auth.uid() = id);
 
 CREATE POLICY "Admins can view all users" ON public.users
@@ -263,7 +268,7 @@ COMMIT;
 -- Insert sample room data (separate transaction)
 BEGIN;
 
--- FIXED: Proper DO block syntax with corrected RAISE NOTICE
+-- FIXED: Proper DO block syntax with LANGUAGE specification
 DO $$
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM public.rooms LIMIT 1) THEN
@@ -277,16 +282,16 @@ BEGIN
             ('Indus-Board Room', 12, ARRAY['Large Screen', 'Video Conference', 'Whiteboard', 'Presentation Setup'], 'special', 2, false, true),
             ('Nexus-Session Hall', 20, ARRAY['Audio System', 'Projector', 'Stage Setup', 'Microphones'], 'special', 2, false, true),
             ('Podcast Room', 4, ARRAY['Recording Equipment', 'Soundproofing', 'Microphones', 'Audio Interface'], 'special', 2, true, true);
-        
+
         -- FIXED: Corrected RAISE NOTICE syntax
         RAISE NOTICE 'Successfully inserted 9 sample rooms';
     ELSE
         RAISE NOTICE 'Rooms already exist, skipping sample data insertion';
     END IF;
-EXCEPTION 
+EXCEPTION
     WHEN OTHERS THEN
         RAISE NOTICE 'Error inserting room data: %', SQLERRM;
-END $$;
+END $$ LANGUAGE plpgsql;
 
 COMMIT;
 
@@ -304,7 +309,7 @@ BEGIN
     RAISE NOTICE 'Created users updated_at trigger';
 EXCEPTION WHEN OTHERS THEN
     RAISE NOTICE 'Error creating users trigger: %', SQLERRM;
-END $$;
+END $$ LANGUAGE plpgsql;
 
 DO $$
 BEGIN
@@ -316,7 +321,7 @@ BEGIN
     RAISE NOTICE 'Created startups updated_at trigger';
 EXCEPTION WHEN OTHERS THEN
     RAISE NOTICE 'Error creating startups trigger: %', SQLERRM;
-END $$;
+END $$ LANGUAGE plpgsql;
 
 DO $$
 BEGIN
@@ -328,7 +333,7 @@ BEGIN
     RAISE NOTICE 'Created rooms updated_at trigger';
 EXCEPTION WHEN OTHERS THEN
     RAISE NOTICE 'Error creating rooms trigger: %', SQLERRM;
-END $$;
+END $$ LANGUAGE plpgsql;
 
 DO $$
 BEGIN
@@ -340,7 +345,7 @@ BEGIN
     RAISE NOTICE 'Created bookings updated_at trigger';
 EXCEPTION WHEN OTHERS THEN
     RAISE NOTICE 'Error creating bookings trigger: %', SQLERRM;
-END $$;
+END $$ LANGUAGE plpgsql;
 
 -- Create trigger to prevent overlapping bookings
 DO $$
@@ -353,7 +358,7 @@ BEGIN
     RAISE NOTICE 'Created booking overlap prevention trigger';
 EXCEPTION WHEN OTHERS THEN
     RAISE NOTICE 'Error creating overlap trigger: %', SQLERRM;
-END $$;
+END $$ LANGUAGE plpgsql;
 
 COMMIT;
 
@@ -425,4 +430,4 @@ BEGIN
 
 EXCEPTION WHEN OTHERS THEN
     RAISE NOTICE 'Error in final validation: %', SQLERRM;
-END $$;
+END $$ LANGUAGE plpgsql;
