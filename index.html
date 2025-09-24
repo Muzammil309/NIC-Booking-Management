@@ -127,42 +127,43 @@
 
     <!-- Main Application -->
     <div id="app" class="hidden min-h-screen bg-gray-50">
-        <!-- Header -->
-        <header class="bg-white shadow-sm border-b">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="flex justify-between items-center h-16">
-                    <div class="flex items-center">
-                        <h1 class="text-2xl font-bold text-gray-900">NIC Islamabad</h1>
-                        <span class="ml-3 text-sm text-gray-500">Room Booking System</span>
-                    </div>
-                    <div class="flex items-center space-x-4">
-                        <span class="text-sm text-gray-700">Welcome, <span id="user-name">User</span></span>
-                        <button id="logout-btn" class="text-sm text-red-600 hover:text-red-700 font-medium">Logout</button>
-                    </div>
+        <div class="flex min-h-screen">
+            <!-- Sidebar -->
+            <aside id="sidebar" class="w-64 bg-white border-r hidden md:block">
+                <div class="p-4 border-b">
+                    <h1 class="text-xl font-bold text-gray-900">NIC Islamabad</h1>
+                    <p class="text-xs text-gray-500">Room Booking System</p>
                 </div>
-            </div>
-        </header>
+                <nav class="px-2 py-4 space-y-1">
+                    <a href="#dashboard" class="nav-link block px-3 py-2 rounded text-sm font-medium text-gray-700 hover:text-green-700">Dashboard</a>
+                    <a href="#startups" class="nav-link block px-3 py-2 rounded text-sm font-medium text-gray-700 hover:text-green-700" data-admin-only>Startups</a>
+                    <a href="#booking" class="nav-link block px-3 py-2 rounded text-sm font-medium text-gray-700 hover:text-green-700">Book a Room</a>
+                    <a href="#my-bookings" class="nav-link block px-3 py-2 rounded text-sm font-medium text-gray-700 hover:text-green-700">My Bookings</a>
+                    <a href="#schedule" class="nav-link block px-3 py-2 rounded text-sm font-medium text-gray-700 hover:text-green-700">Schedule</a>
+                    <a href="#room-displays" class="nav-link block px-3 py-2 rounded text-sm font-medium text-gray-700 hover:text-green-700">Room Displays</a>
+                    <a href="#reports" class="nav-link block px-3 py-2 rounded text-sm font-medium text-gray-700 hover:text-green-700" data-admin-only>Reports</a>
+                    <a href="#policies" class="nav-link block px-3 py-2 rounded text-sm font-medium text-gray-700 hover:text-green-700">Policies</a>
+                    <a href="#contact" class="nav-link block px-3 py-2 rounded text-sm font-medium text-gray-700 hover:text-green-700">Contact Us</a>
+                    <a href="#settings" class="nav-link block px-3 py-2 rounded text-sm font-medium text-gray-700 hover:text-green-700">Settings</a>
+                </nav>
+            </aside>
 
-        <!-- Navigation -->
-        <nav class="bg-white shadow-sm">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="flex space-x-8 overflow-x-auto">
-                    <a href="#dashboard" class="nav-link px-3 py-4 text-sm font-medium text-gray-700 hover:text-green-700 whitespace-nowrap">Dashboard</a>
-                    <a href="#startups" class="nav-link px-3 py-4 text-sm font-medium text-gray-700 hover:text-green-700 whitespace-nowrap" data-admin-only>Startups</a>
-                    <a href="#booking" class="nav-link px-3 py-4 text-sm font-medium text-gray-700 hover:text-green-700 whitespace-nowrap">Book a Room</a>
-                    <a href="#my-bookings" class="nav-link px-3 py-4 text-sm font-medium text-gray-700 hover:text-green-700 whitespace-nowrap">My Bookings</a>
-                    <a href="#schedule" class="nav-link px-3 py-4 text-sm font-medium text-gray-700 hover:text-green-700 whitespace-nowrap">Schedule</a>
-                    <a href="#room-displays" class="nav-link px-3 py-4 text-sm font-medium text-gray-700 hover:text-green-700 whitespace-nowrap">Room Displays</a>
-                    <a href="#reports" class="nav-link px-3 py-4 text-sm font-medium text-gray-700 hover:text-green-700 whitespace-nowrap" data-admin-only>Reports</a>
-                    <a href="#policies" class="nav-link px-3 py-4 text-sm font-medium text-gray-700 hover:text-green-700 whitespace-nowrap">Policies</a>
-                    <a href="#contact" class="nav-link px-3 py-4 text-sm font-medium text-gray-700 hover:text-green-700 whitespace-nowrap">Contact Us</a>
-                    <a href="#settings" class="nav-link px-3 py-4 text-sm font-medium text-gray-700 hover:text-green-700 whitespace-nowrap">Settings</a>
-                </div>
-            </div>
-        </nav>
+            <!-- Content column -->
+            <div class="flex-1 flex flex-col">
+                <header class="bg-white border-b">
+                    <div class="px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+                        <button id="sidebar-toggle" class="md:hidden inline-flex items-center px-3 py-2 border border-gray-300 rounded text-gray-600 hover:bg-gray-50">
+                            Menu
+                        </button>
+                        <div class="flex-1 text-right">
+                            <span class="text-sm text-gray-700">Welcome, <span id="user-name">User</span></span>
+                            <button id="logout-btn" class="ml-4 text-sm text-red-600 hover:text-red-700 font-medium">Logout</button>
+                        </div>
+                    </div>
+                </header>
 
-        <!-- Main Content -->
-        <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                <!-- Main Content -->
+                <main class="px-4 sm:px-6 lg:px-8 py-8">
             <!-- Dashboard Page -->
             <div id="dashboard" class="page">
                 <div class="mb-8">
@@ -538,100 +539,10 @@
                     <p class="text-gray-600">Get in touch with the NIC Islamabad team</p>
                 </div>
 
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <!-- Contact Information -->
-                    <div class="bg-white rounded-xl shadow-lg p-8">
-                        <h3 class="text-xl font-bold text-gray-900 mb-6">Contact Information</h3>
-
-                        <div class="space-y-4">
-                            <div class="flex items-start">
-                                <div class="p-2 bg-green-100 rounded-lg">
-                                    <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                    </svg>
-                                </div>
-                                <div class="ml-4">
-                                    <h4 class="font-semibold text-gray-900">Address</h4>
-                                    <p class="text-gray-600">National Incubation Center<br>Islamabad, Pakistan</p>
-                                </div>
-                            </div>
-
-                            <div class="flex items-start">
-                                <div class="p-2 bg-green-100 rounded-lg">
-                                    <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path>
-                                    </svg>
-                                </div>
-                                <div class="ml-4">
-                                    <h4 class="font-semibold text-gray-900">Phone</h4>
-                                    <p class="text-gray-600">+92 51 1234567</p>
-                                </div>
-                            </div>
-
-                            <div class="flex items-start">
-                                <div class="p-2 bg-green-100 rounded-lg">
-                                    <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
-                                    </svg>
-                                </div>
-                                <div class="ml-4">
-                                    <h4 class="font-semibold text-gray-900">Email</h4>
-                                    <p class="text-gray-600">info@nicislamabad.com</p>
-                                </div>
-                            </div>
-
-                            <div class="flex items-start">
-                                <div class="p-2 bg-green-100 rounded-lg">
-                                    <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                    </svg>
-                                </div>
-                                <div class="ml-4">
-                                    <h4 class="font-semibold text-gray-900">Office Hours</h4>
-                                    <p class="text-gray-600">Monday - Friday: 9:00 AM - 6:00 PM<br>Saturday: 9:00 AM - 2:00 PM</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Contact Form -->
-                    <div class="bg-white rounded-xl shadow-lg p-8">
-                        <h3 class="text-xl font-bold text-gray-900 mb-6">Send us a Message</h3>
-
-                        <form id="contact-form" class="space-y-6">
-                            <div>
-                                <label for="contact-name" class="block text-sm font-medium text-gray-700 mb-2">Name *</label>
-                                <input type="text" id="contact-name" required
-                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
-                            </div>
-
-                            <div>
-                                <label for="contact-email" class="block text-sm font-medium text-gray-700 mb-2">Email *</label>
-                                <input type="email" id="contact-email" required
-                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
-                            </div>
-
-                            <div>
-                                <label for="contact-subject" class="block text-sm font-medium text-gray-700 mb-2">Subject *</label>
-                                <input type="text" id="contact-subject" required
-                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
-                            </div>
-
-                            <div>
-                                <label for="contact-message" class="block text-sm font-medium text-gray-700 mb-2">Message *</label>
-                                <textarea id="contact-message" rows="5" required
-                                          class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                                          placeholder="Please describe your inquiry..."></textarea>
-                            </div>
-
-                            <div id="contact-message-status" class="hidden"></div>
-
-                            <button type="submit" class="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition duration-200">
-                                Send Message
-                            </button>
-                        </form>
-                    </div>
+                <div class="bg-white rounded-xl shadow-lg p-8">
+                    <h3 class="text-xl font-bold text-gray-900 mb-2">NIC Admin Contacts</h3>
+                    <p class="text-gray-600 mb-6">Reach out directly to one of our administrators for assistance.</p>
+                    <div id="admin-contacts-list" class="divide-y divide-gray-100"></div>
                 </div>
             </div>
 
@@ -742,6 +653,8 @@
                 </div>
             </div>
         </main>
+            </div>
+        </div>
     </div>
 
     <!-- JavaScript -->
@@ -799,23 +712,24 @@
             });
 
             // Show selected page
-            const targetPage = document.getElementById(pageId);
-            if (targetPage) {
-                targetPage.classList.remove('hidden');
-
-                // Update navigation active state
-                document.querySelectorAll('.nav-link').forEach(link => {
-                    link.classList.remove('bg-green-50', 'text-green-700');
-                });
-
-                const activeLink = document.querySelector(`a[href="#${pageId}"]`);
-                if (activeLink) {
-                    activeLink.classList.add('bg-green-50', 'text-green-700');
-                }
-
-                // Load page-specific data
-                loadPageData(pageId);
+            let targetPage = document.getElementById(pageId);
+            if (!targetPage) {
+                return showPage('#dashboard');
             }
+            targetPage.classList.remove('hidden');
+
+            // Update navigation active state
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.remove('bg-green-50', 'text-green-700');
+            });
+
+            const activeLink = document.querySelector(`a[href="#${pageId}"]`);
+            if (activeLink) {
+                activeLink.classList.add('bg-green-50', 'text-green-700');
+            }
+
+            // Load page-specific data
+            loadPageData(pageId);
         }
 
         async function loadPageData(pageId) {
@@ -841,6 +755,9 @@
                         break;
                     case 'reports':
                         await loadReportsData();
+                        break;
+                    case 'contact':
+                        await loadContactData();
                         break;
                     case 'settings':
                         await loadSettingsData();
@@ -1081,19 +998,32 @@
         // ===== BOOKING FORM DATA LOADING =====
         async function loadBookingFormData() {
             try {
-                // Load rooms for dropdown
-                const { data: rooms, error } = await supabaseClient
+                // Load rooms for dropdown with graceful fallback
+                let rooms = [];
+                let resp = await supabaseClient
                     .from('rooms')
-                    .select('*')
-                    .eq('is_active', true)
+                    .select('id, name, is_active')
                     .order('name');
 
-                if (error) throw error;
+                if (resp.error) {
+                    console.warn('rooms select error (with is_active), retrying without filter:', resp.error.message);
+                    resp = await supabaseClient
+                        .from('rooms')
+                        .select('id, name')
+                        .order('name');
+                }
+
+                if (resp.error) throw resp.error;
+                rooms = resp.data || [];
+
+                // If table has is_active column, filter here; otherwise all rooms
+                const safeRooms = rooms.filter(r => (typeof r.is_active === 'boolean' ? r.is_active : true));
 
                 const roomSelect = document.getElementById('room-select');
                 if (roomSelect) {
                     roomSelect.innerHTML = '<option value="">Select a room</option>' +
-                        rooms.map(room => `<option value="${room.name}">${room.name}</option>`).join('');
+                        safeRooms.map(room => `<option value="${room.name}">${room.name}</option>`).join('');
+                    roomSelect.disabled = safeRooms.length === 0;
                 }
 
                 // Set minimum date to tomorrow
@@ -1107,6 +1037,11 @@
 
             } catch (error) {
                 console.error('Error loading booking form data:', error);
+                const roomSelect = document.getElementById('room-select');
+                if (roomSelect) {
+                    roomSelect.innerHTML = '<option value="">Unable to load rooms</option>';
+                    roomSelect.disabled = true;
+                }
             }
         }
 
@@ -1176,26 +1111,23 @@
         // ===== AUTHENTICATION INTEGRATION =====
         async function bootstrapData(user) {
             try {
-                // Get user profile
-                const { data: userProfile, error: userError } = await supabaseClient
+                // Get user profile (tolerant of missing rows)
+                const { data: userProfile } = await supabaseClient
                     .from('users')
                     .select('*')
                     .eq('id', user.id)
-                    .single();
+                    .maybeSingle();
 
-                if (userError) throw userError;
-                currentUser = userProfile;
+                currentUser = userProfile || { id: user.id, email: user.email, role: 'startup' };
 
-                // Get user's startup
-                const { data: startup, error: startupError } = await supabaseClient
+                // Get user's startup (optional)
+                const { data: startup } = await supabaseClient
                     .from('startups')
                     .select('*')
                     .eq('user_id', user.id)
-                    .single();
+                    .maybeSingle();
 
-                if (!startupError && startup) {
-                    currentStartup = startup;
-                }
+                currentStartup = startup || null;
 
                 // Update UI based on user role
                 updateUIForUserRole(currentUser.role);
@@ -1385,6 +1317,13 @@
         // Navigation
         window.addEventListener('hashchange', () => showPage(window.location.hash));
 
+        // Sidebar toggle (mobile)
+        const sidebarToggle = document.getElementById('sidebar-toggle');
+        const sidebarEl = document.getElementById('sidebar');
+        sidebarToggle?.addEventListener('click', () => {
+            sidebarEl?.classList.toggle('hidden');
+        });
+
         // Create admin button
         const createAdminBtn = document.getElementById('create-admin-btn');
         createAdminBtn?.addEventListener('click', createAdminAccount);
@@ -1479,6 +1418,37 @@
         async function loadSettingsData() {
             console.log('Loading settings data...');
         }
+
+        async function loadContactData() {
+            try {
+                const { data: admins, error } = await supabaseClient
+                    .from('users')
+                    .select('id, name, email, phone')
+                    .eq('role', 'admin')
+                    .order('name');
+                if (error) throw error;
+
+                const listEl = document.getElementById('admin-contacts-list');
+                if (!listEl) return;
+                if (!admins || admins.length === 0) {
+                    listEl.innerHTML = '<p class="text-gray-500">No administrators found.</p>';
+                    return;
+                }
+                listEl.innerHTML = admins.map(a => `
+                    <div class="py-4 flex items-start justify-between">
+                        <div>
+                            <div class="font-semibold text-gray-900">${a.name || 'Administrator'}</div>
+                            ${a.email ? `<div class=\"text-sm text-gray-600\">${a.email}</div>` : ''}
+                            ${a.phone ? `<div class=\"text-sm text-gray-600\">${a.phone}</div>` : ''}
+                        </div>
+                        ${a.email ? `<a href=\"mailto:${a.email}\" class=\"text-green-600 hover:text-green-700 text-sm font-medium\">Email</a>` : ''}
+                    </div>
+                `).join('');
+            } catch (err) {
+                console.error('loadContactData error', err);
+            }
+        }
+
 
         // ===== INITIALIZE APPLICATION =====
         document.addEventListener('DOMContentLoaded', () => {
