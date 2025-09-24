@@ -12,423 +12,388 @@
     <style>
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
-            background-color: #f7f8fa;
         }
-        :root {
-            --brand-olive-dark: #3E4A39;
-            --brand-olive-mid: #6A7B63;
-            --brand-olive-light: #A8B8A0;
-            --brand-gold: #D4AF37;
-            --background-light: #F7F8FA;
-            --card-bg: #FFFFFF;
-            --text-dark: #1a202c;
-            --text-light: #4a5568;
-            --border-color: #e2e8f0;
+        .nav-link {
+            transition: all 0.2s ease-in-out;
         }
-        .nav-link.active {
-            background-color: rgba(62, 74, 57, 0.08);
-            color: var(--brand-olive-dark);
-            font-weight: 700;
-            border-left: 4px solid var(--brand-olive-dark);
+        .nav-link:hover {
+            background-color: #f0fdf4;
+            color: #15803d;
         }
         .page {
-            animation: pageEnter 0.7s cubic-bezier(0.25, 1, 0.5, 1);
+            min-height: calc(100vh - 200px);
         }
-        @keyframes pageEnter {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
+        .hidden {
+            display: none !important;
         }
-        .auth-view {
-            animation: authEnter 0.5s ease-out;
-        }
-        @keyframes authEnter {
-            from { opacity: 0; transform: scale(0.98) translateY(10px); }
-            to { opacity: 1; transform: scale(1) translateY(0); }
-        }
-
-        .btn-primary {
-            background-color: var(--brand-olive-dark);
-            color: white;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1);
-        }
-        .btn-primary:hover {
-            background-color: var(--brand-olive-mid);
-            transform: translateY(-2px);
-            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1);
-        }
-        .btn-primary:active {
-            transform: translateY(0px);
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1);
-        }
-        .input-focus:focus {
-            --tw-ring-color: var(--brand-olive-light);
-        }
-
-        /* Fun Animations & Effects */
-        .stat-card {
-            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-        }
-        .stat-card:hover {
-            transform: translateY(-5px) scale(1.02);
-            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1);
-        }
-        .calendar-day:hover {
-            transform: scale(1.1);
-            background-color: rgba(62, 74, 57, 0.1);
-        }
-        #confetti-container {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+        .loading {
+            opacity: 0.6;
             pointer-events: none;
-            z-index: 1000;
-            overflow: hidden;
-        }
-        .confetti {
-            position: absolute;
-            width: 10px;
-            height: 10px;
-            background-color: var(--brand-gold);
-            opacity: 0;
-            animation: fall 3s linear infinite;
-        }
-        .confetti.triangle {
-            width: 0;
-            height: 0;
-            border-left: 5px solid transparent;
-            border-right: 5px solid transparent;
-            border-bottom: 10px solid var(--brand-olive-light);
-            background-color: transparent;
-        }
-        @keyframes fall {
-            0% { transform: translateY(-10vh) rotate(0deg); opacity: 1; }
-            100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
-        }
-
-        /* Tablet Display Styles */
-        #tablet-view-container .content-wrapper {
-            animation: fadeIn 0.5s ease-in-out;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: scale(0.95); }
-            to { opacity: 1; transform: scale(1); }
-        }
-        #password-modal > div {
-             animation: modalEnter 0.3s cubic-bezier(0.25, 1, 0.5, 1);
-        }
-        @keyframes modalEnter {
-            from { opacity: 0; transform: translateY(20px) scale(0.98); }
-            to { opacity: 1; transform: translateY(0) scale(1); }
         }
     </style>
 </head>
-<body class="text-gray-800 antialiased">
-    <div id="confetti-container"></div>
-
+<body class="bg-gray-50">
     <!-- Authentication Container -->
-    <div id="auth-container" class="w-full h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-green-50">
-        <div class="w-full max-w-md auth-card">
-              <!-- Login View -->
-            <div id="login-view" class="auth-view bg-white p-8 rounded-xl shadow-2xl shadow-gray-200">
-                <div class="flex justify-center mb-6 h-12">
-                    <!-- Logo will be added here -->
+    <div id="auth-container" class="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-blue-50">
+        <!-- Login View -->
+        <div id="login-view" class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md">
+            <div class="text-center mb-8">
+                <h1 class="text-3xl font-bold text-gray-800 mb-2">NIC Islamabad</h1>
+                <p class="text-gray-600">Room Booking System</p>
+            </div>
+
+            <form id="login-form" class="space-y-6">
+                <div>
+                    <label for="login-email" class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                    <input type="email" id="login-email" required
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
                 </div>
-                <div class="text-center mb-8">
-                    <h1 class="text-3xl font-extrabold text-gray-800">Welcome Back</h1>
-                    <p class="text-gray-500 mt-2">Sign in to manage your bookings.</p>
+
+                <div>
+                    <label for="login-password" class="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                    <input type="password" id="login-password" required
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
                 </div>
-                <div id="login-error" class="mb-4 text-red-600 text-sm font-medium"></div>
-                <form id="login-form">
-                    <div class="mb-4">
-                        <label for="login-email" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                        <input type="email" id="login-email" class="w-full border rounded-lg p-3 focus:ring-2 input-focus" required>
-                    </div>
-                    <div class="mb-6">
-                        <label for="login-password" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
-                        <input type="password" id="login-password" class="w-full border rounded-lg p-3 focus:ring-2 input-focus" required>
-                    </div>
-                    <button type="submit" class="w-full py-3 rounded-lg font-semibold btn-primary">Login Securely</button>
-                </form>
-                <p class="text-center text-sm text-gray-600 mt-6">
-                    A startup? <a href="#" id="show-signup" class="font-semibold text-green-700 hover:underline">Create an Account</a>
+
+                <div id="login-error" class="hidden text-red-600 text-sm bg-red-50 p-3 rounded-lg"></div>
+
+                <button type="submit" class="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition duration-200">
+                    Sign In
+                </button>
+            </form>
+
+            <div class="mt-6 text-center">
+                <p class="text-gray-600">Don't have an account?
+                    <a href="#" id="show-signup" class="text-green-600 hover:text-green-700 font-semibold">Create an Account</a>
                 </p>
             </div>
-            <!-- Signup View -->
-            <div id="signup-view" class="auth-view bg-white p-8 rounded-xl shadow-2xl shadow-gray-200 hidden">
-                 <div class="flex justify-center mb-6 h-12">
-                    <!-- Logo will be added here -->
+        </div>
+
+        <!-- Signup View -->
+        <div id="signup-view" class="hidden bg-white p-8 rounded-2xl shadow-xl w-full max-w-md">
+            <div class="text-center mb-8">
+                <h1 class="text-3xl font-bold text-gray-800 mb-2">Create Account</h1>
+                <p class="text-gray-600">Join NIC Islamabad</p>
+            </div>
+
+            <form id="signup-form" class="space-y-4">
+                <div>
+                    <label for="signup-startup-name" class="block text-sm font-medium text-gray-700 mb-2">Startup Name *</label>
+                    <input type="text" id="signup-startup-name" required
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
                 </div>
-                <h2 class="text-3xl font-bold text-center text-gray-800 mb-2">Create Account</h2>
-                <p class="text-center text-gray-500 mb-8">Register your startup to get started.</p>
-                 <div id="signup-error" class="mb-4 text-red-600 text-sm font-medium hidden"></div>
-                 <div id="signup-success" class="mb-4 text-green-600 text-sm font-medium hidden"></div>
-                <form id="signup-form" class="space-y-4">
-                    <div>
-                        <label for="signup-startup-name" class="block text-sm font-medium text-gray-700 mb-1">Startup Name *</label>
-                        <input
-                            type="text"
-                            id="signup-startup-name"
-                            name="startupName"
-                            placeholder="Enter your startup name"
-                            class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                            required
-                        >
-                    </div>
 
-                    <div>
-                        <label for="signup-contact-person" class="block text-sm font-medium text-gray-700 mb-1">Contact Person *</label>
-                        <input
-                            type="text"
-                            id="signup-contact-person"
-                            name="contactPerson"
-                            placeholder="Enter contact person name"
-                            class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                            required
-                        >
-                    </div>
+                <div>
+                    <label for="signup-contact-person" class="block text-sm font-medium text-gray-700 mb-2">Contact Person *</label>
+                    <input type="text" id="signup-contact-person" required
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                </div>
 
-                    <div>
-                        <label for="signup-phone" class="block text-sm font-medium text-gray-700 mb-1">Phone Number *</label>
-                        <input
-                            type="tel"
-                            id="signup-phone"
-                            name="phone"
-                            placeholder="Enter phone number"
-                            class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                            required
-                        >
-                    </div>
+                <div>
+                    <label for="signup-phone" class="block text-sm font-medium text-gray-700 mb-2">Phone Number *</label>
+                    <input type="tel" id="signup-phone" required
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                </div>
 
-                    <div>
-                        <label for="signup-email" class="block text-sm font-medium text-gray-700 mb-1">Email Address *</label>
-                        <input
-                            type="email"
-                            id="signup-email"
-                            name="email"
-                            placeholder="Enter email address"
-                            class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                            required
-                        >
-                    </div>
+                <div>
+                    <label for="signup-email" class="block text-sm font-medium text-gray-700 mb-2">Email *</label>
+                    <input type="email" id="signup-email" required
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                </div>
 
-                    <div>
-                        <label for="signup-password" class="block text-sm font-medium text-gray-700 mb-1">Password *</label>
-                        <input
-                            type="password"
-                            id="signup-password"
-                            name="password"
-                            placeholder="Enter password (min 6 characters)"
-                            class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                            required
-                            minlength="6"
-                        >
-                    </div>
+                <div>
+                    <label for="signup-password" class="block text-sm font-medium text-gray-700 mb-2">Password *</label>
+                    <input type="password" id="signup-password" required minlength="6"
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                    <p class="text-xs text-gray-500 mt-1">Minimum 6 characters</p>
+                </div>
 
-                    <button
-                        type="submit"
-                        id="signup-submit-btn"
-                        class="w-full py-3 rounded-lg font-semibold bg-green-600 text-white hover:bg-green-700 focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        <span id="signup-btn-text">Create Account</span>
-                        <span id="signup-btn-loading" class="hidden">Creating Account...</span>
-                    </button>
-                </form>
-                <p class="text-center text-sm text-gray-600 mt-6">
-                    Already have an account?
-                    <a href="#" id="show-login" class="font-semibold text-green-700 hover:underline">Sign In</a>
+                <div id="signup-error" class="hidden text-red-600 text-sm bg-red-50 p-3 rounded-lg"></div>
+                <div id="signup-success" class="hidden text-green-600 text-sm bg-green-50 p-3 rounded-lg"></div>
+
+                <button type="submit" id="signup-submit-btn" class="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition duration-200">
+                    <span id="signup-btn-text">Create Account</span>
+                    <span id="signup-btn-loading" class="hidden">Creating Account...</span>
+                </button>
+            </form>
+
+            <div class="mt-6 text-center">
+                <p class="text-gray-600">Already have an account?
+                    <a href="#" id="show-login" class="text-green-600 hover:text-green-700 font-semibold">Sign In</a>
                 </p>
             </div>
         </div>
     </div>
 
-    <!-- Main App Container -->
-    <div id="app" class="flex h-screen bg-white hidden">
-        <!-- Sidebar Navigation -->
-        <aside class="w-64 bg-white text-gray-700 flex flex-col shadow-lg border-r flex-shrink-0">
-            <div class="h-20 flex items-center justify-center border-b border-gray-200 px-4">
-                <!-- Logo will be added here -->
-            </div>
-            <nav class="flex-1 px-4 py-4 space-y-2">
-                <a href="#dashboard" class="nav-link flex items-center px-4 py-3 rounded-lg hover:bg-green-50 hover:text-green-700 transition duration-200">
-                    <svg class="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
-                    Dashboard
-                </a>
-                <a href="#startups" class="nav-link flex items-center px-4 py-3 rounded-lg hover:bg-green-50 hover:text-green-700 transition duration-200">
-                     <svg class="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M15 21a6 6 0 00-9-5.197M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                    Startups
-                </a>
-                <a href="#booking" class="nav-link flex items-center px-4 py-3 rounded-lg hover:bg-green-50 hover:text-green-700 transition duration-200">
-                    <svg class="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                    Book a Room
-                </a>
-                <a href="#my-bookings" class="nav-link flex items-center px-4 py-3 rounded-lg hover:bg-green-50 hover:text-green-700 transition duration-200">
-                   <svg class="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
-                   My Bookings
-                </a>
-                <a href="#schedule" class="nav-link flex items-center px-4 py-3 rounded-lg hover:bg-green-50 hover:text-green-700 transition duration-200">
-                     <svg class="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                    Schedule
-                </a>
-                 <a href="#room-displays" class="nav-link flex items-center px-4 py-3 rounded-lg hover:bg-green-50 hover:text-green-700 transition duration-200">
-                    <svg class="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                    Room Displays
-                </a>
-                 <a href="#reports" class="nav-link flex items-center px-4 py-3 rounded-lg hover:bg-green-50 hover:text-green-700 transition duration-200">
-                    <svg class="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                    Reports
-                </a>
-                 <a href="#policies" class="nav-link flex items-center px-4 py-3 rounded-lg hover:bg-green-50 hover:text-green-700 transition duration-200">
-                    <svg class="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                    Policies
-                </a>
-                 <a href="#contact" class="nav-link flex items-center px-4 py-3 rounded-lg hover:bg-green-50 hover:text-green-700 transition duration-200">
-                    <svg class="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
-                    Contact Us
-                </a>
-                 <a href="#settings" class="nav-link flex items-center px-4 py-3 rounded-lg hover:bg-green-50 hover:text-green-700 transition duration-200">
-                    <svg class="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                    Settings
-                </a>
-            </nav>
-            <div class="px-4 py-4 border-t border-gray-200">
-                <div id="user-profile" class="flex items-center">
-                    <img id="user-avatar" class="h-10 w-10 rounded-full object-cover" src="https://placehold.co/100x100/E2E8F0/475569?text=U" alt="User photo">
-                    <div class="ml-3">
-                        <p id="user-name" class="text-sm font-semibold text-gray-800">User</p>
-                        <a href="#" id="logout-btn" class="text-xs text-gray-500 hover:text-green-600">Logout</a>
+    <!-- Main Application -->
+    <div id="app" class="hidden min-h-screen bg-gray-50">
+        <!-- Header -->
+        <header class="bg-white shadow-sm border-b">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-center h-16">
+                    <div class="flex items-center">
+                        <h1 class="text-2xl font-bold text-gray-900">NIC Islamabad</h1>
+                        <span class="ml-3 text-sm text-gray-500">Room Booking System</span>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <span class="text-sm text-gray-700">Welcome, <span id="user-name">User</span></span>
+                        <button id="logout-btn" class="text-sm text-red-600 hover:text-red-700 font-medium">Logout</button>
                     </div>
                 </div>
             </div>
-        </aside>
+        </header>
+
+        <!-- Navigation -->
+        <nav class="bg-white shadow-sm">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex space-x-8 overflow-x-auto">
+                    <a href="#dashboard" class="nav-link px-3 py-4 text-sm font-medium text-gray-700 hover:text-green-700 whitespace-nowrap">Dashboard</a>
+                    <a href="#startups" class="nav-link px-3 py-4 text-sm font-medium text-gray-700 hover:text-green-700 whitespace-nowrap" data-admin-only>Startups</a>
+                    <a href="#booking" class="nav-link px-3 py-4 text-sm font-medium text-gray-700 hover:text-green-700 whitespace-nowrap">Book a Room</a>
+                    <a href="#my-bookings" class="nav-link px-3 py-4 text-sm font-medium text-gray-700 hover:text-green-700 whitespace-nowrap">My Bookings</a>
+                    <a href="#schedule" class="nav-link px-3 py-4 text-sm font-medium text-gray-700 hover:text-green-700 whitespace-nowrap">Schedule</a>
+                    <a href="#room-displays" class="nav-link px-3 py-4 text-sm font-medium text-gray-700 hover:text-green-700 whitespace-nowrap">Room Displays</a>
+                    <a href="#reports" class="nav-link px-3 py-4 text-sm font-medium text-gray-700 hover:text-green-700 whitespace-nowrap" data-admin-only>Reports</a>
+                    <a href="#policies" class="nav-link px-3 py-4 text-sm font-medium text-gray-700 hover:text-green-700 whitespace-nowrap">Policies</a>
+                    <a href="#contact" class="nav-link px-3 py-4 text-sm font-medium text-gray-700 hover:text-green-700 whitespace-nowrap">Contact Us</a>
+                    <a href="#settings" class="nav-link px-3 py-4 text-sm font-medium text-gray-700 hover:text-green-700 whitespace-nowrap">Settings</a>
+                </div>
+            </div>
+        </nav>
 
         <!-- Main Content -->
-        <main class="flex-1 p-6 md:p-10 overflow-y-auto bg-gray-50">
+        <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <!-- Dashboard Page -->
             <div id="dashboard" class="page">
-                 <h2 id="welcome-message" class="text-4xl font-extrabold mb-8 text-gray-800">Dashboard</h2>
+                <div class="mb-8">
+                    <h2 class="text-3xl font-bold text-gray-900 mb-2">Dashboard</h2>
+                    <p class="text-gray-600">Overview of your booking activities</p>
+                </div>
+
+                <!-- Stats Cards -->
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                    <!-- Stat Card -->
-                    <div class="stat-card bg-white p-6 rounded-xl shadow-lg shadow-gray-100 flex items-center justify-between border-t-4 border-green-500">
-                        <div>
-                            <p class="text-sm font-medium text-gray-500">Registered Startups</p>
-                            <p id="total-startups-stat" class="text-3xl font-bold text-gray-700">0</p>
-                        </div>
-                        <div class="bg-green-100 text-green-700 rounded-full p-3">
-                            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M15 21a6 6 0 00-9-5.197M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                        </div>
-                    </div>
-                    <!-- Stat Card -->
-                    <div class="stat-card bg-white p-6 rounded-xl shadow-lg shadow-gray-100 flex items-center justify-between border-t-4 border-blue-500">
-                        <div>
-                            <p class="text-sm font-medium text-gray-500">Upcoming Bookings</p>
-                            <p id="upcoming-bookings-stat" class="text-3xl font-bold text-gray-700">0</p>
-                        </div>
-                         <div class="bg-blue-100 text-blue-700 rounded-full p-3">
-                            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                    <div class="stat-card bg-white p-6 rounded-xl shadow-lg">
+                        <div class="flex items-center">
+                            <div class="p-3 rounded-full bg-blue-100 text-blue-600">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                                </svg>
+                            </div>
+                            <div class="ml-4">
+                                <h3 class="text-2xl font-bold text-gray-900">0</h3>
+                                <p class="text-gray-600">Total Startups</p>
+                            </div>
                         </div>
                     </div>
-                     <!-- Stat Card -->
-                    <div class="stat-card bg-white p-6 rounded-xl shadow-lg shadow-gray-100 flex items-center justify-between border-t-4 border-yellow-500">
-                        <div>
-                            <p class="text-sm font-medium text-gray-500">Most Booked Room</p>
-                            <p id="most-booked-room" class="text-xl font-bold text-gray-700 truncate">None</p>
+
+                    <div class="stat-card bg-white p-6 rounded-xl shadow-lg">
+                        <div class="flex items-center">
+                            <div class="p-3 rounded-full bg-green-100 text-green-600">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                </svg>
+                            </div>
+                            <div class="ml-4">
+                                <h3 class="text-2xl font-bold text-gray-900">0</h3>
+                                <p class="text-gray-600">Upcoming Bookings</p>
+                            </div>
                         </div>
-                         <div class="bg-yellow-100 text-yellow-700 rounded-full p-3">
-                            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>
+                    </div>
+
+                    <div class="stat-card bg-white p-6 rounded-xl shadow-lg">
+                        <div class="flex items-center">
+                            <div class="p-3 rounded-full bg-yellow-100 text-yellow-600">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                            </div>
+                            <div class="ml-4">
+                                <h3 class="text-2xl font-bold text-gray-900">0</h3>
+                                <p class="text-gray-600">Today's Bookings</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="stat-card bg-white p-6 rounded-xl shadow-lg">
+                        <div class="flex items-center">
+                            <div class="p-3 rounded-full bg-purple-100 text-purple-600">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                                </svg>
+                            </div>
+                            <div class="ml-4">
+                                <h3 class="text-2xl font-bold text-gray-900">5</h3>
+                                <p class="text-gray-600">Available Rooms</p>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <h3 class="text-2xl font-bold mb-4 text-gray-800">Today's Schedule</h3>
-                <div id="todays-bookings" class="bg-white p-4 rounded-xl shadow-lg shadow-gray-100">
-                    <!-- Today's bookings will be listed here -->
+
+                <!-- Today's Schedule -->
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <h3 class="text-xl font-bold text-gray-900 mb-4">Today's Schedule</h3>
+                    <div id="today-schedule" class="space-y-3">
+                        <p class="text-gray-500 text-center py-8">Loading today's schedule...</p>
+                    </div>
                 </div>
             </div>
 
             <!-- Startups Page -->
-            <div id="startups" class="page hidden">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-4xl font-extrabold text-gray-800">Startups</h2>
-                    <button id="add-startup-btn" class="px-5 py-2.5 rounded-lg font-semibold flex items-center btn-primary">
-                        <svg class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" /></svg>
-                        Add Startup
-                    </button>
+            <div id="startups" class="page hidden" data-admin-only>
+                <div class="mb-8">
+                    <h2 class="text-3xl font-bold text-gray-900 mb-2">Startups Management</h2>
+                    <p class="text-gray-600">Manage all registered startups and users</p>
                 </div>
-                <div class="bg-white rounded-xl shadow-lg shadow-gray-100 overflow-x-auto">
-                    <table class="w-full text-left">
-                        <thead class="bg-gray-50">
-                            <tr class="border-b border-gray-200">
-                                <th class="p-4 text-sm font-semibold text-gray-600 uppercase tracking-wider">Startup Name</th>
-                                <th class="p-4 text-sm font-semibold text-gray-600 uppercase tracking-wider">Contact Person</th>
-                                <th class="p-4 text-sm font-semibold text-gray-600 uppercase tracking-wider">Phone</th>
-                                <th class="p-4 text-sm font-semibold text-gray-600 uppercase tracking-wider">Email</th>
-                                <th class="p-4 text-sm font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="startup-table-body">
-                           <!-- Startup rows will be inserted here -->
-                        </tbody>
-                    </table>
+
+                <!-- User Management Section -->
+                <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-xl font-bold text-gray-900">User Management</h3>
+                        <button id="create-admin-btn" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition duration-200">
+                            Create Admin Account
+                        </button>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Startup</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="users-table-body" class="bg-white divide-y divide-gray-200">
+                                <tr>
+                                    <td colspan="5" class="px-6 py-4 text-center text-gray-500">Loading users...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Startups List -->
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <h3 class="text-xl font-bold text-gray-900 mb-6">Registered Startups</h3>
+                    <div id="startups-list" class="space-y-4">
+                        <p class="text-gray-500 text-center py-8">Loading startups...</p>
+                    </div>
                 </div>
             </div>
 
-            <!-- Booking Page -->
+            <!-- Book a Room Page -->
             <div id="booking" class="page hidden">
-                <h2 class="text-4xl font-extrabold mb-8 text-gray-800">Create a New Booking</h2>
-                <div class="bg-white p-8 rounded-xl shadow-lg shadow-gray-100 max-w-2xl mx-auto">
-                    <div id="booking-message" class="mb-4"></div>
+                <div class="mb-8">
+                    <h2 class="text-3xl font-bold text-gray-900 mb-2">Book a Room</h2>
+                    <p class="text-gray-600">Reserve a room for your startup activities</p>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-lg p-8">
                     <form id="booking-form" class="space-y-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label for="room-select" class="block text-sm font-medium text-gray-700 mb-2">Room *</label>
+                                <select id="room-select" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                                    <option value="">Select a room</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label for="booking-date" class="block text-sm font-medium text-gray-700 mb-2">Date *</label>
+                                <input type="date" id="booking-date" required
+                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                            </div>
+
+                            <div>
+                                <label for="time-select" class="block text-sm font-medium text-gray-700 mb-2">Start Time *</label>
+                                <select id="time-select" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                                    <option value="09:00">09:00 AM</option>
+                                    <option value="10:00">10:00 AM</option>
+                                    <option value="11:00">11:00 AM</option>
+                                    <option value="12:00">12:00 PM</option>
+                                    <option value="13:00">01:00 PM</option>
+                                    <option value="14:00">02:00 PM</option>
+                                    <option value="15:00">03:00 PM</option>
+                                    <option value="16:00">04:00 PM</option>
+                                    <option value="17:00">05:00 PM</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label for="duration-select" class="block text-sm font-medium text-gray-700 mb-2">Duration *</label>
+                                <select id="duration-select" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                                    <option value="1">1 Hour</option>
+                                    <option value="2">2 Hours</option>
+                                    <option value="3">3 Hours</option>
+                                    <option value="4">4 Hours</option>
+                                    <option value="8">Full Day (8 Hours)</option>
+                                </select>
+                            </div>
+                        </div>
+
                         <div>
-                            <label for="startup-select" class="block text-sm font-medium text-gray-700 mb-1">Select Your Startup</label>
-                            <select id="startup-select" class="mt-1 block w-full p-3 border border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500"></select>
+                            <label for="podcast-equipment" class="block text-sm font-medium text-gray-700 mb-2">Equipment Requirements</label>
+                            <textarea id="podcast-equipment" rows="3"
+                                      class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                                      placeholder="Describe any special equipment or setup requirements..."></textarea>
                         </div>
-                        <div>
-                            <label for="booking-date" class="block text-sm font-medium text-gray-700 mb-1">Date (24 hours prior booking required)</label>
-                            <input type="date" id="booking-date" class="mt-1 block w-full p-3 border border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500">
+
+                        <div class="flex items-center">
+                            <input type="checkbox" id="is-confidential" class="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded">
+                            <label for="is-confidential" class="ml-2 block text-sm text-gray-700">This is a confidential meeting</label>
                         </div>
-                        <div>
-                            <label for="room-select" class="block text-sm font-medium text-gray-700 mb-1">Room</label>
-                            <select id="room-select" class="mt-1 block w-full p-3 border border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500"></select>
-                        </div>
-                        <div>
-                            <label for="time-select" class="block text-sm font-medium text-gray-700 mb-1">Time Slot</label>
-                            <select id="time-select" class="mt-1 block w-full p-3 border border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500"></select>
-                        </div>
-                        <div>
-                            <label for="duration-select" class="block text-sm font-medium text-gray-700 mb-1">Duration</label>
-                            <select id="duration-select" class="mt-1 block w-full p-3 border border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500"></select>
-                        </div>
-                        <div id="podcast-equipment-section" class="hidden">
-                             <label for="podcast-equipment" class="block text-sm font-medium text-gray-700 mb-1">Equipment Needed</label>
-                             <textarea id="podcast-equipment" rows="3" class="mt-1 block w-full p-3 border border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500" placeholder="e.g., 2 microphones, 1 camera, ring light..."></textarea>
-                        </div>
-                        <div class="pt-2">
-                             <label class="flex items-center space-x-3">
-                                 <input type="checkbox" id="is-confidential" class="h-5 w-5 text-green-600 border-gray-300 rounded focus:ring-green-500">
-                                 <span class="text-gray-700">This is a confidential meeting</span>
-                             </label>
-                         </div>
-                        <button type="submit" class="w-full py-3 px-4 rounded-lg font-semibold btn-primary">Confirm Booking</button>
+
+                        <div id="booking-message" class="hidden"></div>
+
+                        <button type="submit" class="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition duration-200">
+                            Book Room
+                        </button>
                     </form>
                 </div>
             </div>
 
-             <!-- My Bookings Page -->
+            <!-- My Bookings Page -->
             <div id="my-bookings" class="page hidden">
-                <h2 class="text-4xl font-extrabold mb-8 text-gray-800">My Bookings</h2>
-                <div class="space-y-8">
-                    <div>
-                        <h3 class="text-2xl font-bold mb-4 text-gray-700">Upcoming Bookings</h3>
-                        <div id="upcoming-bookings-list" class="space-y-4">
-                            <!-- Upcoming bookings will be listed here -->
-                        </div>
+                <div class="mb-8">
+                    <h2 class="text-3xl font-bold text-gray-900 mb-2">My Bookings</h2>
+                    <p class="text-gray-600">View and manage your room reservations</p>
+                </div>
+
+                <!-- Booking Tabs -->
+                <div class="bg-white rounded-xl shadow-lg">
+                    <div class="border-b border-gray-200">
+                        <nav class="-mb-px flex space-x-8 px-6">
+                            <button class="booking-tab-btn py-4 px-1 border-b-2 border-green-500 font-medium text-sm text-green-600" data-tab="future">
+                                Upcoming Bookings
+                            </button>
+                            <button class="booking-tab-btn py-4 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700" data-tab="present">
+                                Today's Bookings
+                            </button>
+                            <button class="booking-tab-btn py-4 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700" data-tab="past">
+                                Past Bookings
+                            </button>
+                        </nav>
                     </div>
-                    <div>
-                        <h3 class="text-2xl font-bold mb-4 text-gray-700">Past Bookings</h3>
-                        <div id="past-bookings-list" class="space-y-4">
-                            <!-- Past bookings will be listed here -->
+
+                    <div class="p-6">
+                        <div id="future-bookings" class="booking-tab-content">
+                            <div id="future-bookings-list" class="space-y-4">
+                                <p class="text-center text-gray-500 py-8">Loading upcoming bookings...</p>
+                            </div>
+                        </div>
+
+                        <div id="present-bookings" class="booking-tab-content hidden">
+                            <div id="present-bookings-list" class="space-y-4">
+                                <p class="text-center text-gray-500 py-8">Loading today's bookings...</p>
+                            </div>
+                        </div>
+
+                        <div id="past-bookings" class="booking-tab-content hidden">
+                            <div id="past-bookings-list" class="space-y-4">
+                                <p class="text-center text-gray-500 py-8">Loading past bookings...</p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -436,1282 +401,1096 @@
 
             <!-- Schedule Page -->
             <div id="schedule" class="page hidden">
-                <h2 class="text-4xl font-extrabold mb-8 text-gray-800">Booking Schedule</h2>
-                <div class="bg-white p-6 rounded-xl shadow-lg shadow-gray-100">
-                    <div class="flex justify-between items-center mb-4">
-                        <button id="prev-month" class="p-2 rounded-full hover:bg-gray-100 transition-colors">
-                            <svg class="h-6 w-6 text-gray-500" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                        </button>
-                        <h3 id="month-year" class="text-xl font-semibold text-gray-700"></h3>
-                        <button id="next-month" class="p-2 rounded-full hover:bg-gray-100 transition-colors">
-                            <svg class="h-6 w-6 text-gray-500" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9 18L15 12L9 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                        </button>
+                <div class="mb-8">
+                    <h2 class="text-3xl font-bold text-gray-900 mb-2">Schedule</h2>
+                    <p class="text-gray-600">View all room bookings and availability</p>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-xl font-bold text-gray-900">Room Schedule</h3>
+                        <div class="flex space-x-2">
+                            <button id="prev-month" class="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                                </svg>
+                            </button>
+                            <button id="next-month" class="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                </svg>
+                            </button>
+                        </div>
                     </div>
-                    <div id="calendar-grid" class="grid grid-cols-7 gap-1">
-                        <!-- Calendar days will be inserted here -->
+
+                    <div id="calendar-container" class="mb-6">
+                        <div id="calendar-header" class="grid grid-cols-7 gap-1 mb-2">
+                            <div class="p-2 text-center font-medium text-gray-700">Sun</div>
+                            <div class="p-2 text-center font-medium text-gray-700">Mon</div>
+                            <div class="p-2 text-center font-medium text-gray-700">Tue</div>
+                            <div class="p-2 text-center font-medium text-gray-700">Wed</div>
+                            <div class="p-2 text-center font-medium text-gray-700">Thu</div>
+                            <div class="p-2 text-center font-medium text-gray-700">Fri</div>
+                            <div class="p-2 text-center font-medium text-gray-700">Sat</div>
+                        </div>
+                        <div id="calendar-grid" class="grid grid-cols-7 gap-1">
+                            <!-- Calendar days will be populated by JavaScript -->
+                        </div>
+                    </div>
+
+                    <div id="schedule-details" class="border-t pt-6">
+                        <h4 class="text-lg font-semibold text-gray-900 mb-4">Select a date to view bookings</h4>
                     </div>
                 </div>
-                 <div id="schedule-details" class="mt-6"></div>
             </div>
 
             <!-- Room Displays Page -->
             <div id="room-displays" class="page hidden">
-                <h2 class="text-4xl font-extrabold mb-8 text-gray-800">Room Displays</h2>
-                <div id="room-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                    <!-- Room cards will be inserted here -->
+                <div class="mb-8">
+                    <h2 class="text-3xl font-bold text-gray-900 mb-2">Room Displays</h2>
+                    <p class="text-gray-600">Real-time room availability and status</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div id="room-cards-container">
+                        <p class="text-center text-gray-500 py-8 col-span-full">Loading room information...</p>
+                    </div>
                 </div>
             </div>
 
             <!-- Reports Page -->
-            <div id="reports" class="page hidden">
-                <h2 class="text-4xl font-extrabold mb-8 text-gray-800">Monthly Booking Report</h2>
-                <div class="bg-white p-6 rounded-xl shadow-lg shadow-gray-100 mb-6">
-                    <div class="flex items-center space-x-4">
-                        <div>
-                            <label for="report-month" class="text-sm font-medium text-gray-700">Month</label>
-                            <select id="report-month" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm rounded-md"></select>
-                        </div>
-                        <div>
-                            <label for="report-year" class="text-sm font-medium text-gray-700">Year</label>
-                            <select id="report-year" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm rounded-md"></select>
+            <div id="reports" class="page hidden" data-admin-only>
+                <div class="mb-8">
+                    <h2 class="text-3xl font-bold text-gray-900 mb-2">Reports</h2>
+                    <p class="text-gray-600">Booking analytics and usage reports</p>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <!-- Booking Statistics -->
+                    <div class="bg-white rounded-xl shadow-lg p-6">
+                        <h3 class="text-xl font-bold text-gray-900 mb-4">Booking Statistics</h3>
+                        <div id="booking-stats" class="space-y-4">
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-600">Total Bookings This Month:</span>
+                                <span class="font-semibold text-gray-900">0</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-600">Most Popular Room:</span>
+                                <span class="font-semibold text-gray-900">-</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-600">Average Booking Duration:</span>
+                                <span class="font-semibold text-gray-900">0 hours</span>
+                            </div>
                         </div>
                     </div>
-                </div>
-                <div id="report-content" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <!-- Report cards will be inserted here -->
+
+                    <!-- Usage Chart -->
+                    <div class="bg-white rounded-xl shadow-lg p-6">
+                        <h3 class="text-xl font-bold text-gray-900 mb-4">Room Usage</h3>
+                        <div id="usage-chart" class="h-64 flex items-center justify-center text-gray-500">
+                            Chart will be displayed here
+                        </div>
+                    </div>
                 </div>
             </div>
 
             <!-- Policies Page -->
             <div id="policies" class="page hidden">
-                <h2 class="text-4xl font-extrabold mb-8 text-gray-800">Usage Policies</h2>
-                <div class="bg-white p-8 rounded-xl shadow-lg shadow-gray-100 max-w-4xl mx-auto space-y-6 text-gray-700 leading-relaxed">
-                    <div>
-                        <h3 class="text-2xl font-bold text-gray-800 mb-3">1. Property and Equipment Care</h3>
-                        <p>All startups are expected to treat NIC Islamabad property, including furniture, electronics, and the rooms themselves, with the utmost care. Please leave the rooms in the same condition you found them. Report any pre-existing damage to the administration immediately upon discovery.</p>
-                        <p class="mt-2 font-semibold">Any damages caused to NIC property during your booked session will result in fines corresponding to the repair or replacement cost of the damaged item(s).</p>
-                    </div>
-                    <div>
-                        <h3 class="text-2xl font-bold text-gray-800 mb-3">2. Punctuality and Room Usage</h3>
-                        <p>Your booking time includes setup and cleanup. Please ensure you vacate the room promptly at the end of your scheduled time to respect the schedule of the next startup.</p>
-                        <p class="mt-2 font-semibold">Overusing a booked room beyond the scheduled time is strictly prohibited and will result in official warnings:</p>
-                        <ul class="list-disc list-inside mt-2 pl-4 space-y-1">
-                            <li><span class="font-bold">First Offense:</span> A formal warning will be issued.</li>
-                            <li><span class="font-bold">Second Offense:</span> A second and final warning will be issued.</li>
-                            <li><span class="font-bold">Third Offense:</span> A fine will be imposed, and booking privileges may be temporarily suspended.</li>
+                <div class="mb-8">
+                    <h2 class="text-3xl font-bold text-gray-900 mb-2">Booking Policies</h2>
+                    <p class="text-gray-600">Guidelines and rules for room bookings</p>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-lg p-8">
+                    <div class="prose max-w-none">
+                        <h3 class="text-xl font-bold text-gray-900 mb-4">General Booking Rules</h3>
+                        <ul class="space-y-2 text-gray-700 mb-6">
+                            <li>• Bookings must be made at least 24 hours in advance</li>
+                            <li>• Maximum booking duration is 8 hours per day</li>
+                            <li>• Rooms must be vacated on time to avoid conflicts</li>
+                            <li>• Equipment must be returned in good condition</li>
+                            <li>• No food or drinks allowed in meeting rooms</li>
                         </ul>
-                    </div>
-                     <div>
-                        <h3 class="text-2xl font-bold text-gray-800 mb-3">3. Booking Fairness and Restrictions</h3>
-                        <p>To ensure fair access for all startups, monthly booking limits are in place. These policies are strictly enforced to maintain an equitable environment for everyone. Please see the specific limits below:</p>
-                        <ul class="list-disc list-inside mt-4 pl-4 space-y-2 font-medium">
-                            <li><span class="font-bold">All Focus Rooms:</span> 5 bookings per month (cumulative).</li>
-                            <li><span class="font-bold">Indus-Board Room:</span> 1 booking per month.</li>
-                            <li><span class="font-bold">Nexus-Session Hall:</span> 1 booking per month.</li>
-                            <li><span class="font-bold">Podcast Room:</span> 1 booking per month.</li>
+
+                        <h3 class="text-xl font-bold text-gray-900 mb-4">Cancellation Policy</h3>
+                        <ul class="space-y-2 text-gray-700 mb-6">
+                            <li>• Cancellations must be made at least 2 hours before the booking time</li>
+                            <li>• Late cancellations may result in booking restrictions</li>
+                            <li>• No-shows will be recorded and may affect future booking privileges</li>
+                        </ul>
+
+                        <h3 class="text-xl font-bold text-gray-900 mb-4">Equipment Usage</h3>
+                        <ul class="space-y-2 text-gray-700">
+                            <li>• Podcast equipment requires prior approval</li>
+                            <li>• Technical support is available during business hours</li>
+                            <li>• Users are responsible for any damage to equipment</li>
+                            <li>• Equipment setup should be completed before the booking time</li>
                         </ul>
                     </div>
                 </div>
             </div>
 
-            <!-- Contact Page -->
+            <!-- Contact Us Page -->
             <div id="contact" class="page hidden">
-                <h2 class="text-4xl font-extrabold mb-8 text-gray-800">Contact Us</h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-                    <!-- Contact Card 1 -->
-                    <div class="bg-white p-8 rounded-xl shadow-lg shadow-gray-100">
-                        <h3 class="text-2xl font-bold text-gray-800 mb-2">Jawad Ahmad</h3>
-                        <p class="text-gray-600 mb-4 font-medium">Community Associate, NIC Islamabad</p>
-                        <div class="space-y-3 text-gray-700">
-                            <p class="flex items-center"><svg class="h-5 w-5 mr-3 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>03328020445</p>
-                            <p class="flex items-center"><svg class="h-5 w-5 mr-3 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>Jawad.Ahmad@changemechanics.pk</p>
-// Add Content Security Policy headers (implement server-side)
-// Add rate limiting for API calls
-const RateLimiter = {
-    requests: new Map(),
-
-    isAllowed: (key, limit = 10, window = 60000) => {
-        const now = Date.now();
-        const requests = this.requests.get(key) || [];
-
-        // Remove old requests outside the window
-        const validRequests = requests.filter(time => now - time < window);
-
-        if (validRequests.length >= limit) {
-            return false;
-        }
-
-        validRequests.push(now);
-        this.requests.set(key, validRequests);
-        return true;
-    }
-};
-             durationSelect.innerHTML = '<option value="1">1 Hour</option><option value="2">2 Hours</option>';
-        } else {
-             durationSelect.innerHTML = `
-                <option value="1">1 Hour</option><option value="2">2 Hours</option>
-                <option value="4">4 Hours (Half Day)</option><option value="8">8 Hours (Full Day)</option>
-            `;
-        }
-
-        if (room.requiresEquipment) {
-            podcastEquipmentSection.classList.remove('hidden');
-        } else {
-            podcastEquipmentSection.classList.add('hidden');
-        }
-    };
-
-    roomSelect.addEventListener('change', updateDurationAndEquipment);
-
-
-    const populateTimeSlots = () => {
-        timeSelect.innerHTML = '';
-        timeSlots.forEach(slot => {
-            timeSelect.innerHTML += `<option value="${slot}">${slot}</option>`;
-        });
-    };
-
-    const setMinBookingDate = () => {
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        bookingDateInput.min = tomorrow.toISOString().split('T')[0];
-        bookingDateInput.value = tomorrow.toISOString().split('T')[0];
-    };
-
-    bookingForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const selectedStartupId = parseInt(startupSelect.value);
-        const selectedRoomName = roomSelect.value;
-        const selectedRoom = availableRooms.find(r => r.name === selectedRoomName);
-        if(!selectedRoom || !selectedStartupId) return;
-
-        // Check monthly booking limits
-        const limitCheck = checkBookingLimits(selectedStartupId, selectedRoomName);
-        if (!limitCheck.allowed) {
-            showBookingMessage(limitCheck.message, 'red');
-            return;
-        }
-
-        const newBooking = {
-            id: Date.now(),
-            startupId: selectedStartupId,
-            room: selectedRoomName,
-            date: bookingDateInput.value,
-            time: timeSelect.value,
-            duration: parseInt(durationSelect.value, 10),
-            equipmentNotes: selectedRoom.requiresEquipment ? document.getElementById('podcast-equipment').value : '',
-            isConfidential: document.getElementById('is-confidential').checked
-        };
-
-        if (!newBooking.startupId || !newBooking.date) {
-            showBookingMessage('Please select a startup and a date.', 'red');
-            return;
-        }
-
-        const newBookingStartMins = parseTime(newBooking.time);
-        const newBookingEndMins = newBookingStartMins + newBooking.duration * 60;
-
-        const isConflict = bookings.some(booking => {
-            if (booking.room !== newBooking.room || booking.date !== newBooking.date) return false;
-
-            const existingStartMins = parseTime(booking.time);
-            const existingEndMins = existingStartMins + (booking.duration || 1) * 60;
-            return newBookingStartMins < (existingEndMins + bufferMinutes) && newBookingEndMins > existingStartMins;
-        });
-
-        if (isConflict) {
-            showBookingMessage(`The selected time slot is already booked or too close to another booking. Please select a different time, keeping the ${bufferMinutes}-minute buffer in mind.`, 'red');
-            return;
-        }
-
-        bookings.push(newBooking);
-        showBookingMessage('Booking successful! Your room is confirmed.', 'green');
-        triggerConfetti();
-        renderAll();
-        bookingForm.reset();
-        setMinBookingDate();
-        updateDurationAndEquipment();
-    });
-
-    const showBookingMessage = (message, color) => {
-        const colorClasses = { red: 'bg-red-100 text-red-700 border-red-400', green: 'bg-green-100 text-green-700 border-green-400' };
-        bookingMessage.innerHTML = `<div class="p-4 rounded-md border-l-4 ${colorClasses[color]} font-medium">${message}</div>`;
-        setTimeout(() => bookingMessage.innerHTML = '', 4000);
-    };
-
-    // --- "My Bookings" Page ---
-    const renderMyBookingsPage = () => {
-        if (!currentUser || currentUser.role === 'admin') {
-            if (myBookingsUpcomingList) myBookingsUpcomingList.innerHTML = '';
-            if (myBookingsPastList) myBookingsPastList.innerHTML = '';
-            return;
-        };
-
-        const today = getTodayDateString();
-        const userBookings = bookings.filter(b => b.startupId === currentUser.id);
-
-        const upcomingBookings = userBookings
-            .filter(b => b.date >= today)
-            .sort((a, b) => new Date(a.date) - new Date(b.date) || parseTime(a.time) - parseTime(b.time));
-
-        const pastBookings = userBookings
-            .filter(b => b.date < today)
-            .sort((a, b) => new Date(b.date) - new Date(a.date) || parseTime(b.time) - parseTime(a.time));
-
-        myBookingsUpcomingList.innerHTML = '';
-        if (upcomingBookings.length > 0) {
-            upcomingBookings.forEach(booking => {
-                const bookingEl = document.createElement('div');
-                bookingEl.className = 'bg-white p-4 rounded-xl shadow-lg shadow-gray-100 flex justify-between items-center';
-                bookingEl.innerHTML = `
-                    <div>
-                        <p class="font-bold text-lg text-gray-800">${booking.room}</p>
-                        <p class="text-sm text-gray-600">${new Date(booking.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
-                        <p class="text-sm text-gray-500">${formatBookingTime(booking)}</p>
-                    </div>
-                    <button data-id="${booking.id}" class="cancel-booking-btn bg-red-100 text-red-700 px-4 py-2 rounded-lg font-semibold hover:bg-red-200 transition">Cancel</button>
-                `;
-                myBookingsUpcomingList.appendChild(bookingEl);
-            });
-        } else {
-            myBookingsUpcomingList.innerHTML = '<p class="text-center text-gray-500 py-4">You have no upcoming bookings.</p>';
-        }
-
-        myBookingsPastList.innerHTML = '';
-        if (pastBookings.length > 0) {
-            pastBookings.forEach(booking => {
-                const bookingEl = document.createElement('div');
-                bookingEl.className = 'bg-white p-4 rounded-xl shadow-md opacity-70';
-                bookingEl.innerHTML = `
-                    <div>
-                        <p class="font-bold text-lg text-gray-700">${booking.room}</p>
-                        <p class="text-sm text-gray-500">${new Date(booking.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
-                        <p class="text-sm text-gray-500">${formatBookingTime(booking)}</p>
-                    </div>
-                `;
-                myBookingsPastList.appendChild(bookingEl);
-            });
-        } else {
-            myBookingsPastList.innerHTML = '<p class="text-center text-gray-500 py-4">You have no past bookings.</p>';
-        }
-    };
-
-    // --- Room Displays Page ---
-    const renderRoomDisplaysPage = () => {
-        if (!currentUser || currentUser.role === 'admin') {
-            if (roomDisplaysGrid) roomDisplaysGrid.innerHTML = '';
-            return;
-        }
-
-        const today = getTodayDateString();
-        const userBookings = bookings.filter(b => b.startupId === currentUser.id);
-
-        const upcomingBookings = userBookings
-            .filter(b => b.date >= today)
-            .sort((a, b) => new Date(a.date) - new Date(b.date) || parseTime(a.time) - parseTime(b.time));
-
-        roomDisplaysGrid.innerHTML = '';
-        if (upcomingBookings.length > 0) {
-            const roomCounts = {};
-            upcomingBookings.forEach(booking => {
-                roomCounts[booking.room] = (roomCounts[booking.room] || 0) + 1;
-            });
-
-            const sortedRooms = Object.keys(roomCounts).sort((a, b) => roomCounts[b] - roomCounts[a]);
-            sortedRooms.forEach(room => {
-                const roomEl = document.createElement('div');
-                roomEl.className = 'bg-white p-4 rounded-xl shadow-lg shadow-gray-100 flex justify-between items-center';
-                roomEl.innerHTML = `
-                    <div>
-                        <p class="font-bold text-lg text-gray-800">${room}</p>
-                        <p class="text-sm text-gray-600">Upcoming Bookings: ${roomCounts[room]}</p>
-                    </div>
-                `;
-                roomDisplaysGrid.appendChild(roomEl);
-            });
-        } else {
-            roomDisplaysGrid.innerHTML = '<p class="text-center text-gray-500 py-4">You have no upcoming bookings in any room.</p>';
-        }
-    };
-
-    // --- Calendar Page ---
-    const renderCalendar = () => {
-        const calendarGrid = document.getElementById('calendar-grid');
-        const monthYearEl = document.getElementById('month-year');
-        const prevMonthBtn = document.getElementById('prev-month');
-        const nextMonthBtn = document.getElementById('next-month');
-        const scheduleDetails = document.getElementById('schedule-details');
-
-        if (!calendarGrid || !monthYearEl || !prevMonthBtn || !nextMonthBtn || !scheduleDetails) return;
-
-        const today = new Date();
-        let currentMonth = today.getMonth();
-        let currentYear = today.getFullYear();
-
-        const renderMonth = () => {
-            const firstDay = new Date(currentYear, currentMonth, 1);
-            const lastDay = new Date(currentYear, currentMonth + 1, 0);
-            const daysInMonth = lastDay.getDate();
-            const firstDayOfWeek = firstDay.getDay();
-
-            monthYearEl.textContent = `${new Date(currentYear, currentMonth).toLocaleString('default', { month: 'long', year: 'numeric' })}`;
-
-            calendarGrid.innerHTML = '';
-            scheduleDetails.innerHTML = '';
-
-            for (let i = 0; i < firstDayOfWeek; i++) {
-                const emptyCell = document.createElement('div');
-                emptyCell.className = 'calendar-cell';
-                calendarGrid.appendChild(emptyCell);
-            }
-
-            for (let day = 1; day <= days
-            myBookingsPastList.innerHTML = '<p class="text-center text-gray-500 py-4">You have no past bookings.</p>';
-        }
-    };
-
-    appContainer.addEventListener('click', (e) => {
-        if (e.target.classList.contains('cancel-booking-btn')) {
-            const bookingIdToCancel = parseInt(e.target.dataset.id);
-            bookings = bookings.filter(b => b.id !== bookingIdToCancel);
-            renderAll();
-        }
-    });
-
-    // --- Room Display Page & Kiosk Mode ---
-    const renderRoomDisplaysPage = () => {
-        if (!roomDisplaysGrid) return;
-        roomDisplaysGrid.innerHTML = '';
-        availableRooms.forEach(room => {
-            const card = document.createElement('div');
-            card.className = 'bg-white p-6 rounded-xl shadow-lg hover:shadow-2xl transition-shadow duration-300 flex flex-col items-center justify-center';
-            card.innerHTML = `
-                <h3 class="text-2xl font-bold text-gray-800 mb-4 text-center">${room.name}</h3>
-                <button data-room-name="${room.name}" class="view-display-btn w-full py-2 px-4 rounded-lg font-semibold btn-primary">
-                    View Display
-                </button>
-            `;
-            roomDisplaysGrid.appendChild(card);
-        });
-    };
-
-    const kioskEscListener = (e) => {
-        if (e.key === 'Escape') {
-            const modal = document.getElementById('password-modal');
-            if (modal) {
-                modal.remove();
-            }
-            e.preventDefault();
-        }
-    };
-
-    const openTabletView = (roomName) => {
-        tabletViewContainer.innerHTML = '';
-        tabletViewContainer.classList.remove('hidden');
-        tabletViewContainer.classList.add('flex');
-
-        const now = new Date();
-        const todayStr = getTodayDateString();
-        const currentTimeInMinutes = now.getHours() * 60 + now.getMinutes();
-
-        const currentBooking = bookings.find(b => {
-            if (b.room !== roomName || b.date !== todayStr) return false;
-            const startTimeInMinutes = parseTime(b.time);
-            const endTimeInMinutes = startTimeInMinutes + b.duration * 60;
-            return currentTimeInMinutes >= startTimeInMinutes && currentTimeInMinutes < endTimeInMinutes;
-        });
-
-        const nextBooking = bookings
-            .filter(b => b.room === roomName && b.date === todayStr && parseTime(b.time) > currentTimeInMinutes)
-            .sort((a,b) => parseTime(a.time) - parseTime(b.time))[0];
-
-        let statusClass, statusIcon, statusText, detailsHtml = '';
-
-        if (currentBooking) {
-            const startup = startups.find(s => s.id === currentBooking.startupId);
-            const bookedBy = currentBooking.isConfidential ? 'Reserved' : (startup ? startup.name : 'Unknown Startup');
-            const timeInfo = formatBookingTime(currentBooking);
-
-            statusClass = 'bg-gradient-to-br from-red-600 to-orange-500';
-            statusIcon = `<svg class="w-16 h-16 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>`;
-            statusText = 'Occupied';
-            detailsHtml = `
-                <p class="text-5xl font-semibold text-white/90">${bookedBy}</p>
-                <p class="text-3xl mt-2 text-white/70">Until ${timeInfo.split(' - ')[1]}</p>
-            `;
-        } else {
-            statusClass = 'bg-gradient-to-br from-green-600 to-teal-500';
-            statusIcon = `<svg class="w-16 h-16 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>`;
-            statusText = 'Available';
-            detailsHtml = nextBooking
-                ? `<p class="text-3xl mt-2 text-white/70">Next booking at ${nextBooking.time}</p>`
-                : '<p class="text-3xl mt-2 text-white/70">No further bookings today</p>';
-        }
-
-        tabletViewContainer.innerHTML = `
-            <div class="content-wrapper relative w-full h-full flex flex-col justify-center items-center p-8 text-center ${statusClass} rounded-2xl shadow-2xl">
-                <div class="absolute top-8 left-8 text-left">
-                    <h1 class="text-6xl font-bold text-white" style="text-shadow: 2px 2px 8px rgba(0,0,0,0.3);">${roomName}</h1>
+                <div class="mb-8">
+                    <h2 class="text-3xl font-bold text-gray-900 mb-2">Contact Us</h2>
+                    <p class="text-gray-600">Get in touch with the NIC Islamabad team</p>
                 </div>
 
-                <div class="flex items-center justify-center gap-x-6 mb-4">
-                    ${statusIcon}
-                    <h2 class="text-9xl font-extrabold text-white" style="text-shadow: 3px 3px 10px rgba(0,0,0,0.3);">${statusText}</h2>
-                </div>
-                ${detailsHtml}
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <!-- Contact Information -->
+                    <div class="bg-white rounded-xl shadow-lg p-8">
+                        <h3 class="text-xl font-bold text-gray-900 mb-6">Contact Information</h3>
 
-                <div id="tablet-clock" class="absolute bottom-8 right-8 text-6xl font-bold text-white" style="text-shadow: 2px 2px 8px rgba(0,0,0,0.3);"></div>
-                <button id="exit-kiosk-btn" class="absolute bottom-8 left-8 bg-black/20 hover:bg-black/40 text-white font-semibold py-2 px-4 rounded-full text-sm transition-colors">
-                    Exit Display
-                </button>
-            </div>
-        `;
+                        <div class="space-y-4">
+                            <div class="flex items-start">
+                                <div class="p-2 bg-green-100 rounded-lg">
+                                    <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                    </svg>
+                                </div>
+                                <div class="ml-4">
+                                    <h4 class="font-semibold text-gray-900">Address</h4>
+                                    <p class="text-gray-600">National Incubation Center<br>Islamabad, Pakistan</p>
+                                </div>
+                            </div>
 
-        document.getElementById('exit-kiosk-btn').addEventListener('click', promptForExitPassword);
+                            <div class="flex items-start">
+                                <div class="p-2 bg-green-100 rounded-lg">
+                                    <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path>
+                                    </svg>
+                                </div>
+                                <div class="ml-4">
+                                    <h4 class="font-semibold text-gray-900">Phone</h4>
+                                    <p class="text-gray-600">+92 51 1234567</p>
+                                </div>
+                            </div>
 
-        const clockInterval = setInterval(() => {
-            const clockEl = document.getElementById('tablet-clock');
-            if (clockEl) {
-                clockEl.textContent = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-            } else {
-                clearInterval(clockInterval);
-            }
-        }, 1000);
+                            <div class="flex items-start">
+                                <div class="p-2 bg-green-100 rounded-lg">
+                                    <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                                    </svg>
+                                </div>
+                                <div class="ml-4">
+                                    <h4 class="font-semibold text-gray-900">Email</h4>
+                                    <p class="text-gray-600">info@nicislamabad.com</p>
+                                </div>
+                            </div>
 
-        document.addEventListener('keydown', kioskEscListener);
-    };
+                            <div class="flex items-start">
+                                <div class="p-2 bg-green-100 rounded-lg">
+                                    <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                </div>
+                                <div class="ml-4">
+                                    <h4 class="font-semibold text-gray-900">Office Hours</h4>
+                                    <p class="text-gray-600">Monday - Friday: 9:00 AM - 6:00 PM<br>Saturday: 9:00 AM - 2:00 PM</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
-    const promptForExitPassword = () => {
-        if (document.getElementById('password-modal')) return;
+                    <!-- Contact Form -->
+                    <div class="bg-white rounded-xl shadow-lg p-8">
+                        <h3 class="text-xl font-bold text-gray-900 mb-6">Send us a Message</h3>
 
-        const modal = document.createElement('div');
-        modal.id = 'password-modal';
-        modal.className = 'absolute inset-0 bg-black/70 flex items-center justify-center z-10 p-4';
-        modal.innerHTML = `
-            <div class="bg-white rounded-lg shadow-xl p-8 w-full max-w-sm text-gray-800">
-                <h3 class="text-2xl font-bold mb-4">Admin Authentication</h3>
-                <p class="text-gray-600 mb-6">Enter your password to exit the display mode.</p>
-                <div id="password-error-msg" class="text-red-500 text-sm mb-4 h-5"></div>
-                <input type="password" id="admin-password-input" class="w-full border rounded-lg p-3 focus:ring-2 input-focus" placeholder="Password...">
-                <div class="flex justify-end gap-4 mt-6">
-                    <button id="cancel-exit-btn" class="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg font-semibold hover:bg-gray-300 transition">Cancel</button>
-                    <button id="confirm-exit-btn" class="px-6 py-2 rounded-lg font-semibold btn-primary">Confirm</button>
+                        <form id="contact-form" class="space-y-6">
+                            <div>
+                                <label for="contact-name" class="block text-sm font-medium text-gray-700 mb-2">Name *</label>
+                                <input type="text" id="contact-name" required
+                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                            </div>
+
+                            <div>
+                                <label for="contact-email" class="block text-sm font-medium text-gray-700 mb-2">Email *</label>
+                                <input type="email" id="contact-email" required
+                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                            </div>
+
+                            <div>
+                                <label for="contact-subject" class="block text-sm font-medium text-gray-700 mb-2">Subject *</label>
+                                <input type="text" id="contact-subject" required
+                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                            </div>
+
+                            <div>
+                                <label for="contact-message" class="block text-sm font-medium text-gray-700 mb-2">Message *</label>
+                                <textarea id="contact-message" rows="5" required
+                                          class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                                          placeholder="Please describe your inquiry..."></textarea>
+                            </div>
+
+                            <div id="contact-message-status" class="hidden"></div>
+
+                            <button type="submit" class="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition duration-200">
+                                Send Message
+                            </button>
+                        </form>
+                    </div>
                 </div>
             </div>
-        `;
-        tabletViewContainer.appendChild(modal);
 
-        const passwordInput = document.getElementById('admin-password-input');
-        passwordInput.focus();
+            <!-- Settings Page -->
+            <div id="settings" class="page hidden">
+                <div class="mb-8">
+                    <h2 class="text-3xl font-bold text-gray-900 mb-2">Settings</h2>
+                    <p class="text-gray-600">Manage your account and preferences</p>
+                </div>
 
-        const verifyExitPassword = () => {
-            const errorMsg = document.getElementById('password-error-msg');
-            if (passwordInput.value === currentUser.password) {
-                closeTabletView();
+                <div class="space-y-8">
+                    <!-- Profile Settings -->
+                    <div class="bg-white rounded-xl shadow-lg p-8">
+                        <h3 class="text-xl font-bold text-gray-900 mb-6">Profile Information</h3>
+
+                        <form id="profile-form" class="space-y-6">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label for="profile-name" class="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
+                                    <input type="text" id="profile-name"
+                                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                                </div>
+
+                                <div>
+                                    <label for="profile-email" class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                                    <input type="email" id="profile-email" readonly
+                                           class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50">
+                                </div>
+
+                                <div>
+                                    <label for="profile-phone" class="block text-sm font-medium text-gray-700 mb-2">Phone Number</label>
+                                    <input type="tel" id="profile-phone"
+                                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                                </div>
+
+                                <div>
+                                    <label for="profile-role" class="block text-sm font-medium text-gray-700 mb-2">Role</label>
+                                    <input type="text" id="profile-role" readonly
+                                           class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50">
+                                </div>
+                            </div>
+
+                            <div id="profile-message" class="hidden"></div>
+
+                            <button type="submit" class="bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition duration-200">
+                                Update Profile
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Password Change -->
+                    <div class="bg-white rounded-xl shadow-lg p-8">
+                        <h3 class="text-xl font-bold text-gray-900 mb-6">Change Password</h3>
+
+                        <form id="password-form" class="space-y-6">
+                            <div>
+                                <label for="current-password" class="block text-sm font-medium text-gray-700 mb-2">Current Password</label>
+                                <input type="password" id="current-password" required
+                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                            </div>
+
+                            <div>
+                                <label for="new-password" class="block text-sm font-medium text-gray-700 mb-2">New Password</label>
+                                <input type="password" id="new-password" required minlength="6"
+                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                            </div>
+
+                            <div>
+                                <label for="confirm-password" class="block text-sm font-medium text-gray-700 mb-2">Confirm New Password</label>
+                                <input type="password" id="confirm-password" required minlength="6"
+                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                            </div>
+
+                            <div id="password-message" class="hidden"></div>
+
+                            <button type="submit" class="bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition duration-200">
+                                Change Password
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Admin Settings -->
+                    <div id="admin-settings" class="bg-white rounded-xl shadow-lg p-8 hidden" data-admin-only>
+                        <h3 class="text-xl font-bold text-gray-900 mb-6">Admin Settings</h3>
+
+                        <div class="space-y-6">
+                            <div class="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+                                <div>
+                                    <h4 class="font-semibold text-gray-900">User Management</h4>
+                                    <p class="text-sm text-gray-600">Manage user accounts and permissions</p>
+                                </div>
+                                <button onclick="showPage('#startups')" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition duration-200">
+                                    Manage Users
+                                </button>
+                            </div>
+
+                            <div class="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+                                <div>
+                                    <h4 class="font-semibold text-gray-900">System Reports</h4>
+                                    <p class="text-sm text-gray-600">View detailed analytics and reports</p>
+                                </div>
+                                <button onclick="showPage('#reports')" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition duration-200">
+                                    View Reports
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+        // ===== SUPABASE CONFIGURATION =====
+        const SUPABASE_URL = 'https://ylmitcrmtdjbomkvryzh.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlsbWl0Y3JtdGRqYm9ta3ZyeXpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg2OTU0MTgsImV4cCI6MjA3NDI3MTQxOH0.gBUdTLqCOVJxKWdQSelTK_axjkyUYzYEXmsnbJCX9WA';
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // ===== GLOBAL VARIABLES =====
+        let currentUser = null;
+        let currentStartup = null;
+        let allRooms = [];
+        let allBookings = [];
+        let allStartups = [];
+
+        // ===== DOM ELEMENTS =====
+        const authContainer = document.getElementById('auth-container');
+        const appContainer = document.getElementById('app');
+        const loginView = document.getElementById('login-view');
+        const signupView = document.getElementById('signup-view');
+        const showSignupLink = document.getElementById('show-signup');
+        const showLoginLink = document.getElementById('show-login');
+        const loginFormEl = document.getElementById('login-form');
+        const signupFormEl = document.getElementById('signup-form');
+        const loginErrorEl = document.getElementById('login-error');
+        const signupErrorEl = document.getElementById('signup-error');
+        const signupSuccessEl = document.getElementById('signup-success');
+
+        // ===== UTILITY FUNCTIONS =====
+        function showAuth(which = 'login') {
+            authContainer?.classList.remove('hidden');
+            appContainer?.classList.add('hidden');
+            if (which === 'signup') {
+                loginView?.classList.add('hidden');
+                signupView?.classList.remove('hidden');
             } else {
-                errorMsg.textContent = 'Incorrect password. Please try again.';
-                passwordInput.value = '';
-                passwordInput.focus();
-                 modal.querySelector('div').classList.add('shake');
-                setTimeout(() => modal.querySelector('div').classList.remove('shake'), 500);
+                loginView?.classList.remove('hidden');
+                signupView?.classList.add('hidden');
             }
-        };
-
-        document.getElementById('confirm-exit-btn').onclick = verifyExitPassword;
-        document.getElementById('cancel-exit-btn').onclick = () => modal.remove();
-        passwordInput.onkeydown = (e) => {
-            if (e.key === 'Enter') verifyExitPassword();
-        };
-    };
-
-    const closeTabletView = () => {
-        tabletViewContainer.classList.add('hidden');
-        tabletViewContainer.classList.remove('flex');
-        tabletViewContainer.innerHTML = '';
-        document.removeEventListener('keydown', kioskEscListener);
-    };
-
-    if (roomDisplaysGrid) {
-        roomDisplaysGrid.addEventListener('click', (e) => {
-            if (e.target.classList.contains('view-display-btn')) {
-                const roomName = e.target.dataset.roomName;
-                openTabletView(roomName);
-            }
-        });
-    }
-
-
-    // --- Reports Management ---
-    const populateReportSelectors = () => {
-        const now = new Date();
-        const currentYear = now.getFullYear();
-        const currentMonth = now.getMonth();
-
-        // Populate months
-        const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-        reportMonthSelect.innerHTML = '';
-        months.forEach((month, index) => {
-            const option = document.createElement('option');
-            option.value = index;
-            option.textContent = month;
-            if (index === currentMonth) {
-                option.selected = true;
-            }
-            reportMonthSelect.appendChild(option);
-        });
-
-        // Populate years
-        reportYearSelect.innerHTML = '';
-        for (let i = 0; i < 5; i++) {
-            const year = currentYear - i;
-            const option = document.createElement('option');
-            option.value = year;
-            option.textContent = year;
-            reportYearSelect.appendChild(option);
         }
-    };
 
-    const renderReportsPage = () => {
-        if (!document.getElementById('reports').classList.contains('hidden')) {
-            const selectedMonth = parseInt(reportMonthSelect.value);
-            const selectedYear = parseInt(reportYearSelect.value);
+        function showApp() {
+            authContainer?.classList.add('hidden');
+            appContainer?.classList.remove('hidden');
+        }
 
-            reportContent.innerHTML = '';
+        function showPage(hash) {
+            // Remove # from hash
+            const pageId = hash.replace('#', '') || 'dashboard';
 
-            startups.forEach(startup => {
-                const monthlyBookings = bookings.filter(b => {
-                    const bookingDate = new Date(b.date);
-                    return b.startupId === startup.id &&
-                        bookingDate.getMonth() === selectedMonth &&
-                        bookingDate.getFullYear() === selectedYear;
+            // Hide all pages
+            document.querySelectorAll('.page').forEach(page => {
+                page.classList.add('hidden');
+            });
+
+            // Show selected page
+            const targetPage = document.getElementById(pageId);
+            if (targetPage) {
+                targetPage.classList.remove('hidden');
+
+                // Update navigation active state
+                document.querySelectorAll('.nav-link').forEach(link => {
+                    link.classList.remove('bg-green-50', 'text-green-700');
                 });
 
-                const focusBookings = monthlyBookings.filter(b => availableRooms.find(r => r.name === b.room)?.type === 'focus').length;
-                const indusBookings = monthlyBookings.filter(b => b.room === 'Indus-Board Room').length;
-                const nexusBookings = monthlyBookings.filter(b => b.room === 'Nexus-Session Hall').length;
-                const podcastBookings = monthlyBookings.filter(b => b.room === 'Podcast Room').length;
-
-                const card = document.createElement('div');
-                card.className = 'bg-white p-6 rounded-xl shadow-lg shadow-gray-100';
-                card.innerHTML = `
-                    <h3 class="text-xl font-bold text-gray-800 mb-4">${startup.name}</h3>
-                    <div class="space-y-2 text-sm">
-                        <p class="flex justify-between"><span>Total Bookings:</span> <span class="font-semibold">${monthlyBookings.length}</span></p>
-                        <hr>
-                        <p class="flex justify-between"><span>Focus Rooms:</span> <span class="font-semibold">${focusBookings} / 5 used</span></p>
-                        <p class="flex justify-between"><span>Indus-Board Room:</span> <span class="font-semibold">${indusBookings} / 1 used</span></p>
-                        <p class="flex justify-between"><span>Nexus-Session Hall:</span> <span class="font-semibold">${nexusBookings} / 1 used</span></p>
-                        <p class="flex justify-between"><span>Podcast Room:</span> <span class="font-semibold">${podcastBookings} / 1 used</span></p>
-                    </div>
-                `;
-                reportContent.appendChild(card);
-            });
-
-            if(startups.length === 0) {
-                reportContent.innerHTML = '<p class="text-gray-500 col-span-full text-center">No startups to generate a report for.</p>';
-            }
-        }
-    };
-
-    // --- Settings Management ---
-    const renderSettings = () => {
-        if (currentUser && currentUser.role === 'admin') {
-            // Render rooms
-            roomList.innerHTML = '';
-            availableRooms.forEach(room => {
-                const li = document.createElement('li');
-                li.className = 'flex justify-between items-center p-2 bg-gray-50 rounded';
-                li.innerHTML = `<span>${room.name}</span> <button data-name="${room.name}" class="delete-room-btn text-red-500 hover:text-red-700 font-semibold">Remove</button>`;
-                roomList.appendChild(li);
-            });
-
-            // Render admins
-            adminList.innerHTML = '';
-            admins.forEach(admin => {
-                const li = document.createElement('li');
-                li.className = 'flex justify-between items-center p-2 bg-gray-50 rounded';
-                li.innerHTML = `<div><p class="font-medium">${admin.name}</p><p class="text-sm text-gray-500">${admin.email}</p></div>`;
-                if (admin.id !== currentUser.id) {
-                     li.innerHTML += `<button data-id="${admin.id}" class="delete-admin-btn text-red-500 hover:text-red-700 font-semibold">Remove</button>`;
+                const activeLink = document.querySelector(`a[href="#${pageId}"]`);
+                if (activeLink) {
+                    activeLink.classList.add('bg-green-50', 'text-green-700');
                 }
-                adminList.appendChild(li);
-            });
 
-            bufferTimeInput.value = bufferMinutes;
-        }
-    };
-
-    addAdminForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const email = document.getElementById('new-admin-email').value;
-        const emailExists = startups.some(s => s.email === email) || admins.some(a => a.email === email);
-        if (emailExists) {
-            showAdminMessage('An account with this email already exists.', 'red');
-            return;
-        }
-
-        const newAdmin = {
-            id: 'admin_' + Date.now(),
-            name: document.getElementById('new-admin-name').value,
-            email: email,
-            password: document.getElementById('new-admin-password').value,
-            role: 'admin'
-        };
-        admins.push(newAdmin);
-        renderSettings();
-        addAdminForm.reset();
-        showAdminMessage('New admin added successfully.', 'green');
-    });
-
-    adminList.addEventListener('click', (e) => {
-        if (e.target.classList.contains('delete-admin-btn')) {
-            const adminIdToDelete = e.target.dataset.id;
-            admins = admins.filter(a => a.id !== adminIdToDelete);
-            renderSettings();
-        }
-    });
-
-    addRoomForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const newRoomName = document.getElementById('new-room-name').value;
-        if (newRoomName && !availableRooms.some(r => r.name === newRoomName)) {
-            availableRooms.push({ name: newRoomName, maxDuration: 2, requiresEquipment: false, type: 'focus' }); // Defaulting new rooms as focus rooms
-            renderSettings();
-            updateRoomAvailability(bookingDateInput.value);
-        }
-        addRoomForm.reset();
-    });
-
-    roomList.addEventListener('click', (e) => {
-        if (e.target.classList.contains('delete-room-btn')) {
-            const roomNameToDelete = e.target.dataset.name;
-            availableRooms = availableRooms.filter(r => r.name !== roomNameToDelete);
-            renderSettings();
-            updateRoomAvailability(bookingDateInput.value);
-        }
-    });
-
-    saveParametersBtn.addEventListener('click', () => {
-        bufferMinutes = parseInt(bufferTimeInput.value, 10) || 30;
-        showAdminMessage('Parameters saved successfully!', 'green', 'admin-message');
-        renderSettings();
-    });
-
-    changePasswordForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const currentPassword = document.getElementById('current-password').value;
-        const newPassword = document.getElementById('new-password').value;
-        const confirmPassword = document.getElementById('confirm-password').value;
-
-        const userToUpdate = [...admins, ...startups].find(u => u.id === currentUser.id);
-
-        if (!userToUpdate || currentPassword !== userToUpdate.password) {
-            showAdminMessage('The current password you entered is incorrect.', 'red', 'password-change-message');
-            return;
-        }
-        if (newPassword.length < 4) {
-             showAdminMessage('New password must be at least 4 characters long.', 'red', 'password-change-message');
-            return;
-        }
-        if (newPassword !== confirmPassword) {
-            showAdminMessage('New passwords do not match.', 'red', 'password-change-message');
-            return;
-        }
-
-        userToUpdate.password = newPassword;
-        showAdminMessage('Password updated successfully!', 'green', 'password-change-message');
-        changePasswordForm.reset();
-    });
-
-    const showAdminMessage = (message, color, elementId = 'admin-message') => {
-         const colorClasses = { red: 'bg-red-100 text-red-700', green: 'bg-green-100 text-green-700' };
-         const messageEl = document.getElementById(elementId);
-         messageEl.innerHTML = `<div class="p-4 rounded-md ${colorClasses[color]}">${message}</div>`;
-         setTimeout(() => messageEl.innerHTML = '', 4000);
-    };
-
-    // --- Calendar/Schedule Management ---
-    const renderCalendar = () => {
-        calendarGrid.innerHTML = '';
-        const month = currentDate.getMonth();
-        const year = currentDate.getFullYear();
-        monthYearEl.textContent = currentDate.toLocaleString('en-US', { month: 'long', year: 'numeric' });
-        const firstDay = new Date(year, month, 1).getDay();
-        const lastDate = new Date(year, month + 1, 0).getDate();
-        const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-        days.forEach(day => {
-            const dayEl = document.createElement('div');
-            dayEl.className = 'text-center font-semibold text-sm text-gray-500 py-2';
-            dayEl.textContent = day;
-            calendarGrid.appendChild(dayEl);
-        });
-        for (let i = 0; i < firstDay; i++) {
-            calendarGrid.appendChild(document.createElement('div'));
-        }
-        for (let date = 1; date <= lastDate; date++) {
-            const dateEl = document.createElement('div');
-            const fullDateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(date).padStart(2, '0')}`;
-            const bookingsForDay = bookings.filter(b => b.date === fullDateStr);
-            dateEl.className = 'calendar-day text-center py-2 border rounded-lg hover:bg-gray-100 cursor-pointer transition-all';
-            dateEl.textContent = date;
-            dateEl.dataset.date = fullDateStr;
-            if (bookingsForDay.length > 0) {
-                dateEl.classList.add('calendar-day-booked', 'font-bold', 'text-green-800');
+                // Load page-specific data
+                loadPageData(pageId);
             }
-            const today = new Date();
-            if (date === today.getDate() && month === today.getMonth() && year === today.getFullYear()) {
-                dateEl.classList.add('bg-green-600', 'text-white', 'hover:bg-green-700');
-            }
-            calendarGrid.appendChild(dateEl);
         }
-    };
 
-    calendarGrid.addEventListener('click', (e) => {
-        if (e.target.dataset.date) {
-            const date = e.target.dataset.date;
-            const bookingsForDay = bookings.filter(b => b.date === date);
-            scheduleDetails.innerHTML = `<h4 class="text-xl font-bold mb-3 text-gray-800">Schedule for ${new Date(date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</h4>`;
-            if (bookingsForDay.length === 0) {
-                scheduleDetails.innerHTML += `<div class="bg-white p-4 rounded-lg shadow-lg shadow-gray-100"><p class="text-center text-gray-500">No bookings for this day.</p></div>`;
+        async function loadPageData(pageId) {
+            try {
+                switch(pageId) {
+                    case 'dashboard':
+                        await loadDashboardData();
+                        break;
+                    case 'startups':
+                        await loadStartupsData();
+                        break;
+                    case 'booking':
+                        await loadBookingFormData();
+                        break;
+                    case 'my-bookings':
+                        await loadMyBookingsData();
+                        break;
+                    case 'schedule':
+                        await loadScheduleData();
+                        break;
+                    case 'room-displays':
+                        await loadRoomDisplaysData();
+                        break;
+                    case 'reports':
+                        await loadReportsData();
+                        break;
+                    case 'settings':
+                        await loadSettingsData();
+                        break;
+                }
+            } catch (error) {
+                console.error(`Error loading ${pageId} data:`, error);
+            }
+        }
+
+        // ===== DASHBOARD DATA LOADING =====
+        async function loadDashboardData() {
+            try {
+                // Load dashboard statistics
+                const { data: startupsData } = await supabaseClient
+                    .from('startups')
+                    .select('id', { count: 'exact' });
+
+                const { data: upcomingBookings } = await supabaseClient
+                    .from('bookings')
+                    .select('*')
+                    .gte('booking_date', new Date().toISOString().split('T')[0])
+                    .order('booking_date');
+
+                const { data: todayBookings } = await supabaseClient
+                    .from('bookings')
+                    .select('*, startups(name)')
+                    .eq('booking_date', new Date().toISOString().split('T')[0])
+                    .order('start_time');
+
+                // Update dashboard stats
+                updateDashboardStats(startupsData?.length || 0, upcomingBookings?.length || 0, todayBookings?.length || 0);
+                updateTodaySchedule(todayBookings || []);
+
+            } catch (error) {
+                console.error('Error loading dashboard data:', error);
+            }
+        }
+
+        function updateDashboardStats(startupsCount, upcomingBookings, todayBookings) {
+            // Update stat cards
+            const statsElements = document.querySelectorAll('.stat-card h3');
+            if (statsElements[0]) statsElements[0].textContent = startupsCount;
+            if (statsElements[1]) statsElements[1].textContent = upcomingBookings;
+            if (statsElements[2]) statsElements[2].textContent = todayBookings;
+        }
+
+        function updateTodaySchedule(bookings) {
+            const container = document.getElementById('today-schedule');
+            if (!container) return;
+
+            if (bookings.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-center py-8">No bookings scheduled for today.</p>';
                 return;
             }
-            const list = document.createElement('ul');
-            list.className = 'space-y-3 bg-white p-4 rounded-lg shadow-lg shadow-gray-100';
-            bookingsForDay.sort((a,b) => parseTime(a.time) - parseTime(b.time)).forEach(booking => {
-                 const startup = startups.find(s => s.id === booking.startupId);
-                 const item = document.createElement('li');
-                 item.className = 'p-3 bg-gray-50 rounded-lg flex justify-between items-center border-l-4 border-green-300';
 
-                if (currentUser.role === 'admin' && startup) {
-                     item.innerHTML = `
-                         <div>
-                             <p class="font-semibold text-gray-700">${booking.room} - <span class="font-normal text-gray-600">${formatBookingTime(booking)}</span></p>
-                             <p class="text-sm text-gray-500">${startup.name}</p>
-                             <p class="text-xs text-gray-500 mt-1">${startup.contact} - ${startup.phone}</p>
-                             ${booking.equipmentNotes ? `<p class="text-xs text-gray-500 mt-1 italic">Equipment: ${booking.equipmentNotes}</p>` : ''}
-                         </div>
-                     `;
+            container.innerHTML = bookings.map(booking => `
+                <div class="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
+                    <div>
+                        <h4 class="font-semibold text-gray-800">${booking.room_name}</h4>
+                        <p class="text-sm text-gray-600">${booking.start_time} - ${booking.duration}h</p>
+                        ${booking.startups?.name ? `<p class="text-xs text-gray-500">${booking.startups.name}</p>` : ''}
+                    </div>
+                    <span class="px-3 py-1 rounded-full text-xs font-medium ${
+                        booking.status === 'confirmed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                    }">
+                        ${booking.status}
+                    </span>
+                </div>
+            `).join('');
+        }
+
+        // ===== STARTUPS DATA LOADING =====
+        async function loadStartupsData() {
+            if (currentUser?.role !== 'admin') return;
+
+            try {
+                // Load all users with their startups
+                const { data: users, error } = await supabaseClient
+                    .from('users')
+                    .select(`
+                        *,
+                        startups (
+                            id,
+                            name,
+                            contact_person,
+                            email,
+                            phone
+                        )
+                    `)
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                displayUsersTable(users || []);
+
+                // Load startups list
+                const { data: startups, error: startupsError } = await supabaseClient
+                    .from('startups')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+
+                if (!startupsError) {
+                    displayStartupsList(startups || []);
+                }
+
+            } catch (error) {
+                console.error('Error loading startups data:', error);
+            }
+        }
+
+        function displayUsersTable(users) {
+            const tbody = document.getElementById('users-table-body');
+            if (!tbody) return;
+
+            if (users.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-4 text-center text-gray-500">No users found.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = users.map(user => `
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div>
+                            <div class="text-sm font-medium text-gray-900">${user.name || 'N/A'}</div>
+                            <div class="text-sm text-gray-500">${user.email}</div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-900">${user.startups?.name || 'No startup'}</div>
+                        <div class="text-sm text-gray-500">${user.startups?.phone || ''}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                            user.role === 'admin' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
+                        }">
+                            ${user.role}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                            Active
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <button onclick="toggleUserRole('${user.id}', '${user.role}')"
+                                class="text-indigo-600 hover:text-indigo-900 mr-3">
+                            ${user.role === 'admin' ? 'Make Startup' : 'Make Admin'}
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function displayStartupsList(startups) {
+            const container = document.getElementById('startups-list');
+            if (!container) return;
+
+            if (startups.length === 0) {
+                container.innerHTML = '<p class="text-center text-gray-500 py-8">No startups found.</p>';
+                return;
+            }
+
+            container.innerHTML = startups.map(startup => `
+                <div class="bg-gray-50 p-6 rounded-xl border">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h3 class="text-xl font-bold text-gray-800">${startup.name}</h3>
+                            <p class="text-gray-600">${startup.contact_person}</p>
+                            <p class="text-sm text-gray-500">${startup.email}</p>
+                            <p class="text-sm text-gray-500">${startup.phone}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-xs text-gray-500">
+                                Joined: ${new Date(startup.created_at).toLocaleDateString()}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // ===== USER MANAGEMENT FUNCTIONS =====
+        async function toggleUserRole(userId, currentRole) {
+            const newRole = currentRole === 'admin' ? 'startup' : 'admin';
+
+            try {
+                const { error } = await supabaseClient
+                    .from('users')
+                    .update({ role: newRole })
+                    .eq('id', userId);
+
+                if (error) throw error;
+
+                showMessage('User role updated successfully!', 'success');
+                await loadStartupsData(); // Refresh the data
+
+            } catch (error) {
+                console.error('Error updating user role:', error);
+                showMessage('Failed to update user role.', 'error');
+            }
+        }
+
+        async function createAdminAccount() {
+            const email = prompt('Enter admin email:');
+            const password = prompt('Enter admin password (min 6 characters):');
+            const name = prompt('Enter admin name:');
+
+            if (!email || !password || !name || password.length < 6) {
+                showMessage('Please provide valid email, password (min 6 chars), and name.', 'error');
+                return;
+            }
+
+            try {
+                // Create auth user
+                const { data, error } = await supabaseClient.auth.signUp({
+                    email,
+                    password,
+                    options: {
+                        data: {
+                            name,
+                            role: 'admin'
+                        }
+                    }
+                });
+
+                if (error) throw error;
+
+                showMessage('Admin account created successfully!', 'success');
+                await loadStartupsData(); // Refresh the data
+
+            } catch (error) {
+                console.error('Error creating admin account:', error);
+                showMessage('Failed to create admin account: ' + error.message, 'error');
+            }
+        }
+
+        // ===== BOOKING FORM DATA LOADING =====
+        async function loadBookingFormData() {
+            try {
+                // Load rooms for dropdown
+                const { data: rooms, error } = await supabaseClient
+                    .from('rooms')
+                    .select('*')
+                    .eq('is_active', true)
+                    .order('name');
+
+                if (error) throw error;
+
+                const roomSelect = document.getElementById('room-select');
+                if (roomSelect) {
+                    roomSelect.innerHTML = '<option value="">Select a room</option>' +
+                        rooms.map(room => `<option value="${room.name}">${room.name}</option>`).join('');
+                }
+
+                // Set minimum date to tomorrow
+                const bookingDate = document.getElementById('booking-date');
+                if (bookingDate) {
+                    const tomorrow = new Date();
+                    tomorrow.setDate(tomorrow.getDate() + 1);
+                    bookingDate.min = tomorrow.toISOString().split('T')[0];
+                    bookingDate.value = tomorrow.toISOString().split('T')[0];
+                }
+
+            } catch (error) {
+                console.error('Error loading booking form data:', error);
+            }
+        }
+
+        // ===== MY BOOKINGS DATA LOADING =====
+        async function loadMyBookingsData() {
+            if (!currentUser || !currentStartup) return;
+
+            try {
+                const { data: bookings, error } = await supabaseClient
+                    .from('bookings')
+                    .select('*')
+                    .eq('startup_id', currentStartup.id)
+                    .order('booking_date', { ascending: false });
+
+                if (error) throw error;
+
+                displayMyBookings(bookings || []);
+            } catch (error) {
+                console.error('Error loading my bookings data:', error);
+            }
+        }
+
+        function displayMyBookings(bookings) {
+            const today = new Date().toISOString().split('T')[0];
+
+            const pastBookings = bookings.filter(b => b.booking_date < today);
+            const presentBookings = bookings.filter(b => b.booking_date === today);
+            const futureBookings = bookings.filter(b => b.booking_date > today);
+
+            // Update each section
+            updateBookingsSection('future-bookings-list', futureBookings, 'No upcoming bookings found.');
+            updateBookingsSection('present-bookings-list', presentBookings, 'No bookings for today.');
+            updateBookingsSection('past-bookings-list', pastBookings, 'No past bookings found.');
+        }
+
+        function updateBookingsSection(elementId, bookings, emptyMessage) {
+            const container = document.getElementById(elementId);
+            if (!container) return;
+
+            if (bookings.length === 0) {
+                container.innerHTML = `<p class="text-center text-gray-500 py-4">${emptyMessage}</p>`;
+                return;
+            }
+
+            container.innerHTML = bookings.map(booking => `
+                <div class="bg-white p-4 rounded-lg shadow border-l-4 border-green-500">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h4 class="font-semibold text-gray-800">${booking.room_name}</h4>
+                            <p class="text-sm text-gray-600">${new Date(booking.booking_date).toLocaleDateString()}</p>
+                            <p class="text-sm text-gray-600">${booking.start_time} (${booking.duration}h)</p>
+                            ${booking.equipment_notes ? `<p class="text-xs text-gray-500 mt-1">Equipment: ${booking.equipment_notes}</p>` : ''}
+                        </div>
+                        <div class="text-right">
+                            <span class="inline-block px-2 py-1 rounded text-xs font-medium ${
+                                booking.status === 'confirmed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                            }">
+                                ${booking.status}
+                            </span>
+                            ${booking.is_confidential ? '<p class="text-xs text-gray-500 mt-1">Confidential</p>' : ''}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // ===== AUTHENTICATION INTEGRATION =====
+        async function bootstrapData(user) {
+            try {
+                // Get user profile
+                const { data: userProfile, error: userError } = await supabaseClient
+                    .from('users')
+                    .select('*')
+                    .eq('id', user.id)
+                    .single();
+
+                if (userError) throw userError;
+                currentUser = userProfile;
+
+                // Get user's startup
+                const { data: startup, error: startupError } = await supabaseClient
+                    .from('startups')
+                    .select('*')
+                    .eq('user_id', user.id)
+                    .single();
+
+                if (!startupError && startup) {
+                    currentStartup = startup;
+                }
+
+                // Update UI based on user role
+                updateUIForUserRole(currentUser.role);
+
+                // Load initial page data
+                const currentHash = window.location.hash || '#dashboard';
+                showPage(currentHash);
+
+            } catch (error) {
+                console.error('Bootstrap data error:', error);
+            }
+        }
+
+        function updateUIForUserRole(role) {
+            // Show/hide admin-only elements
+            const adminElements = document.querySelectorAll('[data-admin-only]');
+            adminElements.forEach(el => {
+                if (role === 'admin') {
+                    el.classList.remove('hidden');
                 } else {
-                       item.innerHTML = `
-                         <div>
-                             <p class="font-semibold text-gray-700">${booking.room} - <span class="font-normal text-gray-600">${formatBookingTime(booking)}</span></p>
-                         </div>
-                          <span class="text-xs font-medium text-gray-700 bg-gray-200 px-2 py-1 rounded-full">Booked</span>
-                     `;
+                    el.classList.add('hidden');
                 }
-                 list.appendChild(item);
             });
-            scheduleDetails.appendChild(list);
+
+            // Update user profile display
+            const userNameEl = document.getElementById('user-name');
+            if (userNameEl && currentUser) {
+                userNameEl.textContent = currentUser.name || 'User';
+            }
         }
-    });
 
-    prevMonthBtn.addEventListener('click', () => {
-        currentDate.setMonth(currentDate.getMonth() - 1);
-        renderCalendar();
-        scheduleDetails.innerHTML = '';
-    });
+        // ===== AUTHENTICATION HANDLERS =====
+        // Toggle links
+        showSignupLink?.addEventListener('click', (e) => {
+            e.preventDefault();
+            showAuth('signup');
+        });
 
-    nextMonthBtn.addEventListener('click', () => {
-        currentDate.setMonth(currentDate.getMonth() + 1);
-        renderCalendar();
-        scheduleDetails.innerHTML = '';
-    });
+        showLoginLink?.addEventListener('click', (e) => {
+            e.preventDefault();
+            showAuth('login');
+        });
 
-    // --- Initial App Load ---
-    const initialize = () => {
+        // Auth state handling
+        async function handleAuthState() {
+            if (!supabaseClient) return showAuth('login');
+            const { data: { session }, error } = await supabaseClient.auth.getSession();
+            if (error) console.warn('getSession error', error);
+            if (session?.user) {
+                showApp();
+                await bootstrapData(session.user);
+            } else {
+                showAuth('login');
+            }
+        }
+
+        // Listen for auth state changes
+        supabaseClient?.auth.onAuthStateChange((_event, session) => {
+            if (session?.user) {
+                showApp();
+                bootstrapData(session.user);
+            } else {
+                showAuth('login');
+            }
+        });
+
+        // Sign up
+        signupFormEl?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            signupErrorEl?.classList.add('hidden');
+            signupSuccessEl?.classList.add('hidden');
+
+            const startupName = document.getElementById('signup-startup-name')?.value?.trim();
+            const contactPerson = document.getElementById('signup-contact-person')?.value?.trim();
+            const phone = document.getElementById('signup-phone')?.value?.trim();
+            const email = document.getElementById('signup-email')?.value?.trim();
+            const password = document.getElementById('signup-password')?.value;
+
+            if (!startupName || !contactPerson || !phone || !email || !password || password.length < 6) {
+                showSignupError('Please fill all required fields. Password must be at least 6 characters.');
+                return;
+            }
+
+            setSignupLoading(true);
+            try {
+                const { data, error } = await supabaseClient.auth.signUp({
+                    email,
+                    password,
+                    options: {
+                        data: {
+                            name: contactPerson,
+                            phone,
+                            role: 'startup',
+                            startup_name: startupName
+                        }
+                    }
+                });
+                if (error) throw error;
+
+                showSignupSuccess('Account created successfully! Please check your email to verify your account, then sign in.');
+                showAuth('login');
+
+            } catch (err) {
+                console.error('Signup error', err);
+                showSignupError(err.message || 'Unable to create account.');
+            } finally {
+                setSignupLoading(false);
+            }
+        });
+
+        // Login
+        loginFormEl?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            loginErrorEl.textContent = '';
+            const email = document.getElementById('login-email')?.value?.trim();
+            const password = document.getElementById('login-password')?.value;
+            if (!email || !password) {
+                loginErrorEl.textContent = 'Enter email and password.';
+                return;
+            }
+            try {
+                const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+                if (error) throw error;
+            } catch (err) {
+                console.error('Login error', err);
+                loginErrorEl.textContent = err.message || 'Login failed. Please try again.';
+            }
+        });
+
+        // Logout
+        const logoutBtn = document.getElementById('logout-btn');
+        logoutBtn?.addEventListener('click', async () => {
+            await supabaseClient.auth.signOut();
+            showAuth('login');
+        });
+
+        // Booking form
+        const bookingFormEl = document.getElementById('booking-form');
+        bookingFormEl?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+
+            if (!currentStartup) {
+                showBookingBanner('No startup profile found. Please contact support.', 'red');
+                return;
+            }
+
+            const roomName = document.getElementById('room-select')?.value;
+            const bookingDate = document.getElementById('booking-date')?.value;
+            const startTime = document.getElementById('time-select')?.value;
+            const duration = parseInt(document.getElementById('duration-select')?.value || '1', 10);
+            const equipmentNotes = document.getElementById('podcast-equipment')?.value || '';
+            const isConfidential = !!document.getElementById('is-confidential')?.checked;
+
+            if (!roomName || !bookingDate || !startTime) {
+                showBookingBanner('Please fill all required booking fields.', 'red');
+                return;
+            }
+
+            try {
+                const { error } = await supabaseClient.from('bookings').insert({
+                    startup_id: currentStartup.id,
+                    room_name: roomName,
+                    booking_date: bookingDate,
+                    start_time: startTime,
+                    duration,
+                    equipment_notes: equipmentNotes,
+                    is_confidential: isConfidential,
+                    status: 'confirmed'
+                });
+
+                if (error) throw error;
+
+                showBookingBanner('Booking successful! Your room is confirmed.', 'green');
+                bookingFormEl.reset();
+
+                // Refresh bookings data
+                await loadMyBookingsData();
+
+            } catch (err) {
+                console.error('Booking create error', err);
+                showBookingBanner(err.message || 'Failed to create booking.', 'red');
+            }
+        });
+
+        // ===== EVENT LISTENERS =====
+        // Navigation
         window.addEventListener('hashchange', () => showPage(window.location.hash));
-        showPage(window.location.hash || '#dashboard');
-        populateTimeSlots();
-        setMinBookingDate();
-        if (currentUser.role === 'admin') {
-            populateReportSelectors();
-            if (reportMonthSelect && reportYearSelect) {
-                reportMonthSelect.addEventListener('change', renderReportsPage);
-                reportYearSelect.addEventListener('change', renderReportsPage);
+
+        // Create admin button
+        const createAdminBtn = document.getElementById('create-admin-btn');
+        createAdminBtn?.addEventListener('click', createAdminAccount);
+
+        // Booking tabs
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('booking-tab-btn')) {
+                const tab = e.target.dataset.tab;
+
+                // Update tab buttons
+                document.querySelectorAll('.booking-tab-btn').forEach(btn => {
+                    btn.classList.remove('border-green-500', 'text-green-600');
+                    btn.classList.add('border-transparent', 'text-gray-500');
+                });
+                e.target.classList.remove('border-transparent', 'text-gray-500');
+                e.target.classList.add('border-green-500', 'text-green-600');
+
+                // Update tab content
+                document.querySelectorAll('.booking-tab-content').forEach(content => {
+                    content.classList.add('hidden');
+                });
+                document.getElementById(`${tab}-bookings`)?.classList.remove('hidden');
             }
+        });
+
+        // ===== UTILITY FUNCTIONS =====
+        function setSignupLoading(isLoading) {
+            const btn = document.getElementById('signup-submit-btn');
+            const t1 = document.getElementById('signup-btn-text');
+            const t2 = document.getElementById('signup-btn-loading');
+            if (!btn || !t1 || !t2) return;
+            btn.disabled = isLoading;
+            t1.classList.toggle('hidden', isLoading);
+            t2.classList.toggle('hidden', !isLoading);
         }
-    };
 
-    handleLogin(); // Check login status on page load
+        function showSignupError(msg) {
+            if (!signupErrorEl) return;
+            signupErrorEl.textContent = msg;
+            signupErrorEl.classList.remove('hidden');
+        }
 
-    // Add global error handler
-    window.addEventListener('error', (event) => {
-        console.error('Global error caught:', event.error);
-        showGlobalError('An unexpected error occurred. Please refresh the page.');
-    });
+        function showSignupSuccess(msg) {
+            if (!signupSuccessEl) return;
+            signupSuccessEl.textContent = msg;
+            signupSuccessEl.classList.remove('hidden');
+        }
 
-    window.addEventListener('unhandledrejection', (event) => {
-        console.error('Unhandled promise rejection:', event.reason);
-        showGlobalError('A network error occurred. Please check your connection.');
-        event.preventDefault();
-    });
+        function showBookingBanner(message, color) {
+            const bookingMessage = document.getElementById('booking-message');
+            if (!bookingMessage) return;
+            const colorClasses = {
+                red: 'bg-red-100 text-red-700 border-red-400',
+                green: 'bg-green-100 text-green-700 border-green-400'
+            };
+            bookingMessage.innerHTML = `<div class="p-4 rounded-md border-l-4 ${colorClasses[color]||''} font-medium">${message}</div>`;
+            bookingMessage.classList.remove('hidden');
+            setTimeout(() => {
+                bookingMessage.innerHTML = '';
+                bookingMessage.classList.add('hidden');
+            }, 4000);
+        }
 
-    const showGlobalError = (message) => {
-        const errorDiv = document.createElement('div');
-        errorDiv.className = 'fixed top-4 right-4 bg-red-500 text-white p-4 rounded-lg shadow-lg z-50';
-        errorDiv.innerHTML = `
-            <div class="flex items-center">
-                <span>${message}</span>
-                <button onclick="this.parentElement.parentElement.remove()" class="ml-4 text-white hover:text-gray-200">×</button>
-            </div>
-        `;
-        document.body.appendChild(errorDiv);
-        setTimeout(() => errorDiv.remove(), 10000);
-    };
+        function showMessage(message, type) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 ${
+                type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+            }`;
+            alertDiv.innerHTML = `
+                <div class="flex items-center">
+                    <span>${message}</span>
+                    <button onclick="this.parentElement.parentElement.remove()" class="ml-4 text-current hover:opacity-70">×</button>
+                </div>
+            `;
+            document.body.appendChild(alertDiv);
+            setTimeout(() => alertDiv.remove(), 5000);
+        }
 
-    // Enhanced logging system
-    const Logger = {
-        levels: { ERROR: 0, WARN: 1, INFO: 2, DEBUG: 3 },
-        currentLevel: 2, // INFO level in production
+        // ===== PLACEHOLDER FUNCTIONS FOR OTHER TABS =====
+        async function loadScheduleData() {
+            console.log('Loading schedule data...');
+        }
 
-        log: (level, message, data = null) => {
-            if (Logger.levels[level] <= Logger.currentLevel) {
-                const timestamp = new Date().toISOString();
-                console[level.toLowerCase()](`[${timestamp}] ${level}: ${message}`, data);
+        async function loadRoomDisplaysData() {
+            console.log('Loading room displays data...');
+        }
 
-                // Send to monitoring service in production
-                if (level === 'ERROR' && window.location.hostname !== 'localhost') {
-                    // Send to error tracking service
-                }
-            }
-        },
+        async function loadReportsData() {
+            console.log('Loading reports data...');
+        }
 
-        error: (message, data) => Logger.log('ERROR', message, data),
-        warn: (message, data) => Logger.log('WARN', message, data),
-        info: (message, data) => Logger.log('INFO', message, data),
-        debug: (message, data) => Logger.log('DEBUG', message, data)
-    };
-});
-</script>
+        async function loadSettingsData() {
+            console.log('Loading settings data...');
+        }
+
+        // ===== INITIALIZE APPLICATION =====
+        document.addEventListener('DOMContentLoaded', () => {
+            // Set up navigation
+            showPage(window.location.hash || '#dashboard');
+
+            // Initialize authentication
+            handleAuthState();
+        });
+
+        // Initialize the application
+        handleAuthState();
+    </script>
 </body>
 </html>
-
-            }
-            const list = document.createElement('ul');
-            list.className = 'space-y-3 bg-white p-4 rounded-lg shadow-lg shadow-gray-100';
-            bookingsForDay.sort((a,b) => parseTime(a.time) - parseTime(b.time)).forEach(booking => {
-                 const startup = startups.find(s => s.id === booking.startupId);
-                 const item = document.createElement('li');
-                 item.className = 'p-3 bg-gray-50 rounded-lg flex justify-between items-center border-l-4 border-green-300';
-
-                if (currentUser.role === 'admin' && startup) {
-                     item.innerHTML = `
-                         <div>
-                             <p class="font-semibold text-gray-700">${booking.room} - <span class="font-normal text-gray-600">${formatBookingTime(booking)}</span></p>
-                             <p class="text-sm text-gray-500">${startup.name}</p>
-                             <p class="text-xs text-gray-500 mt-1">${startup.contact} - ${startup.phone}</p>
-                             ${booking.equipmentNotes ? `<p class="text-xs text-gray-500 mt-1 italic">Equipment: ${booking.equipmentNotes}</p>` : ''}
-                         </div>
-                     `;
-                } else {
-                       item.innerHTML = `
-                         <div>
-                             <p class="font-semibold text-gray-700">${booking.room} - <span class="font-normal text-gray-600">${formatBookingTime(booking)}</span></p>
-                         </div>
-                          <span class="text-xs font-medium text-gray-700 bg-gray-200 px-2 py-1 rounded-full">Booked</span>
-                     `;
-                }
-                 list.appendChild(item);
-            });
-            scheduleDetails.appendChild(list);
-        }
-    });
-
-    prevMonthBtn.addEventListener('click', () => {
-        currentDate.setMonth(currentDate.getMonth() - 1);
-        renderCalendar();
-        scheduleDetails.innerHTML = '';
-    });
-
-    nextMonthBtn.addEventListener('click', () => {
-        currentDate.setMonth(currentDate.getMonth() + 1);
-        renderCalendar();
-        scheduleDetails.innerHTML = '';
-    });
-
-    // --- Initial App Load ---
-    const initialize = () => {
-        window.addEventListener('hashchange', () => showPage(window.location.hash));
-        showPage(window.location.hash || '#dashboard');
-        populateTimeSlots();
-        setMinBookingDate();
-        if (currentUser.role === 'admin') {
-            populateReportSelectors();
-            if (reportMonthSelect && reportYearSelect) {
-                reportMonthSelect.addEventListener('change', renderReportsPage);
-                reportYearSelect.addEventListener('change', renderReportsPage);
-            }
-        }
-    };
-
-    handleLogin(); // Check login status on page load
-
-    // Add global error handler
-    window.addEventListener('error', (event) => {
-        console.error('Global error caught:', event.error);
-        showGlobalError('An unexpected error occurred. Please refresh the page.');
-    });
-
-
-                 item.className = 'p-3 bg-gray-50 rounded-lg flex justify-between items-center border-l-4 border-green-300';
-
-                if (currentUser.role === 'admin' && startup) {
-                     item.innerHTML = `
-                         <div>
-                             <p class="font-semibold text-gray-700">${booking.room} - <span class="font-normal text-gray-600">${formatBookingTime(booking)}</span></p>
-                             <p class="text-sm text-gray-500">${startup.name}</p>
-                             <p class="text-xs text-gray-500 mt-1">${startup.contact} - ${startup.phone}</p>
-                             ${booking.equipmentNotes ? `<p class="text-xs text-gray-500 mt-1 italic">Equipment: ${booking.equipmentNotes}</p>` : ''}
-                         </div>
-                     `;
-                } else {
-                       item.innerHTML = `
-                         <div>
-                             <p class="font-semibold text-gray-700">${booking.room} - <span class="font-normal text-gray-600">${formatBookingTime(booking)}</span></p>
-                         </div>
-                          <span class="text-xs font-medium text-gray-700 bg-gray-200 px-2 py-1 rounded-full">Booked</span>
-                     `;
-                }
-                 list.appendChild(item);
-            });
-            scheduleDetails.appendChild(list);
-        }
-    });
-
-    prevMonthBtn.addEventListener('click', () => {
-        currentDate.setMonth(currentDate.getMonth() - 1);
-        renderCalendar();
-        scheduleDetails.innerHTML = '';
-    });
-
-    nextMonthBtn.addEventListener('click', () => {
-        currentDate.setMonth(currentDate.getMonth() + 1);
-        renderCalendar();
-        scheduleDetails.innerHTML = '';
-    });
-
-    // --- Initial App Load ---
-    const initialize = () => {
-        window.addEventListener('hashchange', () => showPage(window.location.hash));
-        showPage(window.location.hash || '#dashboard');
-        populateTimeSlots();
-        setMinBookingDate();
-        if (currentUser.role === 'admin') {
-            populateReportSelectors();
-            if (reportMonthSelect && reportYearSelect) {
-                reportMonthSelect.addEventListener('change', renderReportsPage);
-                reportYearSelect.addEventListener('change', renderReportsPage);
-            }
-        }
-    };
-
-    handleLogin(); // Check login status on page load
-
-    // Add global error handler
-    window.addEventListener('error', (event) => {
-        console.error('Global error caught:', event.error);
-        showGlobalError('An unexpected error occurred. Please refresh the page.');
-    });
-
-    window.addEventListener('unhandledrejection', (event) => {
-        console.error('Unhandled promise rejection:', event.reason);
-        showGlobalError('A network error occurred. Please check your connection.');
-        event.preventDefault();
-    });
-
-    const showGlobalError = (message) => {
-        const errorDiv = document.createElement('div');
-        errorDiv.className = 'fixed top-4 right-4 bg-red-500 text-white p-4 rounded-lg shadow-lg z-50';
-        errorDiv.innerHTML = `
-            <div class="flex items-center">
-                <span>${message}</span>
-                <button onclick="this.parentElement.parentElement.remove()" class="ml-4 text-white hover:text-gray-200">×</button>
-            </div>
-        `;
-        document.body.appendChild(errorDiv);
-        setTimeout(() => errorDiv.remove(), 10000);
-    };
-});
-</script>
-
-<script>
-// ===== Supabase Integration =====
-const SUPABASE_URL = 'https://ylmitcrmtdjbomkvryzh.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlsbWl0Y3JtdGRqYm9ta3ZyeXpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg2OTU0MTgsImV4cCI6MjA3NDI3MTQxOH0.gBUdTLqCOVJxKWdQSelTK_axjkyUYzYEXmsnbJCX9WA';
-
-let supabaseClient;
-try {
-  supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-} catch (e) {
-  console.error('Failed to initialize Supabase:', e);
-}
-
-// DOM elements
-const authContainer = document.getElementById('auth-container');
-const appContainer = document.getElementById('app');
-const loginView = document.getElementById('login-view');
-const signupView = document.getElementById('signup-view');
-const showSignupLink = document.getElementById('show-signup');
-const showLoginLink = document.getElementById('show-login');
-const loginFormEl = document.getElementById('login-form');
-const signupFormEl = document.getElementById('signup-form');
-const loginErrorEl = document.getElementById('login-error');
-const signupErrorEl = document.getElementById('signup-error');
-const signupSuccessEl = document.getElementById('signup-success');
-const bookingFormEl = document.getElementById('booking-form');
-const startupSelectEl = document.getElementById('startup-select');
-const roomSelectEl = document.getElementById('room-select') || document.getElementById('room-select');
-const bookingMessage = document.getElementById('booking-message');
-
-// View helpers
-function showAuth(which = 'login') {
-  authContainer?.classList.remove('hidden');
-  appContainer?.classList.add('hidden');
-  if (which === 'signup') {
-    signupView?.classList.remove('hidden');
-    loginView?.classList.add('hidden');
-  } else {
-    loginView?.classList.remove('hidden');
-    signupView?.classList.add('hidden');
-  }
-}
-function showApp() {
-  authContainer?.classList.add('hidden');
-  appContainer?.classList.remove('hidden');
-}
-
-// Toggle links (fixes the wrong redirect on "Create an Account")
-showSignupLink?.addEventListener('click', (e) => {
-  e.preventDefault();
-  showAuth('signup');
-});
-showLoginLink?.addEventListener('click', (e) => {
-  e.preventDefault();
-  showAuth('login');
-});
-
-// Auth state handling
-async function handleAuthState() {
-  if (!supabaseClient) return showAuth('login');
-  const { data: { session }, error } = await supabaseClient.auth.getSession();
-  if (error) console.warn('getSession error', error);
-  if (session?.user) {
-    showApp();
-    await bootstrapData(session.user);
-  } else {
-    showAuth('login');
-  }
-}
-
-// Make existing calls compatible
-window.handleLogin = handleAuthState;
-
-// Listen for auth state changes
-supabaseClient?.auth.onAuthStateChange((_event, session) => {
-  if (session?.user) {
-    showApp();
-    bootstrapData(session.user);
-  } else {
-    showAuth('login');
-  }
-});
-
-// Sign up
-signupFormEl?.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  signupErrorEl?.classList.add('hidden');
-  signupSuccessEl?.classList.add('hidden');
-
-  const startupName = document.getElementById('signup-startup-name')?.value?.trim();
-  const contactPerson = document.getElementById('signup-contact-person')?.value?.trim();
-  const phone = document.getElementById('signup-phone')?.value?.trim();
-  const email = document.getElementById('signup-email')?.value?.trim();
-  const password = document.getElementById('signup-password')?.value;
-
-  if (!startupName || !contactPerson || !phone || !email || !password || password.length < 6) {
-    showSignupError('Please fill all required fields. Password must be at least 6 characters.');
-    return;
-  }
-
-  setSignupLoading(true);
-  try {
-    // Create auth user with metadata
-    const { data, error } = await supabaseClient.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          name: contactPerson,
-          phone,
-          role: 'startup',
-          startup_name: startupName
-        }
-      }
-    });
-    if (error) throw error;
-
-    const userId = data.user?.id;
-    if (!userId) throw new Error('Failed to create user account.');
-
-    // Show success message - the database trigger will handle profile creation
-    showSignupSuccess('Account created successfully! Please check your email to verify your account, then sign in.');
-
-    // Redirect to login view
-    showAuth('login');
-
-  } catch (err) {
-    console.error('Signup error', err);
-    showSignupError(err.message || 'Unable to create account.');
-  } finally {
-    setSignupLoading(false);
-  }
-});
-
-function setSignupLoading(isLoading) {
-  const btn = document.getElementById('signup-submit-btn');
-  const t1 = document.getElementById('signup-btn-text');
-  const t2 = document.getElementById('signup-btn-loading');
-  if (!btn || !t1 || !t2) return;
-  btn.disabled = isLoading;
-  t1.classList.toggle('hidden', isLoading);
-  t2.classList.toggle('hidden', !isLoading);
-}
-function showSignupError(msg) {
-  if (!signupErrorEl) return;
-  signupErrorEl.textContent = msg;
-  signupErrorEl.classList.remove('hidden');
-}
-function showSignupSuccess(msg) {
-  if (!signupSuccessEl) return;
-  signupSuccessEl.textContent = msg;
-  signupSuccessEl.classList.remove('hidden');
-}
-
-// Login
-loginFormEl?.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  loginErrorEl.textContent = '';
-  const email = document.getElementById('login-email')?.value?.trim();
-  const password = document.getElementById('login-password')?.value;
-  if (!email || !password) {
-    loginErrorEl.textContent = 'Enter email and password.';
-    return;
-  }
-  try {
-    const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
-    if (error) throw error;
-    // onAuthStateChange will fire and bootstrap
-  } catch (err) {
-    console.error('Login error', err);
-    loginErrorEl.textContent = err.message || 'Login failed. Please try again.';
-  }
-});
-
-// Logout (if a button with id=logout-btn exists)
-const logoutBtn = document.getElementById('logout-btn');
-logoutBtn?.addEventListener('click', async () => {
-  await supabaseClient.auth.signOut();
-  showAuth('login');
-});
-
-// Bootstrap user data (rooms, startup, bookings)
-async function bootstrapData(user) {
-  try {
-    await populateRooms();
-    await populateStartupForUser(user.id);
-    await refreshMyBookings(user.id);
-  } catch (e) {
-    console.warn('Bootstrap data error', e);
-  }
-}
-
-async function populateRooms() {
-  if (!roomSelectEl) return;
-  const { data: rooms, error } = await supabaseClient.from('rooms').select('*').eq('is_active', true).order('name');
-  if (error) { console.warn('Rooms load error', error); return; }
-  roomSelectEl.innerHTML = '';
-  (rooms || []).forEach(r => {
-    const opt = document.createElement('option');
-    opt.value = r.name;
-    opt.textContent = r.name;
-    roomSelectEl.appendChild(opt);
-  });
-}
-
-async function populateStartupForUser(userId) {
-  if (!startupSelectEl) return;
-  const { data, error } = await supabaseClient.from('startups').select('id,name').eq('user_id', userId).limit(1).maybeSingle();
-  if (error) { console.warn('Startup load error', error); return; }
-  startupSelectEl.innerHTML = '';
-  if (data) {
-    const opt = document.createElement('option');
-    opt.value = data.id;
-    opt.textContent = data.name;
-    startupSelectEl.appendChild(opt);
-  }
-}
-
-// Intercept booking submit to use Supabase (and prevent old local handler)
-bookingFormEl?.addEventListener('submit', async (e) => {
-  // prevent any previously-attached handlers from running
-  e.preventDefault();
-  e.stopImmediatePropagation();
-
-  const startupId = parseInt(startupSelectEl?.value || '');
-  const roomName = document.getElementById('room-select')?.value || document.getElementById('room')?.value || '';
-  const bookingDate = document.getElementById('booking-date')?.value;
-  const startTime = document.getElementById('time-select')?.value || document.getElementById('time')?.value;
-  const duration = parseInt(document.getElementById('duration-select')?.value || '1', 10);
-  const requiresEq = document.getElementById('podcast-equipment')?.value || '';
-  const isConf = !!document.getElementById('is-confidential')?.checked;
-
-  if (!startupId || !roomName || !bookingDate || !startTime) {
-    showBookingBanner('Please fill all required booking fields.', 'red');
-    return;
-  }
-  try {
-    const { error } = await supabaseClient.from('bookings').insert({
-      startup_id: startupId,
-      room_name: roomName,
-      booking_date: bookingDate,
-      start_time: startTime,
-      duration,
-      equipment_notes: requiresEq,
-      is_confidential: isConf,
-      status: 'confirmed'
-    });
-    if (error) throw error;
-    showBookingBanner('Booking successful! Your room is confirmed.', 'green');
-    const { data: { session } } = await supabaseClient.auth.getSession();
-    if (session?.user) await refreshMyBookings(session.user.id);
-    bookingFormEl.reset();
-  } catch (err) {
-    console.error('Booking create error', err);
-    showBookingBanner(err.message || 'Failed to create booking.', 'red');
-  }
-});
-
-function showBookingBanner(message, color) {
-  if (!bookingMessage) return;
-  const colorClasses = { red: 'bg-red-100 text-red-700 border-red-400', green: 'bg-green-100 text-green-700 border-green-400' };
-  bookingMessage.innerHTML = `<div class="p-4 rounded-md border-l-4 ${colorClasses[color]||''} font-medium">${message}</div>`;
-  setTimeout(() => bookingMessage.innerHTML = '', 4000);
-}
-
-async function refreshMyBookings(userId) {
-  // Example: read and log bookings for this user. Integrate with your UI renderers as needed.
-  const { data: startup, error: sErr } = await supabaseClient.from('startups').select('id').eq('user_id', userId).limit(1).maybeSingle();
-  if (sErr || !startup) return;
-  const { data: rows, error } = await supabaseClient.from('bookings').select('*').eq('startup_id', startup.id).order('booking_date', { ascending: true });
-  if (error) { console.warn('Load bookings error', error); return; }
-  // You can adapt existing renderers by mapping rows to your expected shape
-  console.debug('My bookings loaded', rows);
-}
-
-// Kick off
-handleAuthState();
-</script>
-
-</body>
-</html>
-
