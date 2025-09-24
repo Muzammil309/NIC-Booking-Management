@@ -465,11 +465,9 @@
                                 <label for="duration-select" class="block text-sm font-medium text-gray-700 mb-2">Duration *</label>
                                 <select id="duration-select" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
                                     <option value="1">1 Hour</option>
-                                    <option value="2">2 Hours</option>
-                                    <option value="3">3 Hours</option>
-                                    <option value="4">4 Hours</option>
-                                    <option value="8">Full Day (8 Hours)</option>
+                                    <option value="2">2 Hours (Maximum)</option>
                                 </select>
+                                <p class="text-xs text-gray-500 mt-1">Maximum booking duration is 2 hours per session</p>
                             </div>
                         </div>
 
@@ -1207,6 +1205,9 @@
         // ===== BOOKING FORM DATA LOADING =====
         async function loadBookingFormData() {
             try {
+                // Initialize database if needed
+                await initializeDatabase();
+
                 // Load rooms for dropdown with graceful fallback
                 let rooms = [];
                 let resp = await supabaseClient
@@ -1222,8 +1223,13 @@
                         .order('name');
                 }
 
-                if (resp.error) throw resp.error;
+                if (resp.error) {
+                    console.error('Failed to load rooms:', resp.error);
+                    throw new Error('Unable to load rooms from database');
+                }
+
                 rooms = resp.data || [];
+                console.log('Loaded rooms:', rooms);
 
                 // If table has is_active column, filter here; otherwise all rooms
                 const safeRooms = rooms.filter(r => (typeof r.is_active === 'boolean' ? r.is_active : true));
@@ -1501,6 +1507,12 @@
                 return;
             }
 
+            // Validate duration limit (maximum 2 hours)
+            if (duration > 2) {
+                showBookingBanner('Maximum booking duration is 2 hours.', 'red');
+                return;
+            }
+
             try {
                 const { error } = await supabaseClient.from('bookings').insert({
                     startup_id: currentStartup.id,
@@ -1658,17 +1670,29 @@
 
         async function loadContactData() {
             try {
+                console.log('Loading admin contacts...');
                 const { data: admins, error } = await supabaseClient
                     .from('users')
                     .select('id, name, email, phone')
                     .eq('role', 'admin')
                     .order('name');
-                if (error) throw error;
 
+                if (error) {
+                    console.error('Error loading admin contacts:', error);
+                    throw error;
+                }
+
+                console.log('Found admin contacts:', admins);
                 const listEl = document.getElementById('admin-contacts-list');
                 if (!listEl) return;
+
                 if (!admins || admins.length === 0) {
-                    listEl.innerHTML = '<p class="text-gray-500">No administrators found.</p>';
+                    listEl.innerHTML = `
+                        <div class="text-center py-8">
+                            <p class="text-gray-500 mb-4">No administrators found in the database.</p>
+                            <p class="text-sm text-gray-400">Please ensure admin users are created with role='admin'</p>
+                        </div>
+                    `;
                     return;
                 }
                 listEl.innerHTML = admins.map(a => `
@@ -1683,6 +1707,41 @@
                 `).join('');
             } catch (err) {
                 console.error('loadContactData error', err);
+            }
+        }
+
+        // ===== DATABASE INITIALIZATION =====
+        async function initializeDatabase() {
+            try {
+                // Check if rooms table exists and has data
+                const { data: existingRooms, error: roomsError } = await supabaseClient
+                    .from('rooms')
+                    .select('id')
+                    .limit(1);
+
+                // If no rooms exist, create sample rooms
+                if (!roomsError && (!existingRooms || existingRooms.length === 0)) {
+                    console.log('No rooms found, creating sample rooms...');
+                    const sampleRooms = [
+                        { name: 'Conference Room A', capacity: 12, equipment: ['Projector', 'Whiteboard', 'Video Conference'], is_active: true },
+                        { name: 'Meeting Room B', capacity: 6, equipment: ['TV Screen', 'Whiteboard'], is_active: true },
+                        { name: 'Podcast Studio', capacity: 4, equipment: ['Recording Equipment', 'Soundproofing'], is_active: true },
+                        { name: 'Collaboration Space', capacity: 8, equipment: ['Flipchart', 'Markers'], is_active: true },
+                        { name: 'Private Office', capacity: 2, equipment: ['Desk', 'Chairs'], is_active: true }
+                    ];
+
+                    const { error: insertError } = await supabaseClient
+                        .from('rooms')
+                        .insert(sampleRooms);
+
+                    if (insertError) {
+                        console.error('Error creating sample rooms:', insertError);
+                    } else {
+                        console.log('Sample rooms created successfully');
+                    }
+                }
+            } catch (error) {
+                console.error('Error initializing database:', error);
             }
         }
 
@@ -1809,8 +1868,11 @@
 
 
         // ===== INITIALIZE APPLICATION =====
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
             console.log('DOM loaded, initializing app...');
+
+            // Initialize database with sample data if needed
+            await initializeDatabase();
 
             // Check if sidebar exists
             const sidebar = document.getElementById('sidebar');
