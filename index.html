@@ -734,6 +734,74 @@
                     <p class="text-gray-600">Manage your account and preferences</p>
                 </div>
 
+                <!-- Profile Debug Information -->
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
+                    <h3 class="text-lg font-semibold text-blue-900 mb-3">Profile Debug Information</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <h4 class="font-medium text-blue-800 mb-2">Current User Profile</h4>
+                            <div id="debug-user-profile" class="bg-white p-3 rounded border text-sm font-mono"></div>
+                        </div>
+                        <div>
+                            <h4 class="font-medium text-blue-800 mb-2">Current Startup Profile</h4>
+                            <div id="debug-startup-profile" class="bg-white p-3 rounded border text-sm font-mono"></div>
+                        </div>
+                    </div>
+                    <button id="refresh-profiles-btn" class="mt-4 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                        Refresh Profile Data
+                    </button>
+                </div>
+
+                <!-- User Profile Settings -->
+                <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+                    <h3 class="text-xl font-bold text-gray-900 mb-4">User Profile</h3>
+                    <form id="user-profile-form" class="space-y-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="settings-name" class="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
+                                <input type="text" id="settings-name" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                            </div>
+                            <div>
+                                <label for="settings-email" class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                                <input type="email" id="settings-email" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50" readonly>
+                            </div>
+                            <div>
+                                <label for="settings-phone" class="block text-sm font-medium text-gray-700 mb-2">Phone</label>
+                                <input type="tel" id="settings-phone" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                            </div>
+                            <div>
+                                <label for="settings-role" class="block text-sm font-medium text-gray-700 mb-2">Role</label>
+                                <input type="text" id="settings-role" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50" readonly>
+                            </div>
+                        </div>
+                        <button type="submit" class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700">
+                            Update User Profile
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Startup Profile Settings -->
+                <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+                    <h3 class="text-xl font-bold text-gray-900 mb-4">Startup Profile</h3>
+                    <div id="startup-profile-content">
+                        <!-- Content will be loaded dynamically -->
+                    </div>
+                </div>
+
+                <!-- Profile Actions -->
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <h3 class="text-xl font-bold text-gray-900 mb-4">Profile Actions</h3>
+                    <div class="space-y-3">
+                        <button id="create-startup-profile-btn" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 hidden">
+                            Create Missing Startup Profile
+                        </button>
+                        <button id="reload-profile-data-btn" class="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700">
+                            Reload Profile Data
+                        </button>
+                        <div id="profile-actions-status" class="text-sm"></div>
+                    </div>
+                </div>
+
                 <div class="space-y-8">
                     <!-- Profile Settings -->
                     <div class="bg-white rounded-xl shadow-lg p-8">
@@ -1526,15 +1594,24 @@
         // ===== AUTHENTICATION INTEGRATION =====
         async function bootstrapData(user) {
             try {
+                console.log('🔄 Bootstrap Data - Starting for user:', user.id);
+                console.log('🔄 User metadata:', user.user_metadata);
+
                 // Get user profile (tolerant of missing rows)
-                const { data: userProfile } = await supabaseClient
+                console.log('📝 Step 1: Loading user profile...');
+                const { data: userProfile, error: userProfileError } = await supabaseClient
                     .from('users')
                     .select('*')
                     .eq('id', user.id)
                     .maybeSingle();
 
+                if (userProfileError) {
+                    console.error('❌ Error loading user profile:', userProfileError);
+                }
+
                 // Create user profile if it doesn't exist
                 if (!userProfile) {
+                    console.log('⚠️ No user profile found, creating one...');
                     const { error: userCreateError } = await supabaseClient
                         .from('users')
                         .insert({
@@ -1546,8 +1623,12 @@
                         });
 
                     if (userCreateError) {
-                        console.warn('Could not create user profile:', userCreateError);
+                        console.error('❌ Could not create user profile:', userCreateError);
+                    } else {
+                        console.log('✅ User profile created successfully');
                     }
+                } else {
+                    console.log('✅ User profile loaded:', userProfile);
                 }
 
                 currentUser = userProfile || {
@@ -1559,40 +1640,61 @@
                 };
 
                 // Get user's startup (optional)
-                const { data: startup } = await supabaseClient
+                console.log('📝 Step 2: Loading startup profile...');
+                const { data: startup, error: startupError } = await supabaseClient
                     .from('startups')
                     .select('*')
                     .eq('user_id', user.id)
                     .maybeSingle();
 
-                // Create startup profile if user doesn't have one and has startup metadata
-                if (!startup && user.user_metadata?.startup_name && currentUser.role === 'startup') {
-                    console.log('Creating missing startup profile for user...');
-                    const { error: startupCreateError } = await supabaseClient
-                        .from('startups')
-                        .insert({
-                            user_id: user.id,
-                            name: user.user_metadata.startup_name,
-                            contact_person: user.user_metadata.name || user.email.split('@')[0],
-                            phone: user.user_metadata.phone || '',
-                            email: user.email,
-                            status: 'active'
-                        });
-
-                    if (startupCreateError) {
-                        console.error('Could not create startup profile:', startupCreateError);
-                    } else {
-                        // Reload startup data
-                        const { data: newStartup } = await supabaseClient
-                            .from('startups')
-                            .select('*')
-                            .eq('user_id', user.id)
-                            .maybeSingle();
-                        currentStartup = newStartup;
-                    }
-                } else {
-                    currentStartup = startup || null;
+                if (startupError) {
+                    console.error('❌ Error loading startup profile:', startupError);
                 }
+
+                if (startup) {
+                    console.log('✅ Startup profile found:', startup);
+                    currentStartup = startup;
+                } else {
+                    console.log('⚠️ No startup profile found');
+
+                    // Create startup profile if user doesn't have one and has startup metadata
+                    if (user.user_metadata?.startup_name && currentUser.role === 'startup') {
+                        console.log('🔧 Creating missing startup profile for user...');
+                        const { error: startupCreateError } = await supabaseClient
+                            .from('startups')
+                            .insert({
+                                user_id: user.id,
+                                name: user.user_metadata.startup_name,
+                                contact_person: user.user_metadata.name || user.email.split('@')[0],
+                                phone: user.user_metadata.phone || '',
+                                email: user.email,
+                                status: 'active'
+                            });
+
+                        if (startupCreateError) {
+                            console.error('❌ Could not create startup profile:', startupCreateError);
+                            currentStartup = null;
+                        } else {
+                            console.log('✅ Startup profile created, reloading...');
+                            // Reload startup data
+                            const { data: newStartup } = await supabaseClient
+                                .from('startups')
+                                .select('*')
+                                .eq('user_id', user.id)
+                                .maybeSingle();
+                            currentStartup = newStartup;
+                            console.log('✅ New startup profile loaded:', newStartup);
+                        }
+                    } else {
+                        console.log('⚠️ No startup metadata found, cannot create startup profile');
+                        currentStartup = null;
+                    }
+                }
+
+                console.log('🎯 Bootstrap Summary:');
+                console.log('   - Current User:', currentUser);
+                console.log('   - Current Startup:', currentStartup);
+                console.log('   - Can Book Rooms:', !!currentStartup);
 
                 // Update UI based on user role
                 updateUIForUserRole(currentUser.role);
@@ -1707,7 +1809,10 @@
 
             setSignupLoading(true);
             try {
+                console.log('🚀 Starting signup process...');
+
                 // Step 1: Create user account
+                console.log('📝 Step 1: Creating auth user...');
                 const { data: authData, error: authError } = await supabaseClient.auth.signUp({
                     email,
                     password,
@@ -1721,10 +1826,15 @@
                     }
                 });
 
-                if (authError) throw authError;
+                if (authError) {
+                    console.error('❌ Auth user creation failed:', authError);
+                    throw authError;
+                }
+                console.log('✅ Auth user created successfully:', authData.user?.id);
 
                 // Step 2: Create user profile in users table
                 if (authData.user) {
+                    console.log('📝 Step 2: Creating user profile...');
                     const { error: userError } = await supabaseClient
                         .from('users')
                         .insert({
@@ -1736,11 +1846,17 @@
                         });
 
                     if (userError) {
-                        console.warn('User profile creation error:', userError);
-                        // Don't fail signup if user profile creation fails
+                        console.error('❌ User profile creation failed:', userError);
+                        console.error('❌ This will prevent startup profile creation!');
+                        // Don't fail signup but show detailed error
+                        showSignupError(`Account created but profile setup failed: ${userError.message}. Please contact support.`);
+                        return;
+                    } else {
+                        console.log('✅ User profile created successfully');
                     }
 
                     // Step 3: Create startup profile
+                    console.log('📝 Step 3: Creating startup profile...');
                     const { error: startupError } = await supabaseClient
                         .from('startups')
                         .insert({
@@ -1753,16 +1869,20 @@
                         });
 
                     if (startupError) {
-                        console.error('Startup profile creation error:', startupError);
-                        // This is critical - show warning but don't fail signup
-                        showSignupSuccess('Account created successfully! However, there was an issue creating your startup profile. Please contact support if you cannot make bookings.');
+                        console.error('❌ Startup profile creation failed:', startupError);
+                        // This is critical - show detailed error
+                        showSignupError(`Account and user profile created, but startup profile failed: ${startupError.message}. You won't be able to book rooms. Please contact support.`);
+                        return;
                     } else {
+                        console.log('✅ Startup profile created successfully');
                         showSignupSuccess('Account and startup profile created successfully! Please check your email to verify your account, then sign in.');
                     }
                 } else {
+                    console.error('❌ No auth user data returned');
                     showSignupSuccess('Account created successfully! Please check your email to verify your account, then sign in.');
                 }
 
+                console.log('🎉 Signup process completed successfully');
                 showAuth('login');
 
             } catch (err) {
@@ -1910,6 +2030,170 @@
                 showBookingBanner(err.message || 'Failed to create booking.', 'red');
             }
         });
+
+        // ===== SETTINGS EVENT HANDLERS =====
+        // Settings page event handlers
+        document.addEventListener('DOMContentLoaded', () => {
+            // Refresh profiles button
+            const refreshBtn = document.getElementById('refresh-profiles-btn');
+            refreshBtn?.addEventListener('click', async () => {
+                console.log('🔄 Refreshing profile data...');
+                if (currentUser) {
+                    await bootstrapData({
+                        id: currentUser.id,
+                        email: currentUser.email,
+                        user_metadata: {
+                            name: currentUser.name,
+                            phone: currentUser.phone,
+                            role: currentUser.role
+                        }
+                    });
+                    updateProfileDebugInfo();
+                    await loadStartupProfileSettings();
+                }
+            });
+
+            // Create startup profile button
+            const createStartupBtn = document.getElementById('create-startup-profile-btn');
+            createStartupBtn?.addEventListener('click', async () => {
+                if (!currentUser) {
+                    alert('No user profile found');
+                    return;
+                }
+
+                const startupName = prompt('Enter your startup name:');
+                if (!startupName) return;
+
+                try {
+                    console.log('🔧 Creating startup profile manually...');
+                    const { error } = await supabaseClient
+                        .from('startups')
+                        .insert({
+                            user_id: currentUser.id,
+                            name: startupName,
+                            contact_person: currentUser.name || currentUser.email.split('@')[0],
+                            phone: currentUser.phone || '',
+                            email: currentUser.email,
+                            status: 'active'
+                        });
+
+                    if (error) {
+                        console.error('❌ Failed to create startup profile:', error);
+                        alert(`Failed to create startup profile: ${error.message}`);
+                    } else {
+                        console.log('✅ Startup profile created successfully');
+                        // Reload startup data
+                        const { data: newStartup } = await supabaseClient
+                            .from('startups')
+                            .select('*')
+                            .eq('user_id', currentUser.id)
+                            .maybeSingle();
+                        currentStartup = newStartup;
+
+                        // Update UI
+                        updateProfileDebugInfo();
+                        await loadStartupProfileSettings();
+
+                        const statusEl = document.getElementById('profile-actions-status');
+                        if (statusEl) {
+                            statusEl.innerHTML = '<span class="text-green-600">✅ Startup profile created successfully! You can now book rooms.</span>';
+                        }
+                    }
+                } catch (err) {
+                    console.error('❌ Error creating startup profile:', err);
+                    alert(`Error: ${err.message}`);
+                }
+            });
+
+            // Reload profile data button
+            const reloadBtn = document.getElementById('reload-profile-data-btn');
+            reloadBtn?.addEventListener('click', async () => {
+                console.log('🔄 Reloading all profile data...');
+                if (currentUser) {
+                    await bootstrapData({
+                        id: currentUser.id,
+                        email: currentUser.email,
+                        user_metadata: {
+                            name: currentUser.name,
+                            phone: currentUser.phone,
+                            role: currentUser.role
+                        }
+                    });
+                    await loadSettingsData();
+
+                    const statusEl = document.getElementById('profile-actions-status');
+                    if (statusEl) {
+                        statusEl.innerHTML = '<span class="text-blue-600">🔄 Profile data reloaded</span>';
+                    }
+                }
+            });
+
+            // User profile form
+            const userForm = document.getElementById('user-profile-form');
+            userForm?.addEventListener('submit', async (e) => {
+                e.preventDefault();
+
+                const name = document.getElementById('settings-name').value;
+                const phone = document.getElementById('settings-phone').value;
+
+                try {
+                    const { error } = await supabaseClient
+                        .from('users')
+                        .update({ name, phone })
+                        .eq('id', currentUser.id);
+
+                    if (error) throw error;
+
+                    // Update current user
+                    currentUser.name = name;
+                    currentUser.phone = phone;
+
+                    alert('User profile updated successfully!');
+                    updateProfileDebugInfo();
+                } catch (err) {
+                    console.error('Error updating user profile:', err);
+                    alert(`Failed to update profile: ${err.message}`);
+                }
+            });
+        });
+
+        async function handleStartupProfileUpdate(e) {
+            e.preventDefault();
+
+            const name = document.getElementById('startup-name').value;
+            const contactPerson = document.getElementById('startup-contact-person').value;
+            const phone = document.getElementById('startup-phone').value;
+            const email = document.getElementById('startup-email').value;
+            const status = document.getElementById('startup-status').value;
+
+            try {
+                const { error } = await supabaseClient
+                    .from('startups')
+                    .update({
+                        name,
+                        contact_person: contactPerson,
+                        phone,
+                        email,
+                        status
+                    })
+                    .eq('id', currentStartup.id);
+
+                if (error) throw error;
+
+                // Update current startup
+                currentStartup.name = name;
+                currentStartup.contact_person = contactPerson;
+                currentStartup.phone = phone;
+                currentStartup.email = email;
+                currentStartup.status = status;
+
+                alert('Startup profile updated successfully!');
+                updateProfileDebugInfo();
+            } catch (err) {
+                console.error('Error updating startup profile:', err);
+                alert(`Failed to update startup profile: ${err.message}`);
+            }
+        }
 
         // ===== EVENT LISTENERS =====
         // Navigation
@@ -2719,8 +3003,116 @@
             }
         }
 
+        // ===== SETTINGS DATA LOADING =====
         async function loadSettingsData() {
-            console.log('Loading settings data...');
+            console.log('🔧 Loading Settings Data...');
+            try {
+                // Update debug information
+                updateProfileDebugInfo();
+
+                // Load user profile form
+                if (currentUser) {
+                    document.getElementById('settings-name').value = currentUser.name || '';
+                    document.getElementById('settings-email').value = currentUser.email || '';
+                    document.getElementById('settings-phone').value = currentUser.phone || '';
+                    document.getElementById('settings-role').value = currentUser.role || '';
+                }
+
+                // Load startup profile content
+                await loadStartupProfileSettings();
+
+            } catch (error) {
+                console.error('Error loading settings data:', error);
+            }
+        }
+
+        function updateProfileDebugInfo() {
+            const userDebugEl = document.getElementById('debug-user-profile');
+            const startupDebugEl = document.getElementById('debug-startup-profile');
+
+            if (userDebugEl) {
+                userDebugEl.innerHTML = currentUser ?
+                    `<pre>${JSON.stringify(currentUser, null, 2)}</pre>` :
+                    '<span class="text-red-600">No user profile loaded</span>';
+            }
+
+            if (startupDebugEl) {
+                startupDebugEl.innerHTML = currentStartup ?
+                    `<pre>${JSON.stringify(currentStartup, null, 2)}</pre>` :
+                    '<span class="text-red-600">No startup profile found</span>';
+            }
+
+            // Show/hide create startup button
+            const createBtn = document.getElementById('create-startup-profile-btn');
+            if (createBtn) {
+                if (!currentStartup && currentUser?.role === 'startup') {
+                    createBtn.classList.remove('hidden');
+                } else {
+                    createBtn.classList.add('hidden');
+                }
+            }
+        }
+
+        async function loadStartupProfileSettings() {
+            const contentEl = document.getElementById('startup-profile-content');
+            if (!contentEl) return;
+
+            if (!currentStartup) {
+                contentEl.innerHTML = `
+                    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                        <div class="flex items-center">
+                            <svg class="w-5 h-5 text-yellow-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                            </svg>
+                            <span class="text-yellow-800 font-medium">No startup profile found</span>
+                        </div>
+                        <p class="text-yellow-700 mt-2">This is why you're getting "No startup profile found" errors when booking rooms.</p>
+                        <p class="text-yellow-700 mt-1">Use the "Create Missing Startup Profile" button below to fix this issue.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            contentEl.innerHTML = `
+                <form id="startup-profile-form" class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="startup-name" class="block text-sm font-medium text-gray-700 mb-2">Startup Name</label>
+                            <input type="text" id="startup-name" value="${currentStartup.name || ''}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                        </div>
+                        <div>
+                            <label for="startup-contact-person" class="block text-sm font-medium text-gray-700 mb-2">Contact Person</label>
+                            <input type="text" id="startup-contact-person" value="${currentStartup.contact_person || ''}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                        </div>
+                        <div>
+                            <label for="startup-phone" class="block text-sm font-medium text-gray-700 mb-2">Phone</label>
+                            <input type="tel" id="startup-phone" value="${currentStartup.phone || ''}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                        </div>
+                        <div>
+                            <label for="startup-email" class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                            <input type="email" id="startup-email" value="${currentStartup.email || ''}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                        </div>
+                        <div>
+                            <label for="startup-status" class="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                            <select id="startup-status" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                                <option value="active" ${currentStartup.status === 'active' ? 'selected' : ''}>Active</option>
+                                <option value="inactive" ${currentStartup.status === 'inactive' ? 'selected' : ''}>Inactive</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Created</label>
+                            <input type="text" value="${new Date(currentStartup.created_at).toLocaleDateString()}" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50" readonly>
+                        </div>
+                    </div>
+                    <button type="submit" class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700">
+                        Update Startup Profile
+                    </button>
+                </form>
+            `;
+
+            // Add form submission handler
+            const startupForm = document.getElementById('startup-profile-form');
+            startupForm?.addEventListener('submit', handleStartupProfileUpdate);
         }
 
         async function loadContactData() {
