@@ -1535,39 +1535,30 @@ signupFormEl?.addEventListener('submit', async (e) => {
 
   setSignupLoading(true);
   try {
+    // Create auth user with metadata
     const { data, error } = await supabaseClient.auth.signUp({
       email,
       password,
-      options: { data: { name: contactPerson, phone, role: 'startup' } }
+      options: {
+        data: {
+          name: contactPerson,
+          phone,
+          role: 'startup',
+          startup_name: startupName
+        }
+      }
     });
     if (error) throw error;
 
     const userId = data.user?.id;
     if (!userId) throw new Error('Failed to create user account.');
 
-    // Create/update user profile record
-    const { error: upErr } = await supabaseClient.from('users').upsert({
-      id: userId,
-      email,
-      name: contactPerson,
-      phone,
-      role: 'startup'
-    }, { onConflict: 'id' });
-    if (upErr) throw upErr;
+    // Show success message - the database trigger will handle profile creation
+    showSignupSuccess('Account created successfully! Please check your email to verify your account, then sign in.');
 
-    // Create startup record
-    const { error: sErr } = await supabaseClient.from('startups').insert({
-      user_id: userId,
-      name: startupName,
-      contact_person: contactPerson,
-      phone,
-      email
-    });
-    if (sErr) throw sErr;
-
-    showSignupSuccess('Account created successfully. Please sign in.');
     // Redirect to login view
     showAuth('login');
+
   } catch (err) {
     console.error('Signup error', err);
     showSignupError(err.message || 'Unable to create account.');
