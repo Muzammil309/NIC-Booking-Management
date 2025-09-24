@@ -432,6 +432,40 @@
 
                 <div class="bg-white rounded-xl shadow-lg p-8">
                     <form id="booking-form" class="space-y-6">
+                        <!-- Room Preview Section -->
+                        <div id="room-preview-section" class="hidden bg-gradient-to-r from-green-50 to-blue-50 rounded-xl p-6 border border-green-200">
+                            <div class="flex items-start space-x-4">
+                                <div class="flex-shrink-0">
+                                    <div class="w-16 h-16 bg-green-100 rounded-lg flex items-center justify-center">
+                                        <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-5 0H3m2 0h3M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div class="flex-1">
+                                    <h3 id="room-preview-name" class="text-lg font-semibold text-gray-900 mb-2"></h3>
+                                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                                        <div>
+                                            <span class="font-medium text-gray-700">Capacity:</span>
+                                            <span id="room-preview-capacity" class="text-gray-600 ml-1"></span>
+                                        </div>
+                                        <div>
+                                            <span class="font-medium text-gray-700">Type:</span>
+                                            <span id="room-preview-type" class="text-gray-600 ml-1"></span>
+                                        </div>
+                                        <div>
+                                            <span class="font-medium text-gray-700">Max Duration:</span>
+                                            <span id="room-preview-duration" class="text-gray-600 ml-1"></span>
+                                        </div>
+                                    </div>
+                                    <div class="mt-3">
+                                        <span class="font-medium text-gray-700">Equipment:</span>
+                                        <div id="room-preview-equipment" class="flex flex-wrap gap-1 mt-1"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
                                 <label for="room-select" class="block text-sm font-medium text-gray-700 mb-2">Room *</label>
@@ -471,11 +505,21 @@
                             </div>
                         </div>
 
-                        <div>
-                            <label for="podcast-equipment" class="block text-sm font-medium text-gray-700 mb-2">Equipment Requirements</label>
-                            <textarea id="podcast-equipment" rows="3"
+                        <div id="podcast-equipment-section" class="hidden">
+                            <label for="podcast-equipment" class="block text-sm font-medium text-gray-700 mb-2">
+                                Special Equipment Requirements *
+                                <span class="text-xs text-gray-500">(Required for this room)</span>
+                            </label>
+                            <textarea id="podcast-equipment" rows="3" required
                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                                      placeholder="Describe any special equipment or setup requirements..."></textarea>
+                                      placeholder="Describe your specific equipment needs for this room..."></textarea>
+                        </div>
+
+                        <div>
+                            <label for="general-notes" class="block text-sm font-medium text-gray-700 mb-2">Additional Notes</label>
+                            <textarea id="general-notes" rows="2"
+                                      class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                                      placeholder="Any additional requirements or notes..."></textarea>
                         </div>
 
                         <div class="flex items-center">
@@ -1202,44 +1246,34 @@
             }
         }
 
-        // ===== BOOKING FORM DATA LOADING =====
+        // ===== ENHANCED BOOKING FORM DATA LOADING =====
         async function loadBookingFormData() {
             try {
+                console.log('Loading enhanced booking form data...');
+
                 // Initialize database if needed
                 await initializeDatabase();
 
-                // Load rooms for dropdown with graceful fallback
+                // Try to load rooms from Supabase, fallback to local data
                 let rooms = [];
-                let resp = await supabaseClient
-                    .from('rooms')
-                    .select('id, name, is_active')
-                    .order('name');
-
-                if (resp.error) {
-                    console.warn('rooms select error (with is_active), retrying without filter:', resp.error.message);
-                    resp = await supabaseClient
+                try {
+                    const resp = await supabaseClient
                         .from('rooms')
-                        .select('id, name')
+                        .select('*')
                         .order('name');
+
+                    if (resp.error) {
+                        console.warn('Supabase rooms error, using local data:', resp.error.message);
+                        rooms = availableRooms;
+                    } else {
+                        rooms = resp.data || availableRooms;
+                    }
+                } catch (error) {
+                    console.warn('Database connection issue, using local room data:', error);
+                    rooms = availableRooms;
                 }
 
-                if (resp.error) {
-                    console.error('Failed to load rooms:', resp.error);
-                    throw new Error('Unable to load rooms from database');
-                }
-
-                rooms = resp.data || [];
-                console.log('Loaded rooms:', rooms);
-
-                // If table has is_active column, filter here; otherwise all rooms
-                const safeRooms = rooms.filter(r => (typeof r.is_active === 'boolean' ? r.is_active : true));
-
-                const roomSelect = document.getElementById('room-select');
-                if (roomSelect) {
-                    roomSelect.innerHTML = '<option value="">Select a room</option>' +
-                        safeRooms.map(room => `<option value="${room.name}">${room.name}</option>`).join('');
-                    roomSelect.disabled = safeRooms.length === 0;
-                }
+                console.log('Using rooms:', rooms);
 
                 // Set minimum date to tomorrow
                 const bookingDate = document.getElementById('booking-date');
@@ -1248,17 +1282,183 @@
                     tomorrow.setDate(tomorrow.getDate() + 1);
                     bookingDate.min = tomorrow.toISOString().split('T')[0];
                     bookingDate.value = tomorrow.toISOString().split('T')[0];
+
+                    // Update room availability for tomorrow
+                    updateRoomAvailability(tomorrow.toISOString().split('T')[0]);
+                } else {
+                    // Fallback: populate rooms immediately
+                    populateRoomSelect(rooms);
                 }
+
+                // Set up event listeners for dynamic updates
+                setupBookingFormListeners();
 
             } catch (error) {
                 console.error('Error loading booking form data:', error);
-                const roomSelect = document.getElementById('room-select');
-                if (roomSelect) {
-                    roomSelect.innerHTML = '<option value="">Unable to load rooms</option>';
-                    roomSelect.disabled = true;
-                }
+                // Fallback to local room data
+                populateRoomSelect(availableRooms);
             }
         }
+
+        // Enhanced room availability system
+        const updateRoomAvailability = async (selectedDate) => {
+            console.log('Updating room availability for:', selectedDate);
+
+            try {
+                // Get bookings for the selected date
+                const { data: bookingsForDay, error } = await supabaseClient
+                    .from('bookings')
+                    .select('room_name, duration')
+                    .eq('booking_date', selectedDate);
+
+                if (error) {
+                    console.warn('Error loading bookings, showing all rooms:', error);
+                }
+
+                const roomSelect = document.getElementById('room-select');
+                if (!roomSelect) return;
+
+                roomSelect.innerHTML = '<option value="">Select a room</option>';
+
+                availableRooms.forEach(room => {
+                    const bookingsForRoom = (bookingsForDay || []).filter(b => b.room_name === room.name);
+                    const totalBookedHours = bookingsForRoom.reduce((acc, curr) => acc + (curr.duration || 0), 0);
+
+                    const isFullyBooked = totalBookedHours >= 8;
+                    const option = document.createElement('option');
+                    option.value = room.name;
+                    option.textContent = isFullyBooked ? `${room.name} (Fully Booked)` : room.name;
+                    option.disabled = isFullyBooked;
+                    option.dataset.roomType = room.type;
+                    option.dataset.maxDuration = room.maxDuration;
+                    option.dataset.requiresEquipment = room.requiresEquipment;
+                    roomSelect.appendChild(option);
+                });
+
+                updateDurationAndEquipment();
+            } catch (error) {
+                console.error('Error updating room availability:', error);
+                populateRoomSelect(availableRooms);
+            }
+        };
+
+        // Fallback room population
+        const populateRoomSelect = (rooms) => {
+            const roomSelect = document.getElementById('room-select');
+            if (!roomSelect) return;
+
+            roomSelect.innerHTML = '<option value="">Select a room</option>' +
+                rooms.map(room => `<option value="${room.name}" data-room-type="${room.type}" data-max-duration="${room.maxDuration}" data-requires-equipment="${room.requiresEquipment}">${room.name}</option>`).join('');
+            roomSelect.disabled = rooms.length === 0;
+
+            updateDurationAndEquipment();
+        };
+
+        // Enhanced duration and equipment management with room preview
+        const updateDurationAndEquipment = () => {
+            const roomSelect = document.getElementById('room-select');
+            const durationSelect = document.getElementById('duration-select');
+            const podcastEquipmentSection = document.getElementById('podcast-equipment-section');
+            const roomPreviewSection = document.getElementById('room-preview-section');
+
+            if (!roomSelect || !durationSelect) return;
+
+            const selectedRoomName = roomSelect.value;
+
+            if (!selectedRoomName) {
+                // Hide room preview if no room selected
+                if (roomPreviewSection) {
+                    roomPreviewSection.classList.add('hidden');
+                }
+                if (podcastEquipmentSection) {
+                    podcastEquipmentSection.classList.add('hidden');
+                }
+                return;
+            }
+
+            // Find room data
+            const room = availableRooms.find(r => r.name === selectedRoomName);
+            if (!room) return;
+
+            // Update room preview
+            updateRoomPreview(room);
+
+            // Update duration options based on room (but enforce 2-hour max per requirements)
+            durationSelect.innerHTML = '';
+            const actualMaxDuration = Math.min(room.maxDuration, 2); // Enforce 2-hour limit
+
+            for (let i = 1; i <= actualMaxDuration; i++) {
+                const option = document.createElement('option');
+                option.value = i;
+                option.textContent = i === 1 ? '1 Hour' : `${i} Hours${i === actualMaxDuration ? ' (Maximum)' : ''}`;
+                durationSelect.appendChild(option);
+            }
+
+            // Show/hide equipment section
+            if (podcastEquipmentSection) {
+                const podcastEquipmentTextarea = document.getElementById('podcast-equipment');
+                if (room.requiresEquipment) {
+                    podcastEquipmentSection.classList.remove('hidden');
+                    if (podcastEquipmentTextarea) {
+                        podcastEquipmentTextarea.required = true;
+                    }
+                } else {
+                    podcastEquipmentSection.classList.add('hidden');
+                    if (podcastEquipmentTextarea) {
+                        podcastEquipmentTextarea.required = false;
+                        podcastEquipmentTextarea.value = '';
+                    }
+                }
+            }
+        };
+
+        // Update room preview display
+        const updateRoomPreview = (room) => {
+            const roomPreviewSection = document.getElementById('room-preview-section');
+            const roomPreviewName = document.getElementById('room-preview-name');
+            const roomPreviewCapacity = document.getElementById('room-preview-capacity');
+            const roomPreviewType = document.getElementById('room-preview-type');
+            const roomPreviewDuration = document.getElementById('room-preview-duration');
+            const roomPreviewEquipment = document.getElementById('room-preview-equipment');
+
+            if (!roomPreviewSection) return;
+
+            // Show preview section
+            roomPreviewSection.classList.remove('hidden');
+
+            // Update room details
+            if (roomPreviewName) roomPreviewName.textContent = room.name;
+            if (roomPreviewCapacity) roomPreviewCapacity.textContent = `${room.capacity} people`;
+            if (roomPreviewType) {
+                const typeText = room.type === 'focus' ? 'Focus Room' : 'Special Room';
+                roomPreviewType.textContent = typeText;
+                roomPreviewType.className = `text-gray-600 ml-1 px-2 py-1 rounded text-xs ${room.type === 'focus' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'}`;
+            }
+            if (roomPreviewDuration) roomPreviewDuration.textContent = `${Math.min(room.maxDuration, 2)} hours max`;
+
+            // Update equipment list
+            if (roomPreviewEquipment) {
+                roomPreviewEquipment.innerHTML = room.equipment.map(eq =>
+                    `<span class="inline-block bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs">${eq}</span>`
+                ).join('');
+            }
+        };
+
+        // Setup booking form event listeners
+        const setupBookingFormListeners = () => {
+            const bookingDateInput = document.getElementById('booking-date');
+            const roomSelect = document.getElementById('room-select');
+
+            if (bookingDateInput) {
+                bookingDateInput.addEventListener('change', (e) => {
+                    updateRoomAvailability(e.target.value);
+                });
+            }
+
+            if (roomSelect) {
+                roomSelect.addEventListener('change', updateDurationAndEquipment);
+            }
+        };
 
         // ===== MY BOOKINGS DATA LOADING =====
         async function loadMyBookingsData() {
@@ -1546,10 +1746,24 @@
             const startTime = document.getElementById('time-select')?.value;
             const duration = parseInt(document.getElementById('duration-select')?.value || '1', 10);
             const equipmentNotes = document.getElementById('podcast-equipment')?.value || '';
+            const generalNotes = document.getElementById('general-notes')?.value || '';
             const isConfidential = !!document.getElementById('is-confidential')?.checked;
 
             if (!roomName || !bookingDate || !startTime) {
                 showBookingBanner('Please fill all required booking fields.', 'red');
+                return;
+            }
+
+            // Enhanced room validation
+            const selectedRoom = availableRooms.find(r => r.name === roomName);
+            if (!selectedRoom) {
+                showBookingBanner('Invalid room selected. Please choose a valid room.', 'red');
+                return;
+            }
+
+            // Validate equipment requirements
+            if (selectedRoom.requiresEquipment && !equipmentNotes.trim()) {
+                showBookingBanner('Equipment requirements must be specified for this room.', 'red');
                 return;
             }
 
@@ -1559,26 +1773,46 @@
                 return;
             }
 
+            // Check booking limits (enhanced validation)
+            const limitCheck = checkBookingLimits(currentStartup.id, roomName);
+            if (!limitCheck.allowed) {
+                showBookingBanner(limitCheck.message, 'red');
+                return;
+            }
+
             try {
+                // Combine notes for storage
+                const allNotes = [equipmentNotes, generalNotes].filter(note => note.trim()).join('\n\n');
+
                 const { error } = await supabaseClient.from('bookings').insert({
                     startup_id: currentStartup.id,
                     room_name: roomName,
                     booking_date: bookingDate,
                     start_time: startTime,
                     duration,
-                    equipment_notes: equipmentNotes,
+                    equipment_notes: allNotes,
                     is_confidential: isConfidential,
-                    status: 'confirmed'
+                    status: 'confirmed',
+                    room_type: selectedRoom.type
                 });
 
                 if (error) throw error;
 
-                showBookingBanner('Booking successful! Your room is confirmed.', 'green');
+                showBookingBanner(`Booking successful! ${roomName} is confirmed for ${duration} hour${duration > 1 ? 's' : ''}.`, 'green');
                 triggerConfetti();
-                bookingFormEl.reset();
 
-                // Refresh bookings data
+                // Reset form and hide preview
+                bookingFormEl.reset();
+                const roomPreviewSection = document.getElementById('room-preview-section');
+                const podcastEquipmentSection = document.getElementById('podcast-equipment-section');
+                if (roomPreviewSection) roomPreviewSection.classList.add('hidden');
+                if (podcastEquipmentSection) podcastEquipmentSection.classList.add('hidden');
+
+                // Refresh bookings data and room availability
                 await loadMyBookingsData();
+                if (bookingDate) {
+                    updateRoomAvailability(bookingDate);
+                }
 
             } catch (err) {
                 console.error('Booking create error', err);
@@ -1756,38 +1990,70 @@
             }
         }
 
-        // ===== DATABASE INITIALIZATION =====
+        // ===== ENHANCED ROOM MANAGEMENT SYSTEM =====
+
+        // Room data from reference file with enhanced features
+        const availableRooms = [
+            { name: 'HUB (Focus Room)', maxDuration: 2, requiresEquipment: false, type: 'focus', capacity: 4, equipment: ['Whiteboard', 'Desk Setup'] },
+            { name: 'Hingol (Focus Room)', maxDuration: 2, requiresEquipment: false, type: 'focus', capacity: 4, equipment: ['Whiteboard', 'Desk Setup'] },
+            { name: 'Telenor Velocity Room', maxDuration: 2, requiresEquipment: false, type: 'special', capacity: 8, equipment: ['Projector', 'Video Conference', 'Whiteboard'] },
+            { name: 'Sutlej (Focus Room)', maxDuration: 2, requiresEquipment: false, type: 'focus', capacity: 4, equipment: ['Whiteboard', 'Desk Setup'] },
+            { name: 'Chenab (Focus Room)', maxDuration: 2, requiresEquipment: false, type: 'focus', capacity: 4, equipment: ['Whiteboard', 'Desk Setup'] },
+            { name: 'Jhelum (Focus Room)', maxDuration: 2, requiresEquipment: false, type: 'focus', capacity: 4, equipment: ['Whiteboard', 'Desk Setup'] },
+            { name: 'Indus-Board Room', maxDuration: 2, requiresEquipment: false, type: 'special', capacity: 12, equipment: ['Large Screen', 'Video Conference', 'Whiteboard', 'Presentation Setup'] },
+            { name: 'Nexus-Session Hall', maxDuration: 2, requiresEquipment: false, type: 'special', capacity: 20, equipment: ['Audio System', 'Projector', 'Stage Setup', 'Microphones'] },
+            { name: 'Podcast Room', maxDuration: 2, requiresEquipment: true, type: 'special', capacity: 4, equipment: ['Recording Equipment', 'Soundproofing', 'Microphones', 'Audio Interface'] }
+        ];
+
+        // Enhanced booking limits system
+        const checkBookingLimits = (startupId, roomName) => {
+            const room = availableRooms.find(r => r.name === roomName);
+            if (!room) return { allowed: false, message: 'Invalid room selected.' };
+
+            // For now, we'll implement basic limits - can be enhanced with Supabase data later
+            return { allowed: true };
+        };
+
         async function initializeDatabase() {
             try {
+                console.log('Initializing database with enhanced room data...');
+
                 // Check if rooms table exists and has data
                 const { data: existingRooms, error: roomsError } = await supabaseClient
                     .from('rooms')
                     .select('id')
                     .limit(1);
 
-                // If no rooms exist, create sample rooms
-                if (!roomsError && (!existingRooms || existingRooms.length === 0)) {
-                    console.log('No rooms found, creating sample rooms...');
-                    const sampleRooms = [
-                        { name: 'Conference Room A', capacity: 12, equipment: ['Projector', 'Whiteboard', 'Video Conference'], is_active: true },
-                        { name: 'Meeting Room B', capacity: 6, equipment: ['TV Screen', 'Whiteboard'], is_active: true },
-                        { name: 'Podcast Studio', capacity: 4, equipment: ['Recording Equipment', 'Soundproofing'], is_active: true },
-                        { name: 'Collaboration Space', capacity: 8, equipment: ['Flipchart', 'Markers'], is_active: true },
-                        { name: 'Private Office', capacity: 2, equipment: ['Desk', 'Chairs'], is_active: true }
-                    ];
+                // If no rooms exist or table doesn't exist, create sample rooms
+                if (roomsError || !existingRooms || existingRooms.length === 0) {
+                    console.log('Creating enhanced room data...');
+
+                    // Convert availableRooms to Supabase format
+                    const supabaseRooms = availableRooms.map(room => ({
+                        name: room.name,
+                        capacity: room.capacity,
+                        equipment: room.equipment,
+                        is_active: true,
+                        room_type: room.type,
+                        max_duration: room.maxDuration,
+                        requires_equipment: room.requiresEquipment
+                    }));
 
                     const { error: insertError } = await supabaseClient
                         .from('rooms')
-                        .insert(sampleRooms);
+                        .insert(supabaseRooms);
 
                     if (insertError) {
-                        console.error('Error creating sample rooms:', insertError);
+                        console.error('Error creating enhanced rooms:', insertError);
+                        // If table doesn't exist, we'll use local data
+                        console.log('Using local room data as fallback');
                     } else {
-                        console.log('Sample rooms created successfully');
+                        console.log('Enhanced rooms created successfully');
                     }
                 }
             } catch (error) {
                 console.error('Error initializing database:', error);
+                console.log('Using local room data as fallback');
             }
         }
 
