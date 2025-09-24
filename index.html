@@ -729,59 +729,90 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    loginForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        loginError.textContent = '';
-        const email = document.getElementById('login-email').value;
-        const password = document.getElementById('login-password').value;
+    loginForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    loginError.textContent = '';
+    const email = document.getElementById('login-email').value;
+    const password = document.getElementById('login-password').value;
 
-        let foundUser = admins.find(a => a.email === email && a.password === password);
-        if (!foundUser) {
-            foundUser = startups.find(s => s.email === email && s.password === password) || null;
-        }
-        
-        currentUser = foundUser;
-        
-        if (currentUser) {
-            handleLogin();
-        } else {
-            loginError.textContent = 'Invalid email or password.';
-        }
+    // Step 1: Sign in the user with Supabase
+    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email: email,
+        password: password,
     });
 
-    signupForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        signupError.textContent = '';
-        const email = document.getElementById('signup-email').value;
+    if (authError) {
+        loginError.textContent = authError.message;
+        return;
+    }
 
-        const emailExists = startups.some(s => s.email === email) || admins.some(a => a.email === email);
-        if (emailExists) {
-            signupError.textContent = 'An account with this email already exists.';
-            return;
-        }
+    // Step 2: Fetch the user's profile from your 'profiles' table
+    const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', authData.user.id)
+        .single();
 
-        const newStartup = {
-            id: Date.now(),
-            name: document.getElementById('signup-startupName').value,
-            contact: document.getElementById('signup-contactPerson').value,
-            phone: document.getElementById('signup-phone').value,
-            email: email,
-            password: document.getElementById('signup-password').value,
-            role: 'startup'
+    if (profileError) {
+        loginError.textContent = "Could not find user profile after login.";
+    } else {
+        // Step 3: Set the currentUser and show the app
+        currentUser = {
+            id: profileData.id,
+            name: profileData.full_name, // Use the column name from your 'profiles' table
+            email: authData.user.email,
+            role: profileData.role
         };
+        handleLogin(); // Your existing function to show the main app
+    }
+});
 
-        startups.push(newStartup);
-        currentUser = newStartup;
-        handleLogin();
+    signupForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    signupError.textContent = '';
+
+    const fullName = document.getElementById('signup-startupName').value;
+    const email = document.getElementById('signup-email').value;
+    const password = document.getElementById('signup-password').value;
+    const contactPerson = document.getElementById('signup-contactPerson').value;
+    const phone = document.getElementById('signup-phone').value;
+
+    const { data, error } = await supabase.auth.signUp({
+        email: email,
+        password: password,
+        options: {
+            data: {
+                full_name: fullName,
+                contact_person: contactPerson,
+                phone_number: phone,
+                role: 'startup' 
+            }
+        }
     });
 
-    logoutBtn.addEventListener('click', (e) => {
-        e.preventDefault();
+    if (error) {
+        signupError.textContent = error.message;
+    } else {
+        alert('Signup successful! Please check your email to confirm your account.');
+        signupView.classList.add('hidden');
+        loginView.classList.remove('hidden');
+    }
+});
+
+logoutBtn.addEventListener('click', async (e) => {
+    e.preventDefault();
+    
+    const { error } = await supabase.auth.signOut();
+    
+    if (error) {
+        console.error('Error logging out:', error);
+    } else {
         currentUser = null;
         appInitialized = false;
         window.location.hash = '';
-        handleLogin();
-    });
+        handleLogin(); // This will now correctly show the auth screen
+    }
+});
 
     showSignupBtn.addEventListener('click', (e) => {
         e.preventDefault();
