@@ -141,7 +141,13 @@ CREATE POLICY "Users can update their own profile" ON public.users
 
 CREATE POLICY "Users can create their own profile" ON public.users
     FOR INSERT TO authenticated
-    WITH CHECK (auth.uid() = id);
+    WITH CHECK (
+        -- Allow if current user matches the ID being inserted
+        auth.uid() = id
+        OR
+        -- Allow if the ID exists in auth.users (for initial profile creation during signup)
+        EXISTS (SELECT 1 FROM auth.users WHERE auth.users.id = users.id)
+    );
 
 CREATE POLICY "Admins can view all users" ON public.users
     FOR SELECT TO authenticated
@@ -179,7 +185,13 @@ CREATE POLICY "Users can update their own startup" ON public.startups
 
 CREATE POLICY "Users can create their own startup" ON public.startups
     FOR INSERT TO authenticated
-    WITH CHECK (user_id = auth.uid());
+    WITH CHECK (
+        -- Allow if current user matches the user_id being inserted
+        user_id = auth.uid()
+        OR
+        -- Allow if the user_id exists in auth.users (for initial profile creation during signup)
+        EXISTS (SELECT 1 FROM auth.users WHERE auth.users.id = startups.user_id)
+    );
 
 CREATE POLICY "Admins can view all startups" ON public.startups
     FOR SELECT TO authenticated

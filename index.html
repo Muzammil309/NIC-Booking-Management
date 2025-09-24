@@ -2066,7 +2066,10 @@
 
                 try {
                     console.log('🔧 Creating startup profile manually...');
-                    const { error } = await supabaseClient
+                    console.log('🔧 User ID:', currentUser.id);
+                    console.log('🔧 Startup Name:', startupName);
+
+                    const { data, error } = await supabaseClient
                         .from('startups')
                         .insert({
                             user_id: currentUser.id,
@@ -2075,13 +2078,16 @@
                             phone: currentUser.phone || '',
                             email: currentUser.email,
                             status: 'active'
-                        });
+                        })
+                        .select();
 
                     if (error) {
                         console.error('❌ Failed to create startup profile:', error);
-                        alert(`Failed to create startup profile: ${error.message}`);
+                        console.error('❌ Error details:', error.details);
+                        console.error('❌ Error hint:', error.hint);
+                        alert(`Failed to create startup profile: ${error.message}\n\nDetails: ${error.details || 'No additional details'}\n\nThis might be an RLS policy issue. Please run the updated database script.`);
                     } else {
-                        console.log('✅ Startup profile created successfully');
+                        console.log('✅ Startup profile created successfully:', data);
                         // Reload startup data
                         const { data: newStartup } = await supabaseClient
                             .from('startups')
@@ -2098,6 +2104,8 @@
                         if (statusEl) {
                             statusEl.innerHTML = '<span class="text-green-600">✅ Startup profile created successfully! You can now book rooms.</span>';
                         }
+
+                        alert('✅ Startup profile created successfully! You can now book rooms.');
                     }
                 } catch (err) {
                     console.error('❌ Error creating startup profile:', err);
