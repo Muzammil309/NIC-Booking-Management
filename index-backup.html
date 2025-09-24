@@ -12,129 +12,56 @@
     <style>
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
-            background-color: #f7f8fa;
         }
-        :root {
-            --brand-olive-dark: #3E4A39;
-            --brand-olive-mid: #6A7B63;
-            --brand-olive-light: #A8B8A0;
-            --brand-gold: #D4AF37;
-            --background-light: #F7F8FA;
-            --card-bg: #FFFFFF;
-            --text-dark: #1a202c;
-            --text-light: #4a5568;
-            --border-color: #e2e8f0;
+        .nav-link {
+            transition: all 0.2s ease-in-out;
         }
-        .nav-link.active {
-            background-color: rgba(62, 74, 57, 0.08);
-            color: var(--brand-olive-dark);
-            font-weight: 700;
-            border-left: 4px solid var(--brand-olive-dark);
+        .nav-link:hover {
+            background-color: #f0fdf4;
+            color: #15803d;
         }
         .page {
-            animation: pageEnter 0.7s cubic-bezier(0.25, 1, 0.5, 1);
+            min-height: calc(100vh - 200px);
         }
-        @keyframes pageEnter {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .auth-view {
-            animation: authEnter 0.5s ease-out;
-        }
-        @keyframes authEnter {
-            from { opacity: 0; transform: scale(0.98) translateY(10px); }
-            to { opacity: 1; transform: scale(1) translateY(0); }
-        }
-
-        .btn-primary {
-            background-color: var(--brand-olive-dark);
-            color: white;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1);
-        }
-        .btn-primary:hover {
-            background-color: var(--brand-olive-mid);
-            transform: translateY(-2px);
-            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1);
-        }
-        .btn-primary:active {
-            transform: translateY(0px);
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1);
-        }
-        .input-focus:focus {
-            --tw-ring-color: var(--brand-olive-light);
-        }
-
-        /* Fun Animations & Effects */
-        .stat-card {
-            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-        }
-        .stat-card:hover {
-            transform: translateY(-5px) scale(1.02);
-            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1);
-        }
-        .calendar-day:hover {
-            transform: scale(1.1);
-            background-color: rgba(62, 74, 57, 0.1);
-        }
-        #confetti-container {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 1000;
-            overflow: hidden;
-        }
-        .confetti {
-            position: absolute;
-            width: 10px;
-            height: 10px;
-            background-color: var(--brand-gold);
-            opacity: 0;
-            animation: fall 3s linear infinite;
-        }
-        .confetti.triangle {
-            width: 0;
-            height: 0;
-            border-left: 5px solid transparent;
-            border-right: 5px solid transparent;
-            border-bottom: 10px solid var(--brand-olive-light);
-            background-color: transparent;
-        }
-        @keyframes fall {
-            0% { transform: translateY(-10vh) rotate(0deg); opacity: 1; }
-            100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
-        }
-
-        /* Tablet Display Styles */
-        #tablet-view-container .content-wrapper {
-            animation: fadeIn 0.5s ease-in-out;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: scale(0.95); }
-            to { opacity: 1; transform: scale(1); }
-        }
-        #password-modal > div {
-             animation: modalEnter 0.3s cubic-bezier(0.25, 1, 0.5, 1);
-        }
-        @keyframes modalEnter {
-            from { opacity: 0; transform: translateY(20px) scale(0.98); }
-            to { opacity: 1; transform: translateY(0) scale(1); }
-        }
-
         .hidden {
             display: none !important;
         }
         .loading {
             opacity: 0.6;
         }
+
+        /* Sidebar responsive styles */
+        #sidebar {
+            display: block !important;
+        }
+
+        @media (max-width: 768px) {
+            #sidebar {
+                position: fixed;
+                top: 0;
+                left: 0;
+                height: 100vh;
+                z-index: 50;
+                transform: translateX(-100%);
+                transition: transform 0.3s ease-in-out;
+            }
+
+            #sidebar.mobile-open {
+                transform: translateX(0);
+            }
+
+            .sidebar-overlay {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background-color: rgba(0, 0, 0, 0.5);
+                z-index: 40;
+            }
     </style>
 </head>
-<body class="text-gray-800 antialiased">
-    <div id="confetti-container"></div>
-
+<body class="bg-gray-50">
     <!-- Authentication Container -->
     <div id="auth-container" class="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-blue-50">
         <!-- Login View -->
@@ -148,18 +75,18 @@
                 <div>
                     <label for="login-email" class="block text-sm font-medium text-gray-700 mb-2">Email</label>
                     <input type="email" id="login-email" required
-                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 input-focus">
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
                 </div>
 
                 <div>
                     <label for="login-password" class="block text-sm font-medium text-gray-700 mb-2">Password</label>
                     <input type="password" id="login-password" required
-                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 input-focus">
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
                 </div>
 
                 <div id="login-error" class="hidden text-red-600 text-sm bg-red-50 p-3 rounded-lg"></div>
 
-                <button type="submit" class="w-full btn-primary py-3 rounded-lg font-semibold">
+                <button type="submit" class="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition duration-200">
                     Sign In
                 </button>
             </form>
@@ -227,82 +154,45 @@
         </div>
     </div>
 
-    <!-- Main App Container -->
-    <div id="app" class="flex h-screen bg-white hidden">
-        <!-- Sidebar Navigation -->
-        <aside class="w-64 bg-white text-gray-700 flex flex-col shadow-lg border-r flex-shrink-0">
-            <div class="h-20 flex items-center justify-center border-b border-gray-200 px-4">
-                <!-- Logo will be added here -->
-            </div>
-            <nav class="flex-1 px-4 py-4 space-y-2">
-                <a href="#dashboard" class="nav-link flex items-center px-4 py-3 rounded-lg hover:bg-green-50 hover:text-green-700 transition duration-200">
-                    <svg class="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
-                    Dashboard
-                </a>
-                <a href="#startups" class="nav-link flex items-center px-4 py-3 rounded-lg hover:bg-green-50 hover:text-green-700 transition duration-200" data-admin-only>
-                     <svg class="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M15 21a6 6 0 00-9-5.197M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                    Startups
-                </a>
-                <a href="#booking" class="nav-link flex items-center px-4 py-3 rounded-lg hover:bg-green-50 hover:text-green-700 transition duration-200">
-                    <svg class="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                    Book a Room
-                </a>
-                <a href="#my-bookings" class="nav-link flex items-center px-4 py-3 rounded-lg hover:bg-green-50 hover:text-green-700 transition duration-200">
-                   <svg class="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
-                   My Bookings
-                </a>
-                <a href="#schedule" class="nav-link flex items-center px-4 py-3 rounded-lg hover:bg-green-50 hover:text-green-700 transition duration-200">
-                     <svg class="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                    Schedule
-                </a>
-                 <a href="#room-displays" class="nav-link flex items-center px-4 py-3 rounded-lg hover:bg-green-50 hover:text-green-700 transition duration-200">
-                    <svg class="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
-                    Room Displays
-                </a>
-                <a href="#reports" class="nav-link flex items-center px-4 py-3 rounded-lg hover:bg-green-50 hover:text-green-700 transition duration-200" data-admin-only>
-                    <svg class="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
-                    Reports
-                </a>
-                <a href="#policies" class="nav-link flex items-center px-4 py-3 rounded-lg hover:bg-green-50 hover:text-green-700 transition duration-200">
-                    <svg class="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                    Policies
-                </a>
-                <a href="#contact" class="nav-link flex items-center px-4 py-3 rounded-lg hover:bg-green-50 hover:text-green-700 transition duration-200">
-                    <svg class="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
-                    Contact Us
-                </a>
-                <a href="#settings" class="nav-link flex items-center px-4 py-3 rounded-lg hover:bg-green-50 hover:text-green-700 transition duration-200">
-                    <svg class="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                    Settings
-                </a>
-            </nav>
-            <div class="p-4 border-t border-gray-200">
-                <div class="flex items-center">
-                    <div class="flex-1">
-                        <p class="text-sm font-medium text-gray-900" id="user-name">User</p>
-                        <p class="text-xs text-gray-500" id="user-role">Role</p>
-                    </div>
-                    <button id="logout-btn" class="text-gray-400 hover:text-gray-600">
-                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
-                    </button>
+    <!-- Main Application -->
+    <div id="app" class="hidden min-h-screen bg-gray-50">
+        <div class="flex min-h-screen">
+            <!-- Sidebar -->
+            <aside id="sidebar" class="w-64 bg-white border-r shadow-sm flex-shrink-0" style="display: block !important; min-height: 100vh;">
+                <div class="p-4 border-b">
+                    <h1 class="text-xl font-bold text-gray-900">NIC Islamabad</h1>
+                    <p class="text-xs text-gray-500">Room Booking System</p>
                 </div>
-            </div>
-        </aside>
+                <nav class="px-2 py-4 space-y-1">
+                    <a href="#dashboard" class="nav-link block px-3 py-2 rounded text-sm font-medium text-gray-700 hover:text-green-700">Dashboard</a>
+                    <a href="#startups" class="nav-link block px-3 py-2 rounded text-sm font-medium text-gray-700 hover:text-green-700" data-admin-only>Startups</a>
+                    <a href="#booking" class="nav-link block px-3 py-2 rounded text-sm font-medium text-gray-700 hover:text-green-700">Book a Room</a>
+                    <a href="#my-bookings" class="nav-link block px-3 py-2 rounded text-sm font-medium text-gray-700 hover:text-green-700">My Bookings</a>
+                    <a href="#schedule" class="nav-link block px-3 py-2 rounded text-sm font-medium text-gray-700 hover:text-green-700">Schedule</a>
+                    <a href="#room-displays" class="nav-link block px-3 py-2 rounded text-sm font-medium text-gray-700 hover:text-green-700">Room Displays</a>
+                    <a href="#reports" class="nav-link block px-3 py-2 rounded text-sm font-medium text-gray-700 hover:text-green-700" data-admin-only>Reports</a>
+                    <a href="#policies" class="nav-link block px-3 py-2 rounded text-sm font-medium text-gray-700 hover:text-green-700">Policies</a>
+                    <a href="#contact" class="nav-link block px-3 py-2 rounded text-sm font-medium text-gray-700 hover:text-green-700">Contact Us</a>
+                    <a href="#settings" class="nav-link block px-3 py-2 rounded text-sm font-medium text-gray-700 hover:text-green-700">Settings</a>
+                </nav>
+            </aside>
 
-        <!-- Main Content Area -->
-        <div class="flex-1 flex flex-col overflow-hidden">
-            <!-- Top Header -->
-            <header class="bg-white border-b border-gray-200 px-6 py-4">
-                <div class="flex items-center justify-between">
-                    <h1 class="text-2xl font-bold text-gray-900" id="page-title">Dashboard</h1>
-                    <div class="flex items-center space-x-4">
-                        <span class="text-sm text-gray-600">Welcome, <span id="header-user-name">User</span></span>
+            <!-- Content column -->
+            <div class="flex-1 flex flex-col">
+                <header class="bg-white border-b">
+                    <div class="px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+                        <button id="sidebar-toggle" class="md:hidden inline-flex items-center px-3 py-2 border border-gray-300 rounded text-gray-600 hover:bg-gray-50">
+                            Menu
+                        </button>
+                        <div class="flex-1 text-right">
+                            <span class="text-sm text-gray-700">Welcome, <span id="user-name">User</span></span>
+                            <button id="logout-btn" class="ml-4 text-sm text-red-600 hover:text-red-700 font-medium">Logout</button>
+                        </div>
                     </div>
-                </div>
-            </header>
+                </header>
 
-            <!-- Page Content -->
-            <main class="flex-1 overflow-y-auto bg-gray-50 p-6">
+                <!-- Main Content -->
+                <main class="px-4 sm:px-6 lg:px-8 py-8">
             <!-- Dashboard Page -->
             <div id="dashboard" class="page">
                 <div class="mb-8">
@@ -791,37 +681,9 @@
                     </div>
                 </div>
             </div>
-
-            <!-- Room Displays Page -->
-            <div id="room-displays" class="page hidden">
-                <div class="mb-8">
-                    <h2 class="text-3xl font-bold text-gray-900 mb-2">Room Displays</h2>
-                    <p class="text-gray-600">View room status displays for kiosk mode</p>
-                </div>
-                <div id="room-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                    <!-- Room cards will be inserted here -->
-                </div>
-            </div>
-            </main>
-        </div>
-    </div>
-
-    <!-- Password Modal -->
-    <div id="password-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
-        <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md">
-            <h2 class="text-2xl font-bold text-gray-800 mb-4">Enter Password</h2>
-            <p class="text-gray-600 mb-6">Please enter the password to access Room Displays.</p>
-            <input type="password" id="room-display-password" class="w-full border rounded-lg p-3 mb-4 focus:ring-2 input-focus" placeholder="Password">
-            <div class="flex space-x-4">
-                <button id="password-submit" class="flex-1 btn-primary py-3 rounded-lg font-medium">Submit</button>
-                <button id="password-cancel" class="flex-1 bg-gray-300 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-400 transition duration-200">Cancel</button>
+        </main>
             </div>
         </div>
-    </div>
-
-    <!-- Tablet View Container -->
-    <div id="tablet-view-container" class="fixed inset-0 bg-gray-900 text-white p-8 flex-col justify-center items-center hidden z-50">
-        <!-- Tablet content will be inserted here -->
     </div>
 
     <!-- JavaScript -->
@@ -837,29 +699,6 @@
         let allRooms = [];
         let allBookings = [];
         let allStartups = [];
-
-        // ===== UI ENHANCEMENT FUNCTIONS =====
-        const triggerConfetti = () => {
-            const container = document.getElementById('confetti-container');
-            for (let i = 0; i < 50; i++) {
-                const confetti = document.createElement('div');
-                confetti.className = 'confetti';
-                if (Math.random() > 0.5) confetti.classList.add('triangle');
-                confetti.style.left = `${Math.random() * 100}vw`;
-                confetti.style.animationDelay = `${Math.random() * 2}s`;
-                confetti.style.backgroundColor = `hsl(${Math.random() * 360}, 70%, 60%)`;
-                container.appendChild(confetti);
-                setTimeout(() => confetti.remove(), 3000);
-            }
-        };
-
-        const getTodayDateString = () => {
-            const now = new Date();
-            const year = now.getFullYear();
-            const month = String(now.getMonth() + 1).padStart(2, '0');
-            const day = String(now.getDate()).padStart(2, '0');
-            return `${year}-${month}-${day}`;
-        };
 
         // ===== DOM ELEMENTS =====
         const authContainer = document.getElementById('auth-container');
@@ -910,31 +749,12 @@
 
             // Update navigation active state
             document.querySelectorAll('.nav-link').forEach(link => {
-                link.classList.remove('active');
+                link.classList.remove('bg-green-50', 'text-green-700');
             });
 
             const activeLink = document.querySelector(`a[href="#${pageId}"]`);
             if (activeLink) {
-                activeLink.classList.add('active');
-            }
-
-            // Update page title
-            const pageTitles = {
-                'dashboard': 'Dashboard',
-                'startups': 'Startups',
-                'booking': 'Book a Room',
-                'my-bookings': 'My Bookings',
-                'schedule': 'Schedule',
-                'room-displays': 'Room Displays',
-                'reports': 'Reports',
-                'policies': 'Policies',
-                'contact': 'Contact Us',
-                'settings': 'Settings'
-            };
-
-            const pageTitle = document.getElementById('page-title');
-            if (pageTitle) {
-                pageTitle.textContent = pageTitles[pageId] || 'Dashboard';
+                activeLink.classList.add('bg-green-50', 'text-green-700');
             }
 
             // Load page-specific data
@@ -1363,13 +1183,8 @@
 
             // Update user profile display
             const userNameEl = document.getElementById('user-name');
-            const headerUserNameEl = document.getElementById('header-user-name');
-            const userRoleEl = document.getElementById('user-role');
-
-            if (currentUser) {
-                if (userNameEl) userNameEl.textContent = currentUser.name || 'User';
-                if (headerUserNameEl) headerUserNameEl.textContent = currentUser.name || 'User';
-                if (userRoleEl) userRoleEl.textContent = currentUser.role || 'User';
+            if (userNameEl && currentUser) {
+                userNameEl.textContent = currentUser.name || 'User';
             }
         }
 
@@ -1516,7 +1331,6 @@
                 if (error) throw error;
 
                 showBookingBanner('Booking successful! Your room is confirmed.', 'green');
-                triggerConfetti();
                 bookingFormEl.reset();
 
                 // Refresh bookings data
@@ -1685,127 +1499,6 @@
                 console.error('loadContactData error', err);
             }
         }
-
-        // ===== ROOM DISPLAYS & TABLET VIEW =====
-        async function loadRoomDisplaysData() {
-            try {
-                const { data: rooms, error } = await supabaseClient
-                    .from('rooms')
-                    .select('*')
-                    .eq('is_active', true)
-                    .order('name');
-
-                if (error) throw error;
-
-                const roomGrid = document.getElementById('room-grid');
-                if (!roomGrid) return;
-
-                roomGrid.innerHTML = rooms.map(room => `
-                    <div class="stat-card bg-white p-6 rounded-xl shadow-lg hover:shadow-2xl transition-shadow duration-300 flex flex-col items-center justify-center">
-                        <h3 class="text-2xl font-bold text-gray-800 mb-4 text-center">${room.name}</h3>
-                        <button data-room-id="${room.id}" data-room-name="${room.name}" class="view-display-btn w-full py-2 px-4 rounded-lg font-semibold btn-primary">
-                            View Display
-                        </button>
-                    </div>
-                `).join('');
-
-                // Add event listeners for view display buttons
-                roomGrid.addEventListener('click', (e) => {
-                    if (e.target.classList.contains('view-display-btn')) {
-                        const roomName = e.target.dataset.roomName;
-                        openTabletView(roomName);
-                    }
-                });
-
-            } catch (err) {
-                console.error('loadRoomDisplaysData error', err);
-            }
-        }
-
-        const openTabletView = (roomName) => {
-            const tabletViewContainer = document.getElementById('tablet-view-container');
-            tabletViewContainer.innerHTML = '';
-            tabletViewContainer.classList.remove('hidden');
-            tabletViewContainer.classList.add('flex');
-
-            const now = new Date();
-            const todayStr = getTodayDateString();
-            const currentTimeInMinutes = now.getHours() * 60 + now.getMinutes();
-
-            // Find current booking for this room
-            const currentBooking = allBookings.find(b => {
-                if (b.room_name !== roomName || b.date !== todayStr) return false;
-                const startTime = new Date(`${b.date}T${b.start_time}`);
-                const endTime = new Date(`${b.date}T${b.end_time}`);
-                return now >= startTime && now < endTime;
-            });
-
-            let statusClass, statusIcon, statusText, detailsHtml;
-
-            if (currentBooking) {
-                statusClass = 'bg-red-600';
-                statusIcon = '<svg class="w-24 h-24 text-white" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path></svg>';
-                statusText = 'OCCUPIED';
-                detailsHtml = `
-                    <p class="text-4xl mt-4 text-white/90">Currently booked by:</p>
-                    <p class="text-5xl font-bold text-white mt-2">${currentBooking.startup_name || 'Unknown'}</p>
-                    <p class="text-3xl mt-4 text-white/70">Until ${currentBooking.end_time}</p>
-                `;
-            } else {
-                statusClass = 'bg-green-600';
-                statusIcon = '<svg class="w-24 h-24 text-white" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>';
-                statusText = 'AVAILABLE';
-
-                // Find next booking
-                const nextBooking = allBookings
-                    .filter(b => b.room_name === roomName && b.date === todayStr)
-                    .find(b => {
-                        const startTime = new Date(`${b.date}T${b.start_time}`);
-                        return startTime > now;
-                    });
-
-                detailsHtml = nextBooking
-                    ? `<p class="text-3xl mt-4 text-white/70">Next booking: ${nextBooking.start_time} - ${nextBooking.startup_name}</p>`
-                    : '<p class="text-3xl mt-2 text-white/70">No further bookings today</p>';
-            }
-
-            tabletViewContainer.innerHTML = `
-                <div class="content-wrapper relative w-full h-full flex flex-col justify-center items-center p-8 text-center ${statusClass} rounded-2xl shadow-2xl">
-                    <div class="absolute top-8 left-8 text-left">
-                        <h1 class="text-6xl font-bold text-white" style="text-shadow: 2px 2px 8px rgba(0,0,0,0.3);">${roomName}</h1>
-                    </div>
-
-                    <div class="flex items-center justify-center gap-x-6 mb-4">
-                        ${statusIcon}
-                        <h2 class="text-9xl font-extrabold text-white" style="text-shadow: 3px 3px 10px rgba(0,0,0,0.3);">${statusText}</h2>
-                    </div>
-                    ${detailsHtml}
-
-                    <div id="tablet-clock" class="absolute bottom-8 right-8 text-6xl font-bold text-white" style="text-shadow: 2px 2px 8px rgba(0,0,0,0.3);"></div>
-                    <button id="exit-kiosk-btn" class="absolute bottom-8 left-8 bg-black/20 hover:bg-black/40 text-white font-semibold py-2 px-4 rounded-full text-sm transition-colors">
-                        Exit Display
-                    </button>
-                </div>
-            `;
-
-            // Update clock
-            const clockInterval = setInterval(() => {
-                const clockEl = document.getElementById('tablet-clock');
-                if (clockEl) {
-                    clockEl.textContent = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-                } else {
-                    clearInterval(clockInterval);
-                }
-            }, 1000);
-
-            // Exit button handler
-            document.getElementById('exit-kiosk-btn').addEventListener('click', () => {
-                tabletViewContainer.classList.add('hidden');
-                tabletViewContainer.classList.remove('flex');
-                tabletViewContainer.innerHTML = '';
-                clearInterval(clockInterval);
-            });
-        };
 
 
         // ===== INITIALIZE APPLICATION =====
