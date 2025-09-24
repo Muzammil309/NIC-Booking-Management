@@ -2149,21 +2149,68 @@
                     </div>
                 `;
 
-                // Load bookings for the selected date
-                const { data: bookings, error } = await supabaseClient
-                    .from('bookings')
-                    .select(`
-                        *,
-                        startups (name, contact_person)
-                    `)
-                    .eq('booking_date', dateString)
-                    .order('start_time');
+                // Load bookings for the selected date with enhanced error handling
+                let bookings = [];
+                try {
+                    const { data, error } = await supabaseClient
+                        .from('bookings')
+                        .select(`
+                            *,
+                            startups (name, contact_person)
+                        `)
+                        .eq('booking_date', dateString)
+                        .order('start_time');
 
-                if (error) {
-                    console.error('Error loading schedule:', error);
+                    if (error) {
+                        console.error('Error loading schedule:', error);
+
+                        // Check if it's a schema error (table doesn't exist)
+                        if (error.message.includes('relation "public.bookings" does not exist') ||
+                            error.message.includes('Could not find the') ||
+                            error.message.includes('schema cache')) {
+                            scheduleDetails.innerHTML = `
+                                <h4 class="text-lg font-semibold text-gray-900 mb-4">Schedule for ${formatDate(dateString)}</h4>
+                                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+                                    <div class="flex items-center mb-3">
+                                        <svg class="w-6 h-6 text-yellow-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                                        </svg>
+                                        <h3 class="text-lg font-medium text-yellow-800">Database Setup Required</h3>
+                                    </div>
+                                    <p class="text-yellow-700 mb-4">The bookings table is not properly configured in your database.</p>
+                                    <div class="bg-yellow-100 border border-yellow-300 rounded p-3 mb-4">
+                                        <p class="text-sm text-yellow-800 font-medium mb-2">To fix this issue:</p>
+                                        <ol class="text-sm text-yellow-800 space-y-1 list-decimal list-inside">
+                                            <li>Go to your Supabase project dashboard</li>
+                                            <li>Navigate to the SQL Editor</li>
+                                            <li>Run the complete database-setup.sql script</li>
+                                            <li>Refresh this page after running the script</li>
+                                        </ol>
+                                    </div>
+                                    <p class="text-sm text-yellow-700">The database-setup.sql file contains all necessary table structures and policies for the booking system.</p>
+                                </div>
+                            `;
+                            return;
+                        } else {
+                            // Other database errors
+                            scheduleDetails.innerHTML = `
+                                <h4 class="text-lg font-semibold text-gray-900 mb-4">Schedule for ${formatDate(dateString)}</h4>
+                                <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                                    <p class="text-red-600">Error loading schedule data: ${error.message}</p>
+                                </div>
+                            `;
+                            return;
+                        }
+                    }
+
+                    bookings = data || [];
+                } catch (networkError) {
+                    console.error('Network error loading schedule:', networkError);
                     scheduleDetails.innerHTML = `
                         <h4 class="text-lg font-semibold text-gray-900 mb-4">Schedule for ${formatDate(dateString)}</h4>
-                        <p class="text-red-600">Error loading schedule data.</p>
+                        <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                            <p class="text-red-600">Network error loading schedule. Please check your connection.</p>
+                        </div>
                     `;
                     return;
                 }
@@ -2313,24 +2360,56 @@
                 const currentDate = now.toISOString().split('T')[0];
                 const currentTime = now.toTimeString().split(' ')[0].substring(0, 5);
 
-                // Load today's bookings
-                const { data: todaysBookings, error } = await supabaseClient
-                    .from('bookings')
-                    .select(`
-                        *,
-                        startups (name, contact_person)
-                    `)
-                    .eq('booking_date', currentDate)
-                    .order('start_time');
+                // Load today's bookings with enhanced error handling
+                let todaysBookings = [];
+                try {
+                    const { data, error } = await supabaseClient
+                        .from('bookings')
+                        .select(`
+                            *,
+                            startups (name, contact_person)
+                        `)
+                        .eq('booking_date', currentDate)
+                        .order('start_time');
 
-                if (error) {
-                    console.error('Error loading room status:', error);
-                    roomCardsContainer.innerHTML = `
-                        <div class="col-span-full text-center py-8">
-                            <p class="text-red-600">Error loading room status data.</p>
-                        </div>
-                    `;
-                    return;
+                    if (error) {
+                        console.error('Error loading room status:', error);
+
+                        // Check if it's a schema error
+                        if (error.message.includes('relation "public.bookings" does not exist') ||
+                            error.message.includes('Could not find the') ||
+                            error.message.includes('schema cache')) {
+                            roomCardsContainer.innerHTML = `
+                                <div class="col-span-full">
+                                    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+                                        <div class="flex items-center mb-3">
+                                            <svg class="w-6 h-6 text-yellow-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                                            </svg>
+                                            <h3 class="text-lg font-medium text-yellow-800">Database Setup Required</h3>
+                                        </div>
+                                        <p class="text-yellow-700 mb-4">The bookings table is not properly configured. Room status will show as available until the database is set up.</p>
+                                        <p class="text-sm text-yellow-600">Please run the database-setup.sql script in your Supabase SQL Editor.</p>
+                                    </div>
+                                </div>
+                            `;
+                            // Continue with empty bookings to show rooms as available
+                            todaysBookings = [];
+                        } else {
+                            roomCardsContainer.innerHTML = `
+                                <div class="col-span-full text-center py-8">
+                                    <p class="text-red-600">Error loading room status data: ${error.message}</p>
+                                </div>
+                            `;
+                            return;
+                        }
+                    } else {
+                        todaysBookings = data || [];
+                    }
+                } catch (networkError) {
+                    console.error('Network error loading room status:', networkError);
+                    // Continue with empty bookings array to show rooms as available
+                    todaysBookings = [];
                 }
 
                 // Generate room status cards
