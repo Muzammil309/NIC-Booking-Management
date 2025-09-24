@@ -535,7 +535,7 @@
                     </div>
                 </div>
             </div>
-        </main>
+        main>
     </div>
 
     <!-- Startup Modal -->
@@ -615,6 +615,427 @@ document.addEventListener('DOMContentLoaded', () => {
         { name: 'Sutlej (Focus Room)', maxDuration: 2, requiresEquipment: false, type: 'focus' },
         { name: 'Chenab (Focus Room)', maxDuration: 2, requiresEquipment: false, type: 'focus' },
         { name: 'Jhelum (Focus Room)', maxDuration: 2, requiresEquipment: false, type: 'focus' },
+    // Global variables
+    let currentUser = null;
+    let appInitialized = false;
+    let rooms = [];
+    let bookings = [];
+    let timeSlots = ['09:00 AM', '10:00 AM', '11:00 AM', '12:00 PM', '01:00 PM', '02:00 PM', '03:00 PM', '04:00 PM', '05:00 PM'];
+    let bufferMinutes = 30;
+
+    // Initialize app
+    document.addEventListener('DOMContentLoaded', async () => {
+        await checkAuthState();
+        setupEventListeners();
+    });
+
+    // Check authentication state
+    const checkAuthState = async () => {
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            
+            if (session) {
+                await loadUserProfile(session.user.id);
+            } else {
+                showAuthContainer();
+            }
+
+            // Listen for auth changes
+            supabase.auth.onAuthStateChange(async (event, session) => {
+                if (event === 'SIGNED_IN' && session) {
+                    await loadUserProfile(session.user.id);
+                } else if (event === 'SIGNED_OUT') {
+                    currentUser = null;
+                    showAuthContainer();
+                }
+            });
+        } catch (error) {
+            console.error('Auth state check error:', error);
+            showAuthContainer();
+        }
+    };
+
+    // Load user profile from database
+    const loadUserProfile = async (userId) => {
+        try {
+            const { data: profile, error } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', userId)
+                .single();
+
+            if (error) {
+                console.error('Profile load error:', error);
+                // If profile doesn't exist, user might need to complete signup
+                showAuthContainer();
+                return;
+            }
+
+            currentUser = {
+                id: profile.id,
+                name: profile.full_name,
+                role: profile.role,
+                contactPerson: profile.contact_person,
+                phone: profile.phone_number
+            };
+
+            await initializeApp();
+            showAppContainer();
+        } catch (error) {
+            console.error('Error loading profile:', error);
+            showAuthContainer();
+        }
+    };
+
+    // Initialize app data
+    const initializeApp = async () => {
+        try {
+            await Promise.all([
+                loadRooms(),
+                loadBookings(),
+                loadAppSettings()
+            ]);
+            
+            renderAll();
+            appInitialized = true;
+        } catch (error) {
+            console.error('Error initializing app:', error);
+        }
+    };
+
+    // Load rooms from database
+    const loadRooms = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('rooms')
+                .select('*')
+                .order('name');
+
+            if (error) throw error;
+            rooms = data || [];
+        } catch (error) {
+            console.error('Error loading rooms:', error);
+            rooms = [];
+        }
+    };
+
+    // Load bookings from database
+    const loadBookings = async () => {
+        try {
+            let query = supabase
+                .from('bookings')
+                .select(`
+                    *,
+                    room:rooms(name),
+                    user:profiles(full_name)
+                `)
+                .eq('status', 'confirmed')
+                .order('booking_date', { ascending: true });
+
+            // If not admin, only load user's own bookings for certain views
+            if (currentUser.role !== 'admin') {
+                // For regular users, we still need to see all bookings for availability checking
+                // but we'll filter in the UI for personal bookings view
+            }
+
+            const { data, error } = await query;
+            if (error) throw error;
+
+            bookings = (data || []).map(booking => ({
+                id: booking.id,
+                userId: booking.user_id,
+                userName: booking.user?.full_name || 'Unknown User',
+                room: booking.room?.name || 'Unknown Room',
+                roomId: booking.room_id,
+                date: booking.booking_date,
+                time: booking.start_time,
+                duration: booking.duration,
+                equipmentNotes: booking.equipment_notes || '',
+                isConfidential: booking.is_confidential
+            }));
+        } catch (error) {
+            console.error('Error loading bookings:', error);
+            bookings = [];
+        }
+    };
+
+    // Load app settings
+    const loadAppSettings = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('app_settings')
+                .select('*');
+
+            if (error) throw error;
+
+            (data || []).forEach(setting => {
+                if (setting.setting_name === 'buffer_minutes') {
+                    bufferMinutes = parseInt(setting.setting_value) || 30;
+                } else if (setting.setting_name === 'time_slots') {
+                    try {
+                        timeSlots = JSON.parse(setting.setting_value);
+                    } catch (e) {
+                        console.error('Error parsing time slots:', e);
+                    }
+                }
+            });
+        } catch (error) {
+            console.error('Error loading app settings:', error);
+            // Use defaults if settings can't be loaded
+        }
+    };
+
+    // Updated signup form handler
+    const handleSignup = async (e) => {
+        e.preventDefault();
+        const signupError = document.getElementById('signup-error');
+        signupError.textContent = '';
+
+        const fullName = document.getElementById('signup-startupName').value;
+        const email = document.getElementById('signup-email').value;
+        const password = document.getElementById('signup-password').value;
+        const contactPerson = document.getElementById('signup-contactPerson').value;
+        const phone = document.getElementById('signup-phone').value;
+
+        try {
+            const { data, error } = await supabase.auth.signUp({
+                email: email,
+                password: password,
+                options: {
+                    data: {
+                        full_name: fullName,
+                        contact_person: contactPerson,
+                        phone_number: phone,
+                        role: 'startup'
+                    }
+                }
+            });
+
+            if (error) throw error;
+
+            alert('Signup successful! Please check your email to confirm your account.');
+            document.getElementById('signup-view').classList.add('hidden');
+            document.getElementById('login-view').classList.remove('hidden');
+        } catch (error) {
+            signupError.textContent = error.message;
+        }
+    };
+
+    // Updated login form handler
+    const handleLogin = async (e) => {
+        e.preventDefault();
+        const loginError = document.getElementById('login-error');
+        loginError.textContent = '';
+
+        const email = document.getElementById('login-email').value;
+        const password = document.getElementById('login-password').value;
+
+        try {
+            const { data, error } = await supabase.auth.signInWithPassword({
+                email: email,
+                password: password,
+            });
+
+            if (error) throw error;
+            // User profile will be loaded automatically via auth state change
+        } catch (error) {
+            loginError.textContent = error.message;
+        }
+    };
+
+    // Updated booking form handler
+    const handleBookingSubmit = async (e) => {
+        e.preventDefault();
+        
+        const roomId = parseInt(document.getElementById('room-select').value);
+        const selectedRoom = rooms.find(r => r.id === roomId);
+        if (!selectedRoom) {
+            showBookingMessage('Please select a room.', 'red');
+            return;
+        }
+
+        // For admin bookings, get the selected startup
+        let bookingUserId = currentUser.id;
+        if (currentUser.role === 'admin') {
+            const startupSelect = document.getElementById('startup-select');
+            if (startupSelect && startupSelect.value) {
+                bookingUserId = startupSelect.value;
+            }
+        }
+
+        // Check monthly booking limits
+        const limitCheck = await checkBookingLimits(bookingUserId, selectedRoom);
+        if (!limitCheck.allowed) {
+            showBookingMessage(limitCheck.message, 'red');
+            return;
+        }
+
+        const newBooking = {
+            user_id: bookingUserId,
+            room_id: roomId,
+            booking_date: document.getElementById('booking-date').value,
+            start_time: document.getElementById('time-select').value,
+            duration: parseInt(document.getElementById('duration-select').value, 10),
+            equipment_notes: selectedRoom.requires_equipment ? 
+                (document.getElementById('podcast-equipment')?.value || '') : '',
+            is_confidential: document.getElementById('is-confidential')?.checked || false
+        };
+
+        // Check for conflicts
+        const isConflict = await checkBookingConflict(newBooking);
+        if (isConflict) {
+            showBookingMessage(`The selected time slot conflicts with another booking. Please select a different time.`, 'red');
+            return;
+        }
+
+        try {
+            const { data, error } = await supabase
+                .from('bookings')
+                .insert([newBooking])
+                .select();
+
+            if (error) throw error;
+
+            showBookingMessage('Booking successful! Your room is confirmed.', 'green');
+            triggerConfetti();
+            await loadBookings();
+            renderAll();
+            document.getElementById('booking-form').reset();
+            setMinBookingDate();
+        } catch (error) {
+            console.error('Booking error:', error);
+            showBookingMessage('Error creating booking: ' + error.message, 'red');
+        }
+    };
+
+    // Check booking limits
+    const checkBookingLimits = async (userId, room) => {
+        try {
+            const now = new Date();
+            const currentMonth = now.getMonth() + 1;
+            const currentYear = now.getFullYear();
+            const startDate = `${currentYear}-${currentMonth.toString().padStart(2, '0')}-01`;
+            const endDate = `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-01`;
+
+            const { data: monthlyBookings, error } = await supabase
+                .from('bookings')
+                .select('*, room:rooms(type)')
+                .eq('user_id', userId)
+                .eq('status', 'confirmed')
+                .gte('booking_date', startDate)
+                .lt('booking_date', endDate);
+
+            if (error) throw error;
+
+            if (room.type === 'focus') {
+                const focusBookings = (monthlyBookings || []).filter(b => b.room?.type === 'focus').length;
+                if (focusBookings >= 5) {
+                    return { allowed: false, message: 'Booking limit reached for Focus Rooms (5 per month).' };
+                }
+            } else {
+                const roomBookings = (monthlyBookings || []).filter(b => b.room_id === room.id).length;
+                if (roomBookings >= 1) {
+                    return { allowed: false, message: `Booking limit reached for ${room.name} (1 per month).` };
+                }
+            }
+
+            return { allowed: true };
+        } catch (error) {
+            console.error('Error checking booking limits:', error);
+            return { allowed: true }; // Allow booking if we can't check limits
+        }
+    };
+
+    // Check booking conflicts
+    const checkBookingConflict = async (newBooking) => {
+        try {
+            const { data: existingBookings, error } = await supabase
+                .from('bookings')
+                .select('*')
+                .eq('room_id', newBooking.room_id)
+                .eq('booking_date', newBooking.booking_date)
+                .eq('status', 'confirmed');
+
+            if (error) throw error;
+
+            const newStart = parseTime(newBooking.start_time);
+            const newEnd = newStart + newBooking.duration * 60;
+
+            return (existingBookings || []).some(booking => {
+                const existingStart = parseTime(booking.start_time);
+                const existingEnd = existingStart + booking.duration * 60;
+                return newStart < (existingEnd + bufferMinutes) && newEnd > existingStart;
+            });
+        } catch (error) {
+            console.error('Error checking booking conflicts:', error);
+            return false; // Allow booking if we can't check conflicts
+        }
+    };
+
+    // Parse time string to minutes
+    const parseTime = (timeStr) => {
+        const [time, period] = timeStr.split(' ');
+        let [hours, minutes] = time.split(':').map(Number);
+        if (period === 'PM' && hours !== 12) hours += 12;
+        if (period === 'AM' && hours === 12) hours = 0;
+        return hours * 60 + (minutes || 0);
+    };
+
+    // Show auth container
+    const showAuthContainer = () => {
+        document.getElementById('auth-container').classList.remove('hidden');
+        document.getElementById('app').classList.add('hidden');
+    };
+
+    // Show app container
+    const showAppContainer = () => {
+        document.getElementById('auth-container').classList.add('hidden');
+        document.getElementById('app').classList.remove('hidden');
+        
+        if (currentUser) {
+            const userNameEl = document.getElementById('user-name');
+            const welcomeMessageEl = document.getElementById('welcome-message');
+            const userAvatarEl = document.getElementById('user-avatar');
+            
+            if (userNameEl) userNameEl.textContent = currentUser.name;
+            if (welcomeMessageEl) {
+                welcomeMessageEl.innerHTML = `Welcome back, <span class="text-green-700">${currentUser.name.split(' ')[0]}</span>!`;
+            }
+            if (userAvatarEl) {
+                const userInitial = currentUser.name.charAt(0).toUpperCase();
+                userAvatarEl.src = `https://placehold.co/100x100/A8B8A0/3E4A39?text=${userInitial}`;
+            }
+        }
+    };
+
+    // Setup event listeners
+    const setupEventListeners = () => {
+        const signupForm = document.getElementById('signup-form');
+        const loginForm = document.getElementById('login-form');
+        const bookingForm = document.getElementById('booking-form');
+        const logoutBtn = document.getElementById('logout-btn');
+
+        if (signupForm) signupForm.addEventListener('submit', handleSignup);
+        if (loginForm) loginForm.addEventListener('submit', handleLogin);
+        if (bookingForm) bookingForm.addEventListener('submit', handleBookingSubmit);
+        if (logoutBtn) logoutBtn.addEventListener('click', handleLogout);
+    };
+
+    // Handle logout
+    const handleLogout = async (e) => {
+        e.preventDefault();
+        
+        try {
+            const { error } = await supabase.auth.signOut();
+            if (error) throw error;
+            
+            currentUser = null;
+            appInitialized = false;
+            window.location.hash = '';
+        } catch (error) {
+            console.error('Error logging out:', error);
+        }
+    };
         { name: 'Indus-Board Room', maxDuration: 8, requiresEquipment: false, type: 'special' },
         { name: 'Nexus-Session Hall', maxDuration: 8, requiresEquipment: false, type: 'special' },
         { name: 'Podcast Room', maxDuration: 2, requiresEquipment: true, type: 'special' }
