@@ -28,8 +28,37 @@
         }
         .loading {
             opacity: 0.6;
-            pointer-events: none;
         }
+
+        /* Sidebar responsive styles */
+        #sidebar {
+            display: block !important;
+        }
+
+        @media (max-width: 768px) {
+            #sidebar {
+                position: fixed;
+                top: 0;
+                left: 0;
+                height: 100vh;
+                z-index: 50;
+                transform: translateX(-100%);
+                transition: transform 0.3s ease-in-out;
+            }
+
+            #sidebar.mobile-open {
+                transform: translateX(0);
+            }
+
+            .sidebar-overlay {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background-color: rgba(0, 0, 0, 0.5);
+                z-index: 40;
+            }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -129,7 +158,7 @@
     <div id="app" class="hidden min-h-screen bg-gray-50">
         <div class="flex min-h-screen">
             <!-- Sidebar -->
-            <aside id="sidebar" class="w-64 bg-white border-r hidden md:block">
+            <aside id="sidebar" class="w-64 bg-white border-r shadow-sm flex-shrink-0" style="display: block !important; min-height: 100vh;">
                 <div class="p-4 border-b">
                     <h1 class="text-xl font-bold text-gray-900">NIC Islamabad</h1>
                     <p class="text-xs text-gray-500">Room Booking System</p>
@@ -1320,9 +1349,31 @@
         // Sidebar toggle (mobile)
         const sidebarToggle = document.getElementById('sidebar-toggle');
         const sidebarEl = document.getElementById('sidebar');
+        let sidebarOverlay = null;
+
         sidebarToggle?.addEventListener('click', () => {
-            sidebarEl?.classList.toggle('hidden');
+            if (window.innerWidth <= 768) {
+                sidebarEl?.classList.toggle('mobile-open');
+
+                if (sidebarEl?.classList.contains('mobile-open')) {
+                    // Create overlay
+                    sidebarOverlay = document.createElement('div');
+                    sidebarOverlay.className = 'sidebar-overlay';
+                    sidebarOverlay.addEventListener('click', closeMobileSidebar);
+                    document.body.appendChild(sidebarOverlay);
+                } else {
+                    closeMobileSidebar();
+                }
+            }
         });
+
+        function closeMobileSidebar() {
+            sidebarEl?.classList.remove('mobile-open');
+            if (sidebarOverlay) {
+                sidebarOverlay.remove();
+                sidebarOverlay = null;
+            }
+        }
 
         // Create admin button
         const createAdminBtn = document.getElementById('create-admin-btn');
@@ -1452,6 +1503,12 @@
 
         // ===== INITIALIZE APPLICATION =====
         document.addEventListener('DOMContentLoaded', () => {
+            console.log('DOM loaded, initializing app...');
+
+            // Check if sidebar exists
+            const sidebar = document.getElementById('sidebar');
+            console.log('Sidebar element:', sidebar);
+
             // Set up navigation
             showPage(window.location.hash || '#dashboard');
 
