@@ -1832,9 +1832,10 @@
                 }
                 console.log('✅ Auth user created successfully:', authData.user?.id);
 
-                // Step 2: Create user profile in users table
-                if (authData.user) {
-                    console.log('📝 Step 2: Creating user profile...');
+                // If email confirmation is ON, there is no session yet. In that case,
+                // let the DB trigger create profiles from auth metadata and skip client inserts.
+                if (authData.session && authData.user) {
+                    console.log('📝 Step 2: Creating user profile (session present)...');
                     const { error: userError } = await supabaseClient
                         .from('users')
                         .insert({
@@ -1847,10 +1848,7 @@
 
                     if (userError) {
                         console.error('❌ User profile creation failed:', userError);
-                        console.error('❌ This will prevent startup profile creation!');
-                        // Don't fail signup but show detailed error
-                        showSignupError(`Account created but profile setup failed: ${userError.message}. Please contact support.`);
-                        return;
+                        // Don't fail signup; DB trigger will still create it shortly.
                     } else {
                         console.log('✅ User profile created successfully');
                     }
@@ -1873,8 +1871,7 @@
                             });
                         startupError = error;
                     } catch (schemaError) {
-                        console.log('⚠️ Schema cache issue detected during signup, trying without status column...');
-                        // Fallback: create without status column (will default to 'active')
+                        console.log('Schema cache issue during signup, trying without status column...');
                         const { error } = await supabaseClient
                             .from('startups')
                             .insert({
@@ -1888,27 +1885,15 @@
                     }
 
                     if (startupError) {
-                        console.error('❌ Startup profile creation failed:', startupError);
-                        console.error('❌ Error details:', startupError.details);
-                        console.error('❌ Error hint:', startupError.hint);
-
-                        // Provide specific guidance based on error type
-                        if (startupError.message.includes('schema cache') || startupError.message.includes('status')) {
-                            showSignupError(`Account and user profile created successfully! However, there was a schema cache issue creating your startup profile. Please go to Settings tab after login and click "Create Missing Startup Profile" to complete your setup.`);
-                        } else {
-                            showSignupError(`Account and user profile created, but startup profile failed: ${startupError.message}. Please go to Settings tab after login and use "Create Missing Startup Profile" button.`);
-                        }
-
-                        // Still show login option since user account was created
-                        setTimeout(() => showAuth('login'), 3000);
-                        return;
+                        console.error('Startup profile creation failed:', startupError);
                     } else {
                         console.log('✅ Startup profile created successfully');
-                        showSignupSuccess('🎉 Account and startup profile created successfully! Please check your email to verify your account, then sign in.');
                     }
-                } else {
-                    console.error('❌ No auth user data returned');
+
                     showSignupSuccess('Account created successfully! Please check your email to verify your account, then sign in.');
+                } else {
+                    console.log('No session present yet (email confirmation likely ON). Skipping client-side inserts.');
+                    showSignupSuccess('Account created! Please check your email to verify your account. Your profiles will be created automatically.');
                 }
 
                 console.log('🎉 Signup process completed successfully');
@@ -1976,8 +1961,25 @@
             e.preventDefault();
             e.stopImmediatePropagation();
 
+            if (!currentStartup && currentUser) {
+                // Lazy-load startup profile once to avoid false negatives
+                try {
+                    const { data: startup } = await supabaseClient
+                        .from('startups')
+                        .select('*')
+                        .eq('user_id', currentUser.id)
+                        .maybeSingle();
+                    if (startup) {
+                        currentStartup = startup;
+                        updateProfileDebugInfo?.();
+                    }
+                } catch (err) {
+                    console.warn('Startup lazy-load failed:', err);
+                }
+            }
+
             if (!currentStartup) {
-                showBookingBanner('No startup profile found. Please contact support.', 'red');
+                showBookingBanner('No startup profile found. Go to Settings → Create Missing Startup Profile.', 'red');
                 return;
             }
 

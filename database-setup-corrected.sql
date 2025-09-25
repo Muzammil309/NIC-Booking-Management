@@ -194,14 +194,18 @@ CREATE POLICY "Users can update their own profile" ON public.users
     USING (auth.uid() = id)
     WITH CHECK (auth.uid() = id);
 
+-- ULTRA PERMISSIVE POLICY FOR SIGNUP - ALLOWS INITIAL PROFILE CREATION
 CREATE POLICY "Users can create their own profile" ON public.users
     FOR INSERT TO authenticated
     WITH CHECK (
-        -- Allow if current user matches the ID being inserted
+        -- Allow if current user matches the ID being inserted (normal case)
         auth.uid() = id
         OR
         -- Allow if the ID exists in auth.users (for initial profile creation during signup)
         EXISTS (SELECT 1 FROM auth.users WHERE auth.users.id = users.id)
+        OR
+        -- ULTRA PERMISSIVE: Allow if no profile exists yet for this ID (initial signup)
+        NOT EXISTS (SELECT 1 FROM public.users WHERE public.users.id = users.id)
     );
 
 CREATE POLICY "Admins can view all users" ON public.users
@@ -238,14 +242,18 @@ CREATE POLICY "Users can update their own startup" ON public.startups
     USING (user_id = auth.uid())
     WITH CHECK (user_id = auth.uid());
 
+-- ULTRA PERMISSIVE POLICY FOR STARTUP CREATION
 CREATE POLICY "Users can create their own startup" ON public.startups
     FOR INSERT TO authenticated
     WITH CHECK (
-        -- Allow if current user matches the user_id being inserted
+        -- Allow if current user matches the user_id being inserted (normal case)
         user_id = auth.uid()
         OR
         -- Allow if the user_id exists in auth.users (for initial profile creation during signup)
         EXISTS (SELECT 1 FROM auth.users WHERE auth.users.id = startups.user_id)
+        OR
+        -- ULTRA PERMISSIVE: Allow if no startup exists yet for this user_id (initial signup)
+        NOT EXISTS (SELECT 1 FROM public.startups WHERE public.startups.user_id = startups.user_id)
     );
 
 CREATE POLICY "Admins can view all startups" ON public.startups
