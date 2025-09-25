@@ -1597,58 +1597,102 @@
                 console.log('🔄 Bootstrap Data - Starting for user:', user.id);
                 console.log('🔄 User metadata:', user.user_metadata);
 
-                // Get user profile (tolerant of missing rows)
+                // Step 1: Load user profile with retry logic
                 console.log('📝 Step 1: Loading user profile...');
-                const { data: userProfile, error: userProfileError } = await supabaseClient
-                    .from('users')
-                    .select('*')
-                    .eq('id', user.id)
-                    .maybeSingle();
+                let userProfile = null;
+                let retryCount = 0;
+                const maxRetries = 3;
 
-                if (userProfileError) {
-                    console.error('❌ Error loading user profile:', userProfileError);
+                while (!userProfile && retryCount < maxRetries) {
+                    const { data, error } = await supabaseClient
+                        .from('users')
+                        .select('*')
+                        .eq('id', user.id)
+                        .maybeSingle();
+
+                    if (error && error.code !== 'PGRST116') {
+                        console.error(`❌ Error loading user profile (attempt ${retryCount + 1}):`, error);
+                        retryCount++;
+                        if (retryCount < maxRetries) {
+                            console.log('⏳ Retrying in 1 second...');
+                            await new Promise(resolve => setTimeout(resolve, 1000));
+                        }
+                    } else {
+                        userProfile = data;
+                        break;
+                    }
                 }
 
-                // Create user profile if it doesn't exist
+                // Create user profile if it still doesn't exist after retries
                 if (!userProfile) {
-                    console.log('⚠️ No user profile found, creating one...');
-                    const { error: userCreateError } = await supabaseClient
-                        .from('users')
-                        .insert({
+                    console.log('⚠️ No user profile found after retries, creating one...');
+                    try {
+                        const { data: newUserProfile, error: userCreateError } = await supabaseClient
+                            .from('users')
+                            .insert({
+                                id: user.id,
+                                email: user.email,
+                                name: user.user_metadata?.name || user.email.split('@')[0],
+                                phone: user.user_metadata?.phone || '',
+                                role: user.user_metadata?.role || 'startup'
+                            })
+                            .select()
+                            .single();
+
+                        if (userCreateError) {
+                            console.error('❌ Could not create user profile:', userCreateError);
+                            // Use fallback profile
+                            userProfile = {
+                                id: user.id,
+                                email: user.email,
+                                name: user.user_metadata?.name || user.email.split('@')[0],
+                                phone: user.user_metadata?.phone || '',
+                                role: user.user_metadata?.role || 'startup'
+                            };
+                        } else {
+                            console.log('✅ User profile created successfully');
+                            userProfile = newUserProfile;
+                        }
+                    } catch (createError) {
+                        console.error('❌ Exception creating user profile:', createError);
+                        // Use fallback profile
+                        userProfile = {
                             id: user.id,
                             email: user.email,
                             name: user.user_metadata?.name || user.email.split('@')[0],
                             phone: user.user_metadata?.phone || '',
                             role: user.user_metadata?.role || 'startup'
-                        });
-
-                    if (userCreateError) {
-                        console.error('❌ Could not create user profile:', userCreateError);
-                    } else {
-                        console.log('✅ User profile created successfully');
+                        };
                     }
                 } else {
                     console.log('✅ User profile loaded:', userProfile);
                 }
 
-                currentUser = userProfile || {
-                    id: user.id,
-                    email: user.email,
-                    name: user.user_metadata?.name || user.email.split('@')[0],
-                    phone: user.user_metadata?.phone || '',
-                    role: user.user_metadata?.role || 'startup'
-                };
+                currentUser = userProfile;
 
-                // Get user's startup (optional)
+                // Step 2: Load startup profile with retry logic
                 console.log('📝 Step 2: Loading startup profile...');
-                const { data: startup, error: startupError } = await supabaseClient
-                    .from('startups')
-                    .select('*')
-                    .eq('user_id', user.id)
-                    .maybeSingle();
+                let startup = null;
+                retryCount = 0;
 
-                if (startupError) {
-                    console.error('❌ Error loading startup profile:', startupError);
+                while (!startup && retryCount < maxRetries) {
+                    const { data, error } = await supabaseClient
+                        .from('startups')
+                        .select('*')
+                        .eq('user_id', user.id)
+                        .maybeSingle();
+
+                    if (error && error.code !== 'PGRST116') {
+                        console.error(`❌ Error loading startup profile (attempt ${retryCount + 1}):`, error);
+                        retryCount++;
+                        if (retryCount < maxRetries) {
+                            console.log('⏳ Retrying in 1 second...');
+                            await new Promise(resolve => setTimeout(resolve, 1000));
+                        }
+                    } else {
+                        startup = data;
+                        break;
+                    }
                 }
 
                 if (startup) {
@@ -1656,38 +1700,34 @@
                     currentStartup = startup;
                 } else {
                     console.log('⚠️ No startup profile found');
+                    currentStartup = null;
 
-                    // Create startup profile if user doesn't have one and has startup metadata
+                    // Try to create startup profile if metadata is available
                     if (user.user_metadata?.startup_name && currentUser.role === 'startup') {
-                        console.log('🔧 Creating missing startup profile for user...');
-                        const { error: startupCreateError } = await supabaseClient
-                            .from('startups')
-                            .insert({
-                                user_id: user.id,
-                                name: user.user_metadata.startup_name,
-                                contact_person: user.user_metadata.name || user.email.split('@')[0],
-                                phone: user.user_metadata.phone || '',
-                                email: user.email,
-                                status: 'active'
-                            });
-
-                        if (startupCreateError) {
-                            console.error('❌ Could not create startup profile:', startupCreateError);
-                            currentStartup = null;
-                        } else {
-                            console.log('✅ Startup profile created, reloading...');
-                            // Reload startup data
-                            const { data: newStartup } = await supabaseClient
+                        console.log('🔧 Attempting to create startup profile from metadata...');
+                        try {
+                            const { data: newStartup, error: startupCreateError } = await supabaseClient
                                 .from('startups')
-                                .select('*')
-                                .eq('user_id', user.id)
-                                .maybeSingle();
-                            currentStartup = newStartup;
-                            console.log('✅ New startup profile loaded:', newStartup);
+                                .insert({
+                                    user_id: user.id,
+                                    name: user.user_metadata.startup_name,
+                                    contact_person: user.user_metadata.name || user.email.split('@')[0],
+                                    phone: user.user_metadata.phone || '',
+                                    email: user.email,
+                                    status: 'active'
+                                })
+                                .select()
+                                .single();
+
+                            if (startupCreateError) {
+                                console.error('❌ Could not create startup profile:', startupCreateError);
+                            } else {
+                                console.log('✅ Startup profile created from metadata:', newStartup);
+                                currentStartup = newStartup;
+                            }
+                        } catch (createError) {
+                            console.error('❌ Exception creating startup profile:', createError);
                         }
-                    } else {
-                        console.log('⚠️ No startup metadata found, cannot create startup profile');
-                        currentStartup = null;
                     }
                 }
 
@@ -1961,25 +2001,32 @@
             e.preventDefault();
             e.stopImmediatePropagation();
 
+            // Enhanced lazy-loading with better error handling
             if (!currentStartup && currentUser) {
-                // Lazy-load startup profile once to avoid false negatives
+                console.log('🔄 Lazy-loading startup profile for booking...');
                 try {
-                    const { data: startup } = await supabaseClient
+                    const { data: startup, error } = await supabaseClient
                         .from('startups')
                         .select('*')
                         .eq('user_id', currentUser.id)
                         .maybeSingle();
-                    if (startup) {
+
+                    if (error && error.code !== 'PGRST116') {
+                        console.error('❌ Error lazy-loading startup:', error);
+                    } else if (startup) {
+                        console.log('✅ Startup profile lazy-loaded:', startup);
                         currentStartup = startup;
                         updateProfileDebugInfo?.();
+                    } else {
+                        console.log('⚠️ No startup profile found during lazy-load');
                     }
                 } catch (err) {
-                    console.warn('Startup lazy-load failed:', err);
+                    console.error('❌ Exception during startup lazy-load:', err);
                 }
             }
 
             if (!currentStartup) {
-                showBookingBanner('No startup profile found. Go to Settings → Create Missing Startup Profile.', 'red');
+                showBookingBanner('No startup profile found. Go to Settings → Create Missing Startup Profile to fix this issue.', 'red');
                 return;
             }
 
@@ -2088,71 +2135,67 @@
             const createStartupBtn = document.getElementById('create-startup-profile-btn');
             createStartupBtn?.addEventListener('click', async () => {
                 if (!currentUser) {
-                    alert('No user profile found');
+                    alert('No user profile found. Please refresh the page and try again.');
                     return;
                 }
 
                 const startupName = prompt('Enter your startup name:');
-                if (!startupName) return;
+                if (!startupName || !startupName.trim()) {
+                    alert('Startup name is required.');
+                    return;
+                }
+
+                const statusEl = document.getElementById('profile-actions-status');
+                if (statusEl) {
+                    statusEl.innerHTML = '<span class="text-blue-600">🔄 Creating startup profile...</span>';
+                }
 
                 try {
                     console.log('🔧 Creating startup profile manually...');
                     console.log('🔧 User ID:', currentUser.id);
-                    console.log('🔧 Startup Name:', startupName);
+                    console.log('🔧 Startup Name:', startupName.trim());
 
-                    // Try with status column first, fallback without it if schema cache issue
-                    let data, error;
-                    try {
-                        const result = await supabaseClient
-                            .from('startups')
-                            .insert({
-                                user_id: currentUser.id,
-                                name: startupName,
-                                contact_person: currentUser.name || currentUser.email.split('@')[0],
-                                phone: currentUser.phone || '',
-                                email: currentUser.email,
-                                status: 'active'
-                            })
-                            .select();
-                        data = result.data;
-                        error = result.error;
-                    } catch (schemaError) {
-                        console.log('⚠️ Schema cache issue detected, trying without status column...');
-                        // Fallback: create without status column (will default to 'active')
-                        const result = await supabaseClient
-                            .from('startups')
-                            .insert({
-                                user_id: currentUser.id,
-                                name: startupName,
-                                contact_person: currentUser.name || currentUser.email.split('@')[0],
-                                phone: currentUser.phone || '',
-                                email: currentUser.email
-                            })
-                            .select();
-                        data = result.data;
-                        error = result.error;
-                    }
+                    // Use the simplified approach with proper error handling
+                    const { data, error } = await supabaseClient
+                        .from('startups')
+                        .insert({
+                            user_id: currentUser.id,
+                            name: startupName.trim(),
+                            contact_person: currentUser.name || currentUser.email.split('@')[0],
+                            phone: currentUser.phone || '',
+                            email: currentUser.email,
+                            status: 'active'
+                        })
+                        .select()
+                        .single();
 
                     if (error) {
                         console.error('❌ Failed to create startup profile:', error);
+                        console.error('❌ Error code:', error.code);
                         console.error('❌ Error details:', error.details);
                         console.error('❌ Error hint:', error.hint);
-                        alert(`Failed to create startup profile: ${error.message}\n\nDetails: ${error.details || 'No additional details'}\n\nThis might be an RLS policy issue. Please run the updated database script.`);
+
+                        let errorMessage = `Failed to create startup profile: ${error.message}`;
+
+                        if (error.code === '42501') {
+                            errorMessage += '\n\nThis is an RLS policy issue. Please run the comprehensive-rls-fix.sql script in Supabase SQL Editor.';
+                        } else if (error.code === '23505') {
+                            errorMessage += '\n\nA startup profile already exists for this user.';
+                        }
+
+                        if (statusEl) {
+                            statusEl.innerHTML = '<span class="text-red-600">❌ Failed to create startup profile</span>';
+                        }
+
+                        alert(errorMessage);
                     } else {
                         console.log('✅ Startup profile created successfully:', data);
-                        // Reload startup data
-                        const { data: newStartup } = await supabaseClient
-                            .from('startups')
-                            .select('*')
-                            .eq('user_id', currentUser.id)
-                            .maybeSingle();
-                        currentStartup = newStartup;
+                        currentStartup = data;
 
-                        // Update UI
+                        // Update UI immediately
                         updateProfileDebugInfo();
                         await loadStartupProfileSettings();
 
-                        const statusEl = document.getElementById('profile-actions-status');
                         if (statusEl) {
                             statusEl.innerHTML = '<span class="text-green-600">✅ Startup profile created successfully! You can now book rooms.</span>';
                         }
@@ -2160,8 +2203,18 @@
                         alert('✅ Startup profile created successfully! You can now book rooms.');
                     }
                 } catch (err) {
-                    console.error('❌ Error creating startup profile:', err);
-                    alert(`Error: ${err.message}`);
+                    console.error('❌ Exception creating startup profile:', err);
+
+                    if (statusEl) {
+                        statusEl.innerHTML = '<span class="text-red-600">❌ Error creating startup profile</span>';
+                    }
+
+                    let errorMessage = `Unexpected error: ${err.message}`;
+                    if (err.message.includes('JWT')) {
+                        errorMessage += '\n\nAuthentication issue. Please refresh the page and try again.';
+                    }
+
+                    alert(errorMessage);
                 }
             });
 
