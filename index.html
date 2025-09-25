@@ -1855,27 +1855,56 @@
                         console.log('✅ User profile created successfully');
                     }
 
-                    // Step 3: Create startup profile
+                    // Step 3: Create startup profile (with schema cache fallback)
                     console.log('📝 Step 3: Creating startup profile...');
-                    const { error: startupError } = await supabaseClient
-                        .from('startups')
-                        .insert({
-                            user_id: authData.user.id,
-                            name: startupName,
-                            contact_person: contactPerson,
-                            phone: phone,
-                            email: email,
-                            status: 'active'
-                        });
+                    let startupError = null;
+
+                    try {
+                        // Try with status column first
+                        const { error } = await supabaseClient
+                            .from('startups')
+                            .insert({
+                                user_id: authData.user.id,
+                                name: startupName,
+                                contact_person: contactPerson,
+                                phone: phone,
+                                email: email,
+                                status: 'active'
+                            });
+                        startupError = error;
+                    } catch (schemaError) {
+                        console.log('⚠️ Schema cache issue detected during signup, trying without status column...');
+                        // Fallback: create without status column (will default to 'active')
+                        const { error } = await supabaseClient
+                            .from('startups')
+                            .insert({
+                                user_id: authData.user.id,
+                                name: startupName,
+                                contact_person: contactPerson,
+                                phone: phone,
+                                email: email
+                            });
+                        startupError = error;
+                    }
 
                     if (startupError) {
                         console.error('❌ Startup profile creation failed:', startupError);
-                        // This is critical - show detailed error
-                        showSignupError(`Account and user profile created, but startup profile failed: ${startupError.message}. You won't be able to book rooms. Please contact support.`);
+                        console.error('❌ Error details:', startupError.details);
+                        console.error('❌ Error hint:', startupError.hint);
+
+                        // Provide specific guidance based on error type
+                        if (startupError.message.includes('schema cache') || startupError.message.includes('status')) {
+                            showSignupError(`Account and user profile created successfully! However, there was a schema cache issue creating your startup profile. Please go to Settings tab after login and click "Create Missing Startup Profile" to complete your setup.`);
+                        } else {
+                            showSignupError(`Account and user profile created, but startup profile failed: ${startupError.message}. Please go to Settings tab after login and use "Create Missing Startup Profile" button.`);
+                        }
+
+                        // Still show login option since user account was created
+                        setTimeout(() => showAuth('login'), 3000);
                         return;
                     } else {
                         console.log('✅ Startup profile created successfully');
-                        showSignupSuccess('Account and startup profile created successfully! Please check your email to verify your account, then sign in.');
+                        showSignupSuccess('🎉 Account and startup profile created successfully! Please check your email to verify your account, then sign in.');
                     }
                 } else {
                     console.error('❌ No auth user data returned');
@@ -2069,17 +2098,38 @@
                     console.log('🔧 User ID:', currentUser.id);
                     console.log('🔧 Startup Name:', startupName);
 
-                    const { data, error } = await supabaseClient
-                        .from('startups')
-                        .insert({
-                            user_id: currentUser.id,
-                            name: startupName,
-                            contact_person: currentUser.name || currentUser.email.split('@')[0],
-                            phone: currentUser.phone || '',
-                            email: currentUser.email,
-                            status: 'active'
-                        })
-                        .select();
+                    // Try with status column first, fallback without it if schema cache issue
+                    let data, error;
+                    try {
+                        const result = await supabaseClient
+                            .from('startups')
+                            .insert({
+                                user_id: currentUser.id,
+                                name: startupName,
+                                contact_person: currentUser.name || currentUser.email.split('@')[0],
+                                phone: currentUser.phone || '',
+                                email: currentUser.email,
+                                status: 'active'
+                            })
+                            .select();
+                        data = result.data;
+                        error = result.error;
+                    } catch (schemaError) {
+                        console.log('⚠️ Schema cache issue detected, trying without status column...');
+                        // Fallback: create without status column (will default to 'active')
+                        const result = await supabaseClient
+                            .from('startups')
+                            .insert({
+                                user_id: currentUser.id,
+                                name: startupName,
+                                contact_person: currentUser.name || currentUser.email.split('@')[0],
+                                phone: currentUser.phone || '',
+                                email: currentUser.email
+                            })
+                            .select();
+                        data = result.data;
+                        error = result.error;
+                    }
 
                     if (error) {
                         console.error('❌ Failed to create startup profile:', error);
