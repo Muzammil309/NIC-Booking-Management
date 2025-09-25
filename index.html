@@ -629,13 +629,144 @@
             <!-- Room Displays Page -->
             <div id="room-displays" class="page hidden">
                 <div class="mb-8">
-                    <h2 class="text-3xl font-bold text-gray-900 mb-2">Room Displays</h2>
-                    <p class="text-gray-600">Real-time room availability and status</p>
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <h2 class="text-3xl font-bold text-gray-900 mb-2">Room Displays Management</h2>
+                            <p class="text-gray-600">Manage digital displays and content for each room</p>
+                        </div>
+                        <div class="flex space-x-3" id="room-displays-admin-controls" data-admin-only>
+                            <button id="upload-content-btn" class="btn-primary px-4 py-2 rounded-lg text-white font-medium hover:bg-opacity-90 transition duration-200">
+                                <svg class="h-5 w-5 inline mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                                </svg>
+                                Upload Content
+                            </button>
+                            <button id="manage-layouts-btn" class="bg-gray-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-gray-700 transition duration-200">
+                                <svg class="h-5 w-5 inline mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"/>
+                                </svg>
+                                Manage Layouts
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <div id="room-cards-container">
-                        <p class="text-center text-gray-500 py-8 col-span-full">Loading room information...</p>
+                <!-- Display Management Tabs -->
+                <div class="mb-6">
+                    <div class="border-b border-gray-200">
+                        <nav class="-mb-px flex space-x-8">
+                            <button class="room-display-tab-btn border-b-2 border-green-500 text-green-600 py-2 px-1 text-sm font-medium" data-tab="room-status">
+                                Room Status
+                            </button>
+                            <button class="room-display-tab-btn border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 py-2 px-1 text-sm font-medium" data-tab="content-library" data-admin-only>
+                                Content Library
+                            </button>
+                            <button class="room-display-tab-btn border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 py-2 px-1 text-sm font-medium" data-tab="display-settings" data-admin-only>
+                                Display Settings
+                            </button>
+                            <button class="room-display-tab-btn border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 py-2 px-1 text-sm font-medium" data-tab="content-schedule" data-admin-only>
+                                Content Schedule
+                            </button>
+                        </nav>
+                    </div>
+                </div>
+
+                <!-- Room Status Tab -->
+                <div id="room-status-tab" class="room-display-tab-content">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" id="room-status-grid">
+                        <div class="text-center text-gray-500 py-8 col-span-full">Loading room displays...</div>
+                    </div>
+                </div>
+
+                <!-- Content Library Tab -->
+                <div id="content-library-tab" class="room-display-tab-content hidden" data-admin-only>
+                    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-lg font-semibold text-gray-900">Content Library</h3>
+                            <div class="flex space-x-3">
+                                <select id="content-type-filter" class="border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                                    <option value="">All Content Types</option>
+                                    <option value="image">Images</option>
+                                    <option value="video">Videos</option>
+                                    <option value="text">Text Content</option>
+                                    <option value="announcement">Announcements</option>
+                                </select>
+                                <button id="refresh-content-btn" class="bg-gray-100 text-gray-700 px-3 py-2 rounded-lg text-sm hover:bg-gray-200 transition duration-200">
+                                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div id="content-library-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                            <div class="text-center text-gray-500 py-8 col-span-full">Loading content library...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Display Settings Tab -->
+                <div id="display-settings-tab" class="room-display-tab-content hidden" data-admin-only>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <!-- Room Display Configuration -->
+                        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">Room Display Configuration</h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Select Room</label>
+                                    <select id="room-select" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+                                        <option value="">Choose a room...</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Display Layout</label>
+                                    <select id="layout-select" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+                                        <option value="">Choose a layout...</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Display Status</label>
+                                    <select id="display-status-select" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+                                        <option value="available">Available</option>
+                                        <option value="occupied">Occupied</option>
+                                        <option value="maintenance">Maintenance</option>
+                                        <option value="reserved">Reserved</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Status Message</label>
+                                    <input type="text" id="status-message-input" class="w-full border border-gray-300 rounded-lg px-3 py-2" placeholder="Optional status message...">
+                                </div>
+                                <button id="update-display-btn" class="w-full btn-primary py-2 rounded-lg text-white font-medium hover:bg-opacity-90 transition duration-200">
+                                    Update Display Settings
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Layout Preview -->
+                        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">Layout Preview</h3>
+                            <div id="layout-preview" class="border-2 border-dashed border-gray-300 rounded-lg h-64 flex items-center justify-center text-gray-500">
+                                Select a room and layout to preview
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Content Schedule Tab -->
+                <div id="content-schedule-tab" class="room-display-tab-content hidden" data-admin-only>
+                    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-lg font-semibold text-gray-900">Content Schedule</h3>
+                            <button id="add-schedule-btn" class="btn-primary px-4 py-2 rounded-lg text-white font-medium hover:bg-opacity-90 transition duration-200">
+                                <svg class="h-5 w-5 inline mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                                </svg>
+                                Add Schedule
+                            </button>
+                        </div>
+                        <div id="content-schedule-list" class="space-y-4">
+                            <div class="text-center text-gray-500 py-8">Loading content schedules...</div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -909,16 +1040,7 @@
                 </div>
             </div>
 
-            <!-- Room Displays Page -->
-            <div id="room-displays" class="page hidden">
-                <div class="mb-8">
-                    <h2 class="text-3xl font-bold text-gray-900 mb-2">Room Displays</h2>
-                    <p class="text-gray-600">View room status displays for kiosk mode</p>
-                </div>
-                <div id="room-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                    <!-- Room cards will be inserted here -->
-                </div>
-            </div>
+
             </main>
         </div>
     </div>
@@ -933,6 +1055,182 @@
                 <button id="password-submit" class="flex-1 btn-primary py-3 rounded-lg font-medium">Submit</button>
                 <button id="password-cancel" class="flex-1 bg-gray-300 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-400 transition duration-200">Cancel</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Upload Content Modal -->
+    <div id="upload-content-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold text-gray-800">Upload Display Content</h2>
+                <button id="upload-modal-close" class="text-gray-400 hover:text-gray-600">
+                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            <form id="upload-content-form" class="space-y-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Content Type</label>
+                    <select id="upload-content-type" class="w-full border border-gray-300 rounded-lg px-3 py-2" required>
+                        <option value="">Select content type...</option>
+                        <option value="image">Image</option>
+                        <option value="video">Video</option>
+                        <option value="text">Text Content</option>
+                        <option value="announcement">Announcement</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Content Name</label>
+                    <input type="text" id="upload-content-name" class="w-full border border-gray-300 rounded-lg px-3 py-2" placeholder="Enter content name..." required>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                    <textarea id="upload-content-description" class="w-full border border-gray-300 rounded-lg px-3 py-2" rows="3" placeholder="Enter content description..."></textarea>
+                </div>
+
+                <!-- File Upload Section -->
+                <div id="file-upload-section" class="hidden">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Upload File</label>
+                    <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                        <input type="file" id="upload-file-input" class="hidden" accept="image/*,video/*">
+                        <div id="upload-drop-zone" class="cursor-pointer">
+                            <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                                <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            <p class="mt-2 text-sm text-gray-600">
+                                <span class="font-medium text-blue-600 hover:text-blue-500">Click to upload</span> or drag and drop
+                            </p>
+                            <p class="text-xs text-gray-500">PNG, JPG, GIF up to 10MB for images, MP4 up to 50MB for videos</p>
+                        </div>
+                        <div id="upload-preview" class="hidden mt-4">
+                            <div class="flex items-center justify-center space-x-2">
+                                <div class="text-sm text-gray-600" id="upload-file-name"></div>
+                                <button type="button" id="upload-remove-file" class="text-red-500 hover:text-red-700">
+                                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Text Content Section -->
+                <div id="text-content-section" class="hidden">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Text Content</label>
+                    <textarea id="upload-text-content" class="w-full border border-gray-300 rounded-lg px-3 py-2" rows="6" placeholder="Enter your text content here..."></textarea>
+                </div>
+
+                <div class="flex justify-end space-x-4">
+                    <button type="button" id="upload-cancel-btn" class="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition duration-200">
+                        Cancel
+                    </button>
+                    <button type="submit" id="upload-submit-btn" class="px-6 py-2 btn-primary rounded-lg text-white hover:bg-opacity-90 transition duration-200">
+                        <span id="upload-btn-text">Upload Content</span>
+                        <svg id="upload-spinner" class="hidden animate-spin h-4 w-4 ml-2 inline" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Schedule Content Modal -->
+    <div id="schedule-content-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-lg">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold text-gray-800">Schedule Content</h2>
+                <button id="schedule-modal-close" class="text-gray-400 hover:text-gray-600">
+                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            <form id="schedule-content-form" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Select Content</label>
+                    <select id="schedule-content-select" class="w-full border border-gray-300 rounded-lg px-3 py-2" required>
+                        <option value="">Choose content...</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Select Rooms</label>
+                    <div id="schedule-rooms-checkboxes" class="space-y-2 max-h-32 overflow-y-auto border border-gray-200 rounded-lg p-3">
+                        <!-- Room checkboxes will be populated here -->
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Start Time</label>
+                        <input type="time" id="schedule-start-time" class="w-full border border-gray-300 rounded-lg px-3 py-2" value="09:00">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">End Time</label>
+                        <input type="time" id="schedule-end-time" class="w-full border border-gray-300 rounded-lg px-3 py-2" value="17:00">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
+                        <input type="date" id="schedule-start-date" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">End Date</label>
+                        <input type="date" id="schedule-end-date" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Days of Week</label>
+                    <div class="flex flex-wrap gap-2">
+                        <label class="flex items-center">
+                            <input type="checkbox" value="monday" class="schedule-day-checkbox mr-2"> Mon
+                        </label>
+                        <label class="flex items-center">
+                            <input type="checkbox" value="tuesday" class="schedule-day-checkbox mr-2"> Tue
+                        </label>
+                        <label class="flex items-center">
+                            <input type="checkbox" value="wednesday" class="schedule-day-checkbox mr-2"> Wed
+                        </label>
+                        <label class="flex items-center">
+                            <input type="checkbox" value="thursday" class="schedule-day-checkbox mr-2"> Thu
+                        </label>
+                        <label class="flex items-center">
+                            <input type="checkbox" value="friday" class="schedule-day-checkbox mr-2"> Fri
+                        </label>
+                        <label class="flex items-center">
+                            <input type="checkbox" value="saturday" class="schedule-day-checkbox mr-2"> Sat
+                        </label>
+                        <label class="flex items-center">
+                            <input type="checkbox" value="sunday" class="schedule-day-checkbox mr-2"> Sun
+                        </label>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Display Duration (seconds)</label>
+                    <input type="number" id="schedule-duration" class="w-full border border-gray-300 rounded-lg px-3 py-2" value="30" min="5" max="300">
+                </div>
+
+                <div class="flex justify-end space-x-4 pt-4">
+                    <button type="button" id="schedule-cancel-btn" class="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition duration-200">
+                        Cancel
+                    </button>
+                    <button type="submit" class="px-6 py-2 btn-primary rounded-lg text-white hover:bg-opacity-90 transition duration-200">
+                        Schedule Content
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -3597,8 +3895,647 @@
             handleAuthState();
         });
 
+        // ===== ROOM DISPLAYS MANAGEMENT =====
+
+        // Room Displays Tab Management
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('room-display-tab-btn')) {
+                const tab = e.target.dataset.tab;
+
+                // Update tab buttons
+                document.querySelectorAll('.room-display-tab-btn').forEach(btn => {
+                    btn.classList.remove('border-green-500', 'text-green-600');
+                    btn.classList.add('border-transparent', 'text-gray-500');
+                });
+
+                e.target.classList.remove('border-transparent', 'text-gray-500');
+                e.target.classList.add('border-green-500', 'text-green-600');
+
+                // Show/hide tab content
+                document.querySelectorAll('.room-display-tab-content').forEach(content => {
+                    content.classList.add('hidden');
+                });
+
+                const tabContent = document.getElementById(`${tab}-tab`);
+                if (tabContent) {
+                    tabContent.classList.remove('hidden');
+                }
+
+                // Load tab-specific content
+                if (tab === 'room-status') {
+                    loadRoomStatusDisplays();
+                } else if (tab === 'content-library') {
+                    loadContentLibrary();
+                } else if (tab === 'display-settings') {
+                    loadDisplaySettings();
+                } else if (tab === 'content-schedule') {
+                    loadContentSchedule();
+                }
+            }
+        });
+
+        // Upload Content Modal
+        const uploadContentBtn = document.getElementById('upload-content-btn');
+        const uploadContentModal = document.getElementById('upload-content-modal');
+        const uploadModalClose = document.getElementById('upload-modal-close');
+        const uploadCancelBtn = document.getElementById('upload-cancel-btn');
+        const uploadContentForm = document.getElementById('upload-content-form');
+        const uploadContentType = document.getElementById('upload-content-type');
+        const fileUploadSection = document.getElementById('file-upload-section');
+        const textContentSection = document.getElementById('text-content-section');
+        const uploadDropZone = document.getElementById('upload-drop-zone');
+        const uploadFileInput = document.getElementById('upload-file-input');
+
+        uploadContentBtn?.addEventListener('click', () => {
+            uploadContentModal.classList.remove('hidden');
+        });
+
+        [uploadModalClose, uploadCancelBtn].forEach(btn => {
+            btn?.addEventListener('click', () => {
+                uploadContentModal.classList.add('hidden');
+                uploadContentForm.reset();
+                hideUploadSections();
+            });
+        });
+
+        uploadContentType?.addEventListener('change', (e) => {
+            const type = e.target.value;
+            hideUploadSections();
+
+            if (type === 'image' || type === 'video') {
+                fileUploadSection.classList.remove('hidden');
+                updateFileInputAccept(type);
+            } else if (type === 'text' || type === 'announcement') {
+                textContentSection.classList.remove('hidden');
+            }
+        });
+
+        function hideUploadSections() {
+            fileUploadSection.classList.add('hidden');
+            textContentSection.classList.add('hidden');
+            document.getElementById('upload-preview').classList.add('hidden');
+        }
+
+        function updateFileInputAccept(type) {
+            if (type === 'image') {
+                uploadFileInput.accept = 'image/*';
+            } else if (type === 'video') {
+                uploadFileInput.accept = 'video/*';
+            }
+        }
+
+        // File upload handling
+        uploadDropZone?.addEventListener('click', () => {
+            uploadFileInput.click();
+        });
+
+        uploadDropZone?.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadDropZone.classList.add('border-blue-400', 'bg-blue-50');
+        });
+
+        uploadDropZone?.addEventListener('dragleave', () => {
+            uploadDropZone.classList.remove('border-blue-400', 'bg-blue-50');
+        });
+
+        uploadDropZone?.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadDropZone.classList.remove('border-blue-400', 'bg-blue-50');
+
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFileSelection(files[0]);
+            }
+        });
+
+        uploadFileInput?.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFileSelection(e.target.files[0]);
+            }
+        });
+
+        function handleFileSelection(file) {
+            const preview = document.getElementById('upload-preview');
+            const fileName = document.getElementById('upload-file-name');
+
+            fileName.textContent = file.name;
+            preview.classList.remove('hidden');
+
+            // Store file for upload
+            uploadFileInput.files = createFileList(file);
+        }
+
+        function createFileList(file) {
+            const dt = new DataTransfer();
+            dt.items.add(file);
+            return dt.files;
+        }
+
+        document.getElementById('upload-remove-file')?.addEventListener('click', () => {
+            document.getElementById('upload-preview').classList.add('hidden');
+            uploadFileInput.value = '';
+        });
+
+        // Upload form submission
+        uploadContentForm?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await handleContentUpload();
+        });
+
+        async function handleContentUpload() {
+            const submitBtn = document.getElementById('upload-submit-btn');
+            const btnText = document.getElementById('upload-btn-text');
+            const spinner = document.getElementById('upload-spinner');
+
+            try {
+                // Show loading state
+                submitBtn.disabled = true;
+                btnText.textContent = 'Uploading...';
+                spinner.classList.remove('hidden');
+
+                const formData = new FormData(uploadContentForm);
+                const contentType = document.getElementById('upload-content-type').value;
+                const contentName = document.getElementById('upload-content-name').value;
+                const description = document.getElementById('upload-content-description').value;
+
+                let fileUrl = null;
+                let textContent = null;
+
+                if (contentType === 'image' || contentType === 'video') {
+                    const file = uploadFileInput.files[0];
+                    if (file) {
+                        fileUrl = await uploadFileToSupabase(file, contentType);
+                    }
+                } else if (contentType === 'text' || contentType === 'announcement') {
+                    textContent = document.getElementById('upload-text-content').value;
+                }
+
+                // Save content to database
+                const { error } = await supabaseClient.from('display_content').insert({
+                    name: contentName,
+                    description: description,
+                    content_type: contentType,
+                    file_url: fileUrl,
+                    text_content: textContent,
+                    file_size: uploadFileInput.files[0]?.size || null,
+                    mime_type: uploadFileInput.files[0]?.type || null,
+                    created_by: (await supabaseClient.auth.getUser()).data.user?.id
+                });
+
+                if (error) throw error;
+
+                showNotification('Content uploaded successfully!', 'success');
+                uploadContentModal.classList.add('hidden');
+                uploadContentForm.reset();
+                hideUploadSections();
+
+                // Refresh content library if visible
+                if (!document.getElementById('content-library-tab').classList.contains('hidden')) {
+                    loadContentLibrary();
+                }
+
+            } catch (error) {
+                console.error('Upload error:', error);
+                showNotification('Failed to upload content: ' + error.message, 'error');
+            } finally {
+                // Reset loading state
+                submitBtn.disabled = false;
+                btnText.textContent = 'Upload Content';
+                spinner.classList.add('hidden');
+            }
+        }
+
+        async function uploadFileToSupabase(file, contentType) {
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+            const filePath = `${contentType}s/${fileName}`;
+
+            const { data, error } = await supabaseClient.storage
+                .from('room-displays')
+                .upload(filePath, file);
+
+            if (error) throw error;
+
+            const { data: urlData } = supabaseClient.storage
+                .from('room-displays')
+                .getPublicUrl(filePath);
+
+            return urlData.publicUrl;
+        }
+
+        // Load Room Status Displays
+        async function loadRoomStatusDisplays() {
+            const grid = document.getElementById('room-status-grid');
+
+            try {
+                grid.innerHTML = '<div class="text-center text-gray-500 py-8 col-span-full">Loading room displays...</div>';
+
+                const { data: roomDisplays, error } = await supabaseClient
+                    .from('room_displays')
+                    .select(`
+                        *,
+                        rooms (
+                            id,
+                            name,
+                            capacity,
+                            room_type,
+                            requires_equipment
+                        )
+                    `)
+                    .eq('is_enabled', true);
+
+                if (error) throw error;
+
+                if (roomDisplays.length === 0) {
+                    grid.innerHTML = '<div class="text-center text-gray-500 py-8 col-span-full">No room displays found</div>';
+                    return;
+                }
+
+                grid.innerHTML = roomDisplays.map(display => createRoomDisplayCard(display)).join('');
+
+            } catch (error) {
+                console.error('Error loading room displays:', error);
+                grid.innerHTML = '<div class="text-center text-red-500 py-8 col-span-full">Error loading room displays</div>';
+            }
+        }
+
+        function createRoomDisplayCard(display) {
+            const room = display.rooms;
+            const statusColors = {
+                available: 'bg-green-100 text-green-800 border-green-200',
+                occupied: 'bg-red-100 text-red-800 border-red-200',
+                maintenance: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+                reserved: 'bg-blue-100 text-blue-800 border-blue-200'
+            };
+
+            const statusColor = statusColors[display.current_status] || statusColors.available;
+
+            return `
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition duration-200">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-900">${room.name}</h3>
+                            <p class="text-sm text-gray-600">Capacity: ${room.capacity} people</p>
+                            <p class="text-sm text-gray-600">Type: ${room.room_type}</p>
+                        </div>
+                        <span class="px-3 py-1 rounded-full text-xs font-medium border ${statusColor}">
+                            ${display.current_status.charAt(0).toUpperCase() + display.current_status.slice(1)}
+                        </span>
+                    </div>
+
+                    ${display.status_message ? `
+                        <div class="mb-4 p-3 bg-gray-50 rounded-lg">
+                            <p class="text-sm text-gray-700">${display.status_message}</p>
+                        </div>
+                    ` : ''}
+
+                    <div class="flex justify-between items-center text-sm text-gray-500">
+                        <span>Last updated: ${new Date(display.last_updated).toLocaleString()}</span>
+                        ${currentUser?.role === 'admin' ? `
+                            <button onclick="openDisplaySettings('${display.id}')" class="text-blue-600 hover:text-blue-800 font-medium">
+                                Configure
+                            </button>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        // Load Content Library
+        async function loadContentLibrary() {
+            const grid = document.getElementById('content-library-grid');
+            const filter = document.getElementById('content-type-filter').value;
+
+            try {
+                grid.innerHTML = '<div class="text-center text-gray-500 py-8 col-span-full">Loading content library...</div>';
+
+                let query = supabaseClient
+                    .from('display_content')
+                    .select('*')
+                    .eq('is_active', true)
+                    .order('created_at', { ascending: false });
+
+                if (filter) {
+                    query = query.eq('content_type', filter);
+                }
+
+                const { data: content, error } = await query;
+
+                if (error) throw error;
+
+                if (content.length === 0) {
+                    grid.innerHTML = '<div class="text-center text-gray-500 py-8 col-span-full">No content found</div>';
+                    return;
+                }
+
+                grid.innerHTML = content.map(item => createContentCard(item)).join('');
+
+            } catch (error) {
+                console.error('Error loading content library:', error);
+                grid.innerHTML = '<div class="text-center text-red-500 py-8 col-span-full">Error loading content library</div>';
+            }
+        }
+
+        function createContentCard(content) {
+            const typeIcons = {
+                image: '🖼️',
+                video: '🎥',
+                text: '📝',
+                announcement: '📢'
+            };
+
+            return `
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition duration-200">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center space-x-2">
+                            <span class="text-2xl">${typeIcons[content.content_type] || '📄'}</span>
+                            <div>
+                                <h4 class="font-medium text-gray-900">${content.name}</h4>
+                                <p class="text-xs text-gray-500">${content.content_type}</p>
+                            </div>
+                        </div>
+                        <div class="flex space-x-1">
+                            <button onclick="scheduleContent('${content.id}')" class="p-1 text-blue-600 hover:text-blue-800" title="Schedule">
+                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                </svg>
+                            </button>
+                            <button onclick="deleteContent('${content.id}')" class="p-1 text-red-600 hover:text-red-800" title="Delete">
+                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    ${content.description ? `
+                        <p class="text-sm text-gray-600 mb-3">${content.description}</p>
+                    ` : ''}
+
+                    ${content.file_url ? `
+                        <div class="mb-3">
+                            ${content.content_type === 'image' ? `
+                                <img src="${content.file_url}" alt="${content.name}" class="w-full h-32 object-cover rounded">
+                            ` : content.content_type === 'video' ? `
+                                <video src="${content.file_url}" class="w-full h-32 object-cover rounded" controls></video>
+                            ` : ''}
+                        </div>
+                    ` : ''}
+
+                    ${content.text_content ? `
+                        <div class="mb-3 p-2 bg-gray-50 rounded text-sm">
+                            ${content.text_content.substring(0, 100)}${content.text_content.length > 100 ? '...' : ''}
+                        </div>
+                    ` : ''}
+
+                    <div class="text-xs text-gray-500">
+                        Created: ${new Date(content.created_at).toLocaleDateString()}
+                        ${content.file_size ? ` • ${(content.file_size / 1024 / 1024).toFixed(1)} MB` : ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        // Load Display Settings
+        async function loadDisplaySettings() {
+            try {
+                // Load rooms for selection
+                const { data: rooms, error: roomsError } = await supabaseClient
+                    .from('rooms')
+                    .select('id, name')
+                    .eq('is_active', true)
+                    .order('name');
+
+                if (roomsError) throw roomsError;
+
+                const roomSelect = document.getElementById('room-select');
+                roomSelect.innerHTML = '<option value="">Choose a room...</option>' +
+                    rooms.map(room => `<option value="${room.id}">${room.name}</option>`).join('');
+
+                // Load layouts for selection
+                const { data: layouts, error: layoutsError } = await supabaseClient
+                    .from('display_layouts')
+                    .select('id, name, description')
+                    .eq('is_active', true)
+                    .order('name');
+
+                if (layoutsError) throw layoutsError;
+
+                const layoutSelect = document.getElementById('layout-select');
+                layoutSelect.innerHTML = '<option value="">Choose a layout...</option>' +
+                    layouts.map(layout => `<option value="${layout.id}">${layout.name}</option>`).join('');
+
+            } catch (error) {
+                console.error('Error loading display settings:', error);
+                showNotification('Error loading display settings', 'error');
+            }
+        }
+
+        // Additional Room Display Functions
+        async function loadContentSchedule() {
+            const list = document.getElementById('content-schedule-list');
+
+            try {
+                list.innerHTML = '<div class="text-center text-gray-500 py-8">Loading content schedules...</div>';
+
+                const { data: schedules, error } = await supabaseClient
+                    .from('display_content_schedule')
+                    .select(`
+                        *,
+                        display_content (name, content_type),
+                        room_displays (
+                            rooms (name)
+                        )
+                    `)
+                    .eq('is_active', true)
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                if (schedules.length === 0) {
+                    list.innerHTML = '<div class="text-center text-gray-500 py-8">No content schedules found</div>';
+                    return;
+                }
+
+                list.innerHTML = schedules.map(schedule => createScheduleCard(schedule)).join('');
+
+            } catch (error) {
+                console.error('Error loading content schedules:', error);
+                list.innerHTML = '<div class="text-center text-red-500 py-8">Error loading content schedules</div>';
+            }
+        }
+
+        function createScheduleCard(schedule) {
+            return `
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h4 class="font-medium text-gray-900">${schedule.display_content.name}</h4>
+                            <p class="text-sm text-gray-600">Room: ${schedule.room_displays.rooms.name}</p>
+                            <p class="text-sm text-gray-600">
+                                ${schedule.start_time} - ${schedule.end_time}
+                                (${schedule.duration_seconds}s display)
+                            </p>
+                            <p class="text-sm text-gray-600">
+                                ${schedule.start_date} to ${schedule.end_date}
+                            </p>
+                            <p class="text-sm text-gray-600">
+                                Days: ${schedule.days_of_week.join(', ')}
+                            </p>
+                        </div>
+                        <button onclick="deleteSchedule('${schedule.id}')" class="text-red-600 hover:text-red-800">
+                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Event Handlers
+        window.scheduleContent = function(contentId) {
+            document.getElementById('schedule-content-select').value = contentId;
+            document.getElementById('schedule-content-modal').classList.remove('hidden');
+            loadRoomsForScheduling();
+        };
+
+        window.deleteContent = async function(contentId) {
+            if (!confirm('Are you sure you want to delete this content?')) return;
+
+            try {
+                const { error } = await supabaseClient
+                    .from('display_content')
+                    .update({ is_active: false })
+                    .eq('id', contentId);
+
+                if (error) throw error;
+
+                showNotification('Content deleted successfully', 'success');
+                loadContentLibrary();
+
+            } catch (error) {
+                console.error('Error deleting content:', error);
+                showNotification('Error deleting content', 'error');
+            }
+        };
+
+        window.deleteSchedule = async function(scheduleId) {
+            if (!confirm('Are you sure you want to delete this schedule?')) return;
+
+            try {
+                const { error } = await supabaseClient
+                    .from('display_content_schedule')
+                    .delete()
+                    .eq('id', scheduleId);
+
+                if (error) throw error;
+
+                showNotification('Schedule deleted successfully', 'success');
+                loadContentSchedule();
+
+            } catch (error) {
+                console.error('Error deleting schedule:', error);
+                showNotification('Error deleting schedule', 'error');
+            }
+        };
+
+        async function loadRoomsForScheduling() {
+            try {
+                const { data: rooms, error } = await supabaseClient
+                    .from('rooms')
+                    .select('id, name')
+                    .eq('is_active', true)
+                    .order('name');
+
+                if (error) throw error;
+
+                const container = document.getElementById('schedule-rooms-checkboxes');
+                container.innerHTML = rooms.map(room => `
+                    <label class="flex items-center">
+                        <input type="checkbox" value="${room.id}" class="schedule-room-checkbox mr-2">
+                        ${room.name}
+                    </label>
+                `).join('');
+
+            } catch (error) {
+                console.error('Error loading rooms for scheduling:', error);
+            }
+        }
+
+        // Schedule Content Modal Event Handlers
+        document.getElementById('add-schedule-btn')?.addEventListener('click', () => {
+            document.getElementById('schedule-content-modal').classList.remove('hidden');
+            loadContentForScheduling();
+            loadRoomsForScheduling();
+
+            // Set default dates
+            const today = new Date().toISOString().split('T')[0];
+            const nextMonth = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+            document.getElementById('schedule-start-date').value = today;
+            document.getElementById('schedule-end-date').value = nextMonth;
+
+            // Check weekdays by default
+            ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'].forEach(day => {
+                const checkbox = document.querySelector(`input[value="${day}"]`);
+                if (checkbox) checkbox.checked = true;
+            });
+        });
+
+        document.getElementById('schedule-modal-close')?.addEventListener('click', () => {
+            document.getElementById('schedule-content-modal').classList.add('hidden');
+        });
+
+        document.getElementById('schedule-cancel-btn')?.addEventListener('click', () => {
+            document.getElementById('schedule-content-modal').classList.add('hidden');
+        });
+
+        async function loadContentForScheduling() {
+            try {
+                const { data: content, error } = await supabaseClient
+                    .from('display_content')
+                    .select('id, name, content_type')
+                    .eq('is_active', true)
+                    .order('name');
+
+                if (error) throw error;
+
+                const select = document.getElementById('schedule-content-select');
+                select.innerHTML = '<option value="">Choose content...</option>' +
+                    content.map(item => `<option value="${item.id}">${item.name} (${item.content_type})</option>`).join('');
+
+            } catch (error) {
+                console.error('Error loading content for scheduling:', error);
+            }
+        }
+
+        // Content Type Filter
+        document.getElementById('content-type-filter')?.addEventListener('change', () => {
+            loadContentLibrary();
+        });
+
+        document.getElementById('refresh-content-btn')?.addEventListener('click', () => {
+            loadContentLibrary();
+        });
+
+        // Initialize Room Displays when page loads
+        function initializeRoomDisplays() {
+            if (window.location.hash === '#room-displays') {
+                loadRoomStatusDisplays();
+            }
+        }
+
         // Initialize the application
         handleAuthState();
+
+        // Add to existing page show function
+        const originalShowPage = window.showPage;
+        window.showPage = function(hash) {
+            originalShowPage(hash);
+            if (hash === '#room-displays') {
+                setTimeout(initializeRoomDisplays, 100);
+            }
+        };
     </script>
 </body>
 </html>
