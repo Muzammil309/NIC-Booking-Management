@@ -734,8 +734,8 @@
                     <p class="text-gray-600">Manage your account and preferences</p>
                 </div>
 
-                <!-- Profile Debug Information -->
-                <div class="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
+                <!-- Profile Debug Information (Hidden by default) -->
+                <div id="profile-debug-section" class="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6 hidden">
                     <h3 class="text-lg font-semibold text-blue-900 mb-3">Profile Debug Information</h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
@@ -749,6 +749,13 @@
                     </div>
                     <button id="refresh-profiles-btn" class="mt-4 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
                         Refresh Profile Data
+                    </button>
+                </div>
+
+                <!-- Toggle Debug Information Button -->
+                <div class="mb-6">
+                    <button id="toggle-debug-btn" class="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700 text-sm">
+                        Show Debug Information
                     </button>
                 </div>
 
@@ -2112,6 +2119,20 @@
         // ===== SETTINGS EVENT HANDLERS =====
         // Settings page event handlers
         document.addEventListener('DOMContentLoaded', () => {
+            // Toggle debug information button
+            const toggleDebugBtn = document.getElementById('toggle-debug-btn');
+            const debugSection = document.getElementById('profile-debug-section');
+
+            toggleDebugBtn?.addEventListener('click', () => {
+                if (debugSection.classList.contains('hidden')) {
+                    debugSection.classList.remove('hidden');
+                    toggleDebugBtn.textContent = 'Hide Debug Information';
+                } else {
+                    debugSection.classList.add('hidden');
+                    toggleDebugBtn.textContent = 'Show Debug Information';
+                }
+            });
+
             // Refresh profiles button
             const refreshBtn = document.getElementById('refresh-profiles-btn');
             refreshBtn?.addEventListener('click', async () => {
