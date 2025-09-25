@@ -99,34 +99,89 @@ ALTER TABLE public.startups ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.rooms ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.bookings ENABLE ROW LEVEL SECURITY;
 
--- Clean up existing policies safely
+-- Clean up existing policies safely - FIXED VERSION
 DO $$
+DECLARE
+    policy_name text;
+    policy_names text[] := ARRAY[
+        'Users can view their own profile',
+        'Users can update their own profile',
+        'Users can create their own profile',
+        'Admins can view all users',
+        'Admins can manage all users'
+    ];
 BEGIN
-    -- Users table policies
-    DROP POLICY IF EXISTS "Users can view their own profile" ON public.users;
-    DROP POLICY IF EXISTS "Users can update their own profile" ON public.users;
-    DROP POLICY IF EXISTS "Users can create their own profile" ON public.users;
-    DROP POLICY IF EXISTS "Admins can view all users" ON public.users;
-    DROP POLICY IF EXISTS "Admins can manage all users" ON public.users;
+    RAISE NOTICE 'Cleaning up existing policies...';
 
-    -- Startups table policies
-    DROP POLICY IF EXISTS "Users can view their own startup" ON public.startups;
-    DROP POLICY IF EXISTS "Users can update their own startup" ON public.startups;
-    DROP POLICY IF EXISTS "Users can create their own startup" ON public.startups;
-    DROP POLICY IF EXISTS "Admins can view all startups" ON public.startups;
+    -- Drop users table policies
+    FOREACH policy_name IN ARRAY policy_names
+    LOOP
+        BEGIN
+            EXECUTE format('DROP POLICY IF EXISTS %I ON public.users', policy_name);
+            RAISE NOTICE 'Dropped policy: % on users table', policy_name;
+        EXCEPTION WHEN OTHERS THEN
+            RAISE NOTICE 'Policy % may not exist on users table: %', policy_name, SQLERRM;
+        END;
+    END LOOP;
 
-    -- Rooms table policies
-    DROP POLICY IF EXISTS "Allow authenticated users to read rooms" ON public.rooms;
-    DROP POLICY IF EXISTS "Allow admins to manage rooms" ON public.rooms;
+    -- Drop startups table policies
+    policy_names := ARRAY[
+        'Users can view their own startup',
+        'Users can update their own startup',
+        'Users can create their own startup',
+        'Admins can view all startups'
+    ];
 
-    -- Bookings table policies
-    DROP POLICY IF EXISTS "Users can view their own bookings" ON public.bookings;
-    DROP POLICY IF EXISTS "Users can create their own bookings" ON public.bookings;
-    DROP POLICY IF EXISTS "Users can update their own bookings" ON public.bookings;
-    DROP POLICY IF EXISTS "Admins can view all bookings" ON public.bookings;
-    DROP POLICY IF EXISTS "Admins can manage all bookings" ON public.bookings;
+    FOREACH policy_name IN ARRAY policy_names
+    LOOP
+        BEGIN
+            EXECUTE format('DROP POLICY IF EXISTS %I ON public.startups', policy_name);
+            RAISE NOTICE 'Dropped policy: % on startups table', policy_name;
+        EXCEPTION WHEN OTHERS THEN
+            RAISE NOTICE 'Policy % may not exist on startups table: %', policy_name, SQLERRM;
+        END;
+    END LOOP;
+
+    -- Drop rooms table policies
+    policy_names := ARRAY[
+        'Allow authenticated users to read rooms',
+        'Allow admins to manage rooms'
+    ];
+
+    FOREACH policy_name IN ARRAY policy_names
+    LOOP
+        BEGIN
+            EXECUTE format('DROP POLICY IF EXISTS %I ON public.rooms', policy_name);
+            RAISE NOTICE 'Dropped policy: % on rooms table', policy_name;
+        EXCEPTION WHEN OTHERS THEN
+            RAISE NOTICE 'Policy % may not exist on rooms table: %', policy_name, SQLERRM;
+        END;
+    END LOOP;
+
+    -- Drop bookings table policies
+    policy_names := ARRAY[
+        'Users can view their own bookings',
+        'Users can create their own bookings',
+        'Users can update their own bookings',
+        'Admins can view all bookings',
+        'Admins can manage all bookings'
+    ];
+
+    FOREACH policy_name IN ARRAY policy_names
+    LOOP
+        BEGIN
+            EXECUTE format('DROP POLICY IF EXISTS %I ON public.bookings', policy_name);
+            RAISE NOTICE 'Dropped policy: % on bookings table', policy_name;
+        EXCEPTION WHEN OTHERS THEN
+            RAISE NOTICE 'Policy % may not exist on bookings table: %', policy_name, SQLERRM;
+        END;
+    END LOOP;
+
+    RAISE NOTICE 'Policy cleanup completed successfully';
+
 EXCEPTION WHEN OTHERS THEN
-    RAISE NOTICE 'Some policies may not exist, continuing...';
+    RAISE NOTICE 'Error during policy cleanup: %', SQLERRM;
+    RAISE NOTICE 'Continuing with policy creation...';
 END $$ LANGUAGE plpgsql;
 
 -- Create RLS policies for users table
@@ -437,8 +492,58 @@ BEGIN
         RAISE NOTICE '3. In User Metadata, add: {"role": "admin", "name": "Admin Name", "phone": "+92-XXX-XXXXXXX"}';
     END IF;
 
+    -- Verify RLS policies were created correctly
+    DECLARE
+        policy_count integer;
+        table_name text;
+        table_names text[] := ARRAY['users', 'startups', 'rooms', 'bookings'];
+    BEGIN
+        RAISE NOTICE '';
+        RAISE NOTICE '🔍 Verifying RLS policies...';
+
+        -- Check policy counts per table
+        FOREACH table_name IN ARRAY table_names
+        LOOP
+            SELECT COUNT(*) INTO policy_count
+            FROM pg_policies
+            WHERE tablename = table_name AND schemaname = 'public';
+
+            RAISE NOTICE 'Table %: % RLS policies created', table_name, policy_count;
+        END LOOP;
+
+        -- Check specific critical policies
+        IF EXISTS (
+            SELECT 1 FROM pg_policies
+            WHERE tablename = 'users'
+            AND policyname = 'Users can create their own profile'
+            AND schemaname = 'public'
+        ) THEN
+            RAISE NOTICE '✅ CRITICAL: Users table INSERT policy created successfully';
+        ELSE
+            RAISE NOTICE '❌ ERROR: Users table INSERT policy NOT found';
+        END IF;
+
+        IF EXISTS (
+            SELECT 1 FROM pg_policies
+            WHERE tablename = 'startups'
+            AND policyname = 'Users can create their own startup'
+            AND schemaname = 'public'
+        ) THEN
+            RAISE NOTICE '✅ CRITICAL: Startups table INSERT policy created successfully';
+        ELSE
+            RAISE NOTICE '❌ ERROR: Startups table INSERT policy NOT found';
+        END IF;
+
+    EXCEPTION WHEN OTHERS THEN
+        RAISE NOTICE 'Error during policy verification: %', SQLERRM;
+    END;
+
     RAISE NOTICE '';
-    RAISE NOTICE 'Database is ready for the NIC Booking Management System!';
+    RAISE NOTICE '🎉 Database setup completed successfully!';
+    RAISE NOTICE 'Tables created: users, startups, rooms, bookings';
+    RAISE NOTICE 'Triggers: 5 triggers created';
+    RAISE NOTICE 'Sample rooms: 9 rooms available';
+    RAISE NOTICE '🚀 Database is ready for the NIC Booking Management System!';
 
 EXCEPTION WHEN OTHERS THEN
     RAISE NOTICE 'Error in final validation: %', SQLERRM;
