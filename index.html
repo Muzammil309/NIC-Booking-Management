@@ -6,6 +6,7 @@
     <title>NIC Islamabad | Room Booking</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -925,37 +926,186 @@
             <!-- Reports Page -->
             <div id="reports" class="page hidden" data-admin-only>
                 <div class="mb-8">
-                    <h2 class="text-3xl font-bold text-gray-900 mb-2">Reports</h2>
-                    <p class="text-gray-600">Booking analytics and usage reports</p>
+                    <h2 class="text-3xl font-bold text-gray-900 mb-2">Reports & Analytics</h2>
+                    <p class="text-gray-600">Comprehensive booking analytics and usage reports</p>
                 </div>
 
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <!-- Booking Statistics -->
-                    <div class="bg-white rounded-xl shadow-lg p-6">
-                        <h3 class="text-xl font-bold text-gray-900 mb-4">Booking Statistics</h3>
-                        <div id="booking-stats" class="space-y-4">
-                            <div class="flex justify-between items-center">
-                                <span class="text-gray-600">Total Bookings This Month:</span>
-                                <span class="font-semibold text-gray-900">0</span>
+                <!-- Report Filters -->
+                <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+                    <h3 class="text-xl font-bold text-gray-900 mb-4">Report Filters</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <!-- Time Period Filter -->
+                        <div>
+                            <label for="report-period" class="block text-sm font-medium text-gray-700 mb-2">Time Period</label>
+                            <select id="report-period" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                                <option value="daily">Daily</option>
+                                <option value="weekly" selected>Weekly (Last 7 days)</option>
+                                <option value="15days">Last 15 days</option>
+                                <option value="monthly">Monthly (Last 30 days)</option>
+                                <option value="custom">Custom Date Range</option>
+                            </select>
+                        </div>
+
+                        <!-- Custom Date Range (hidden by default) -->
+                        <div id="custom-date-range" class="hidden">
+                            <label for="report-start-date" class="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
+                            <input type="date" id="report-start-date" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                        </div>
+                        <div id="custom-date-range-end" class="hidden">
+                            <label for="report-end-date" class="block text-sm font-medium text-gray-700 mb-2">End Date</label>
+                            <input type="date" id="report-end-date" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                        </div>
+
+                        <!-- Specific Date for Daily Reports -->
+                        <div id="specific-date-filter" class="hidden">
+                            <label for="report-specific-date" class="block text-sm font-medium text-gray-700 mb-2">Specific Date</label>
+                            <input type="date" id="report-specific-date" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                        </div>
+
+                        <!-- Report Type Filter -->
+                        <div>
+                            <label for="report-type" class="block text-sm font-medium text-gray-700 mb-2">Report Type</label>
+                            <select id="report-type" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                                <option value="overall" selected>Overall Activity</option>
+                                <option value="startup-specific">Startup-Specific</option>
+                            </select>
+                        </div>
+
+                        <!-- Startup Filter (for startup-specific reports) -->
+                        <div id="startup-filter" class="hidden">
+                            <label for="report-startup" class="block text-sm font-medium text-gray-700 mb-2">Select Startup</label>
+                            <select id="report-startup" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                                <option value="">Loading startups...</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="flex flex-wrap gap-3 mt-6">
+                        <button id="generate-report-btn" class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition duration-200">
+                            Generate Report
+                        </button>
+                        <button id="export-csv-btn" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition duration-200" disabled>
+                            Export CSV
+                        </button>
+                        <button id="export-pdf-btn" class="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition duration-200" disabled>
+                            Export PDF
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Report Results -->
+                <div id="report-results" class="hidden">
+                    <!-- Overall Statistics -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                        <div class="bg-white rounded-xl shadow-lg p-6">
+                            <div class="flex items-center">
+                                <div class="p-3 rounded-full bg-green-100">
+                                    <svg class="h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                    </svg>
+                                </div>
+                                <div class="ml-4">
+                                    <h3 id="total-bookings-stat" class="text-2xl font-bold text-gray-900">0</h3>
+                                    <p class="text-gray-600">Total Bookings</p>
+                                </div>
                             </div>
-                            <div class="flex justify-between items-center">
-                                <span class="text-gray-600">Most Popular Room:</span>
-                                <span class="font-semibold text-gray-900">-</span>
+                        </div>
+
+                        <div class="bg-white rounded-xl shadow-lg p-6">
+                            <div class="flex items-center">
+                                <div class="p-3 rounded-full bg-blue-100">
+                                    <svg class="h-8 w-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                    </svg>
+                                </div>
+                                <div class="ml-4">
+                                    <h3 id="total-hours-stat" class="text-2xl font-bold text-gray-900">0</h3>
+                                    <p class="text-gray-600">Total Hours</p>
+                                </div>
                             </div>
-                            <div class="flex justify-between items-center">
-                                <span class="text-gray-600">Average Booking Duration:</span>
-                                <span class="font-semibold text-gray-900">0 hours</span>
+                        </div>
+
+                        <div class="bg-white rounded-xl shadow-lg p-6">
+                            <div class="flex items-center">
+                                <div class="p-3 rounded-full bg-purple-100">
+                                    <svg class="h-8 w-8 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                                    </svg>
+                                </div>
+                                <div class="ml-4">
+                                    <h3 id="unique-startups-stat" class="text-2xl font-bold text-gray-900">0</h3>
+                                    <p class="text-gray-600">Active Startups</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-white rounded-xl shadow-lg p-6">
+                            <div class="flex items-center">
+                                <div class="p-3 rounded-full bg-yellow-100">
+                                    <svg class="h-8 w-8 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                                    </svg>
+                                </div>
+                                <div class="ml-4">
+                                    <h3 id="utilization-rate-stat" class="text-2xl font-bold text-gray-900">0%</h3>
+                                    <p class="text-gray-600">Utilization Rate</p>
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Usage Chart -->
-                    <div class="bg-white rounded-xl shadow-lg p-6">
-                        <h3 class="text-xl font-bold text-gray-900 mb-4">Room Usage</h3>
-                        <div id="usage-chart" class="h-64 flex items-center justify-center text-gray-500">
-                            Chart will be displayed here
+                    <!-- Charts and Detailed Reports -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                        <!-- Room Usage Chart -->
+                        <div class="bg-white rounded-xl shadow-lg p-6">
+                            <h3 class="text-xl font-bold text-gray-900 mb-4">Room Usage Distribution</h3>
+                            <div id="room-usage-chart" class="h-64">
+                                <canvas id="room-chart-canvas"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Booking Trends Chart -->
+                        <div class="bg-white rounded-xl shadow-lg p-6">
+                            <h3 class="text-xl font-bold text-gray-900 mb-4">Booking Trends</h3>
+                            <div id="booking-trends-chart" class="h-64">
+                                <canvas id="trends-chart-canvas"></canvas>
+                            </div>
                         </div>
                     </div>
+
+                    <!-- Detailed Tables -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <!-- Most Popular Rooms -->
+                        <div class="bg-white rounded-xl shadow-lg p-6">
+                            <h3 class="text-xl font-bold text-gray-900 mb-4">Most Popular Rooms</h3>
+                            <div id="popular-rooms-table" class="overflow-x-auto">
+                                <!-- Table content will be populated by JavaScript -->
+                            </div>
+                        </div>
+
+                        <!-- Peak Usage Times -->
+                        <div class="bg-white rounded-xl shadow-lg p-6">
+                            <h3 class="text-xl font-bold text-gray-900 mb-4">Peak Usage Times</h3>
+                            <div id="peak-times-table" class="overflow-x-auto">
+                                <!-- Table content will be populated by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Detailed Booking List -->
+                    <div class="bg-white rounded-xl shadow-lg p-6 mt-8">
+                        <h3 class="text-xl font-bold text-gray-900 mb-4">Detailed Booking List</h3>
+                        <div id="detailed-bookings-table" class="overflow-x-auto">
+                            <!-- Table content will be populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Loading State -->
+                <div id="report-loading" class="hidden text-center py-12">
+                    <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+                    <p class="mt-4 text-gray-600">Generating report...</p>
                 </div>
             </div>
 
@@ -2028,8 +2178,8 @@
             // Update room preview
             updateRoomPreview(room);
 
-            // Check if room has extended hours
-            const extendedHoursRooms = ['Indus Board', 'Podcast Room', 'Nexus Session Hall'];
+            // Check if room has extended hours (using correct room names with hyphens)
+            const extendedHoursRooms = ['Indus-Board Room', 'Podcast Room', 'Nexus-Session Hall'];
             const hasExtendedHours = extendedHoursRooms.includes(selectedRoomName);
             const maxDuration = hasExtendedHours ? 8 : 2;
 
@@ -2791,7 +2941,7 @@
             }
 
             // Validate duration limit based on room (standard: 2h, extended rooms: up to 8h)
-            const extendedRooms = ['Indus Board', 'Indus-Board Room', 'Podcast Room', 'Nexus Session Hall', 'Nexus-Session Hall'];
+            const extendedRooms = ['Indus-Board Room', 'Podcast Room', 'Nexus-Session Hall'];
             const maxAllowed = extendedRooms.includes(roomName) ? 8 : 2;
             if (duration > maxAllowed) {
                 showBookingBanner(`Maximum booking duration is ${maxAllowed} hours for ${roomName}.`, 'red');
@@ -3842,8 +3992,683 @@
             }, 30000);
         }
 
+        // ===== REPORTS FUNCTIONALITY =====
+        let currentReportData = null;
+        let roomUsageChart = null;
+        let bookingTrendsChart = null;
+
         async function loadReportsData() {
             console.log('Loading reports data...');
+
+            // Initialize report filters
+            initializeReportFilters();
+
+            // Load startups for startup-specific reports
+            await loadStartupsForReports();
+
+            // Set default dates
+            setDefaultReportDates();
+        }
+
+        function initializeReportFilters() {
+            const reportPeriod = document.getElementById('report-period');
+            const reportType = document.getElementById('report-type');
+            const generateBtn = document.getElementById('generate-report-btn');
+            const exportCsvBtn = document.getElementById('export-csv-btn');
+            const exportPdfBtn = document.getElementById('export-pdf-btn');
+
+            // Handle period change
+            reportPeriod?.addEventListener('change', handlePeriodChange);
+
+            // Handle report type change
+            reportType?.addEventListener('change', handleReportTypeChange);
+
+            // Handle generate report
+            generateBtn?.addEventListener('click', generateReport);
+
+            // Handle exports
+            exportCsvBtn?.addEventListener('click', exportToCSV);
+            exportPdfBtn?.addEventListener('click', exportToPDF);
+        }
+
+        function handlePeriodChange() {
+            const period = document.getElementById('report-period')?.value;
+            const customDateRange = document.getElementById('custom-date-range');
+            const customDateRangeEnd = document.getElementById('custom-date-range-end');
+            const specificDateFilter = document.getElementById('specific-date-filter');
+
+            // Hide all date inputs first
+            customDateRange?.classList.add('hidden');
+            customDateRangeEnd?.classList.add('hidden');
+            specificDateFilter?.classList.add('hidden');
+
+            if (period === 'custom') {
+                customDateRange?.classList.remove('hidden');
+                customDateRangeEnd?.classList.remove('hidden');
+            } else if (period === 'daily') {
+                specificDateFilter?.classList.remove('hidden');
+            }
+        }
+
+        function handleReportTypeChange() {
+            const reportType = document.getElementById('report-type')?.value;
+            const startupFilter = document.getElementById('startup-filter');
+
+            if (reportType === 'startup-specific') {
+                startupFilter?.classList.remove('hidden');
+            } else {
+                startupFilter?.classList.add('hidden');
+            }
+        }
+
+        async function loadStartupsForReports() {
+            try {
+                const { data: startups, error } = await supabaseClient
+                    .from('startups')
+                    .select('id, name')
+                    .eq('status', 'active')
+                    .order('name');
+
+                if (error) throw error;
+
+                const startupSelect = document.getElementById('report-startup');
+                if (startupSelect) {
+                    startupSelect.innerHTML = '<option value="">Select a startup</option>' +
+                        (startups || []).map(startup =>
+                            `<option value="${startup.id}">${startup.name}</option>`
+                        ).join('');
+                }
+            } catch (error) {
+                console.error('Error loading startups for reports:', error);
+            }
+        }
+
+        function setDefaultReportDates() {
+            const today = new Date();
+            const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+            // Set default specific date to today
+            const specificDateInput = document.getElementById('report-specific-date');
+            if (specificDateInput) {
+                specificDateInput.value = today.toISOString().split('T')[0];
+            }
+
+            // Set default custom range to last week
+            const startDateInput = document.getElementById('report-start-date');
+            const endDateInput = document.getElementById('report-end-date');
+            if (startDateInput) startDateInput.value = weekAgo.toISOString().split('T')[0];
+            if (endDateInput) endDateInput.value = today.toISOString().split('T')[0];
+        }
+
+        async function generateReport() {
+            const reportLoading = document.getElementById('report-loading');
+            const reportResults = document.getElementById('report-results');
+            const exportCsvBtn = document.getElementById('export-csv-btn');
+            const exportPdfBtn = document.getElementById('export-pdf-btn');
+
+            try {
+                // Show loading state
+                reportLoading?.classList.remove('hidden');
+                reportResults?.classList.add('hidden');
+
+                // Get filter values
+                const period = document.getElementById('report-period')?.value;
+                const reportType = document.getElementById('report-type')?.value;
+                const startupId = document.getElementById('report-startup')?.value;
+
+                // Calculate date range
+                const dateRange = calculateDateRange(period);
+                if (!dateRange) {
+                    throw new Error('Invalid date range');
+                }
+
+                // Fetch booking data
+                const bookingData = await fetchBookingData(dateRange, reportType, startupId);
+
+                // Process and display report
+                currentReportData = processReportData(bookingData, dateRange);
+                displayReport(currentReportData, reportType);
+
+                // Enable export buttons
+                exportCsvBtn?.removeAttribute('disabled');
+                exportPdfBtn?.removeAttribute('disabled');
+
+                // Hide loading, show results
+                reportLoading?.classList.add('hidden');
+                reportResults?.classList.remove('hidden');
+
+            } catch (error) {
+                console.error('Error generating report:', error);
+                reportLoading?.classList.add('hidden');
+                alert('Failed to generate report: ' + error.message);
+            }
+        }
+
+        function calculateDateRange(period) {
+            const today = new Date();
+            let startDate, endDate;
+
+            switch (period) {
+                case 'daily':
+                    const specificDate = document.getElementById('report-specific-date')?.value;
+                    if (!specificDate) return null;
+                    startDate = new Date(specificDate);
+                    endDate = new Date(specificDate);
+                    break;
+                case 'weekly':
+                    startDate = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+                    endDate = today;
+                    break;
+                case '15days':
+                    startDate = new Date(today.getTime() - 15 * 24 * 60 * 60 * 1000);
+                    endDate = today;
+                    break;
+                case 'monthly':
+                    startDate = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+                    endDate = today;
+                    break;
+                case 'custom':
+                    const customStart = document.getElementById('report-start-date')?.value;
+                    const customEnd = document.getElementById('report-end-date')?.value;
+                    if (!customStart || !customEnd) return null;
+                    startDate = new Date(customStart);
+                    endDate = new Date(customEnd);
+                    break;
+                default:
+                    return null;
+            }
+
+            return {
+                start: startDate.toISOString().split('T')[0],
+                end: endDate.toISOString().split('T')[0]
+            };
+        }
+
+        async function fetchBookingData(dateRange, reportType, startupId) {
+            let query = supabaseClient
+                .from('bookings')
+                .select(`
+                    *,
+                    startups (
+                        id,
+                        name,
+                        contact_person
+                    )
+                `)
+                .gte('booking_date', dateRange.start)
+                .lte('booking_date', dateRange.end)
+                .order('booking_date', { ascending: false });
+
+            // Add startup filter for startup-specific reports
+            if (reportType === 'startup-specific' && startupId) {
+                query = query.eq('startup_id', startupId);
+            }
+
+            const { data, error } = await query;
+            if (error) throw error;
+
+            return data || [];
+        }
+
+        function processReportData(bookings, dateRange) {
+            const totalBookings = bookings.length;
+            const totalHours = bookings.reduce((sum, booking) => sum + (booking.duration || 0), 0);
+            const uniqueStartups = new Set(bookings.map(b => b.startup_id)).size;
+
+            // Calculate utilization rate (assuming 8 hours per day per room)
+            const daysDiff = Math.ceil((new Date(dateRange.end) - new Date(dateRange.start)) / (1000 * 60 * 60 * 24)) + 1;
+            const totalAvailableHours = daysDiff * availableRooms.length * 8; // 8 hours per room per day
+            const utilizationRate = totalAvailableHours > 0 ? ((totalHours / totalAvailableHours) * 100).toFixed(1) : 0;
+
+            // Room usage statistics
+            const roomUsage = {};
+            bookings.forEach(booking => {
+                if (!roomUsage[booking.room_name]) {
+                    roomUsage[booking.room_name] = { count: 0, hours: 0 };
+                }
+                roomUsage[booking.room_name].count++;
+                roomUsage[booking.room_name].hours += booking.duration || 0;
+            });
+
+            // Peak usage times
+            const hourlyUsage = {};
+            bookings.forEach(booking => {
+                const hour = booking.start_time ? booking.start_time.split(':')[0] : '00';
+                hourlyUsage[hour] = (hourlyUsage[hour] || 0) + 1;
+            });
+
+            // Booking status breakdown
+            const statusBreakdown = {};
+            bookings.forEach(booking => {
+                statusBreakdown[booking.status] = (statusBreakdown[booking.status] || 0) + 1;
+            });
+
+            // Daily booking trends
+            const dailyTrends = {};
+            bookings.forEach(booking => {
+                const date = booking.booking_date;
+                if (!dailyTrends[date]) {
+                    dailyTrends[date] = { count: 0, hours: 0 };
+                }
+                dailyTrends[date].count++;
+                dailyTrends[date].hours += booking.duration || 0;
+            });
+
+            return {
+                summary: {
+                    totalBookings,
+                    totalHours,
+                    uniqueStartups,
+                    utilizationRate
+                },
+                roomUsage,
+                hourlyUsage,
+                statusBreakdown,
+                dailyTrends,
+                bookings,
+                dateRange
+            };
+        }
+
+        function displayReport(reportData, reportType) {
+            // Update summary statistics
+            document.getElementById('total-bookings-stat').textContent = reportData.summary.totalBookings;
+            document.getElementById('total-hours-stat').textContent = reportData.summary.totalHours;
+            document.getElementById('unique-startups-stat').textContent = reportData.summary.uniqueStartups;
+            document.getElementById('utilization-rate-stat').textContent = reportData.summary.utilizationRate + '%';
+
+            // Render charts
+            renderRoomUsageChart(reportData.roomUsage);
+            renderBookingTrendsChart(reportData.dailyTrends);
+
+            // Display tables
+            displayPopularRoomsTable(reportData.roomUsage);
+            displayPeakTimesTable(reportData.hourlyUsage);
+            displayDetailedBookingsTable(reportData.bookings);
+        }
+
+        function renderRoomUsageChart(roomUsage) {
+            const ctx = document.getElementById('room-chart-canvas');
+            if (!ctx) return;
+
+            // Destroy existing chart
+            if (roomUsageChart) {
+                roomUsageChart.destroy();
+            }
+
+            const rooms = Object.keys(roomUsage);
+            const bookingCounts = rooms.map(room => roomUsage[room].count);
+            const colors = [
+                '#10B981', '#3B82F6', '#8B5CF6', '#F59E0B', '#EF4444',
+                '#06B6D4', '#84CC16', '#F97316', '#EC4899', '#6366F1'
+            ];
+
+            roomUsageChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: rooms,
+                    datasets: [{
+                        data: bookingCounts,
+                        backgroundColor: colors.slice(0, rooms.length),
+                        borderWidth: 2,
+                        borderColor: '#ffffff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 20,
+                                usePointStyle: true
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderBookingTrendsChart(dailyTrends) {
+            const ctx = document.getElementById('trends-chart-canvas');
+            if (!ctx) return;
+
+            // Destroy existing chart
+            if (bookingTrendsChart) {
+                bookingTrendsChart.destroy();
+            }
+
+            const dates = Object.keys(dailyTrends).sort();
+            const bookingCounts = dates.map(date => dailyTrends[date].count);
+            const totalHours = dates.map(date => dailyTrends[date].hours);
+
+            bookingTrendsChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: dates.map(date => new Date(date).toLocaleDateString()),
+                    datasets: [
+                        {
+                            label: 'Number of Bookings',
+                            data: bookingCounts,
+                            borderColor: '#10B981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            tension: 0.4,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: 'Total Hours',
+                            data: totalHours,
+                            borderColor: '#3B82F6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            tension: 0.4,
+                            yAxisID: 'y1'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    scales: {
+                        x: {
+                            display: true,
+                            title: {
+                                display: true,
+                                text: 'Date'
+                            }
+                        },
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            title: {
+                                display: true,
+                                text: 'Number of Bookings'
+                            }
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            title: {
+                                display: true,
+                                text: 'Total Hours'
+                            },
+                            grid: {
+                                drawOnChartArea: false,
+                            },
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top'
+                        }
+                    }
+                }
+            });
+        }
+
+        function displayPopularRoomsTable(roomUsage) {
+            const container = document.getElementById('popular-rooms-table');
+            if (!container) return;
+
+            const sortedRooms = Object.entries(roomUsage)
+                .sort(([,a], [,b]) => b.count - a.count)
+                .slice(0, 10); // Top 10 rooms
+
+            if (sortedRooms.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-center py-4">No data available</p>';
+                return;
+            }
+
+            container.innerHTML = `
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Room</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bookings</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Hours</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        ${sortedRooms.map(([room, data], index) => `
+                            <tr class="${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${room}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${data.count}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${data.hours}h</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        function displayPeakTimesTable(hourlyUsage) {
+            const container = document.getElementById('peak-times-table');
+            if (!container) return;
+
+            const sortedHours = Object.entries(hourlyUsage)
+                .sort(([,a], [,b]) => b - a)
+                .slice(0, 10); // Top 10 hours
+
+            if (sortedHours.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-center py-4">No data available</p>';
+                return;
+            }
+
+            container.innerHTML = `
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bookings</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        ${sortedHours.map(([hour, count], index) => {
+                            const displayHour = hour === '00' ? '12:00 AM' :
+                                              parseInt(hour) < 12 ? `${parseInt(hour)}:00 AM` :
+                                              hour === '12' ? '12:00 PM' :
+                                              `${parseInt(hour) - 12}:00 PM`;
+                            return `
+                                <tr class="${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${displayHour}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${count}</td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        function displayDetailedBookingsTable(bookings) {
+            const container = document.getElementById('detailed-bookings-table');
+            if (!container) return;
+
+            if (bookings.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-center py-4">No bookings found for the selected period</p>';
+                return;
+            }
+
+            container.innerHTML = `
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Room</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Duration</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Startup</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        ${bookings.map((booking, index) => `
+                            <tr class="${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    ${new Date(booking.booking_date).toLocaleDateString()}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                    ${booking.room_name}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    ${booking.start_time}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    ${booking.duration}h
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    ${booking.startups?.name || 'Unknown'}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                        booking.status === 'confirmed' ? 'bg-green-100 text-green-800' :
+                                        booking.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                                        'bg-yellow-100 text-yellow-800'
+                                    }">
+                                        ${booking.status}
+                                    </span>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        function exportToCSV() {
+            if (!currentReportData) {
+                alert('Please generate a report first');
+                return;
+            }
+
+            const bookings = currentReportData.bookings;
+            const csvContent = [
+                ['Date', 'Room', 'Start Time', 'Duration (hours)', 'Startup', 'Contact Person', 'Status'],
+                ...bookings.map(booking => [
+                    booking.booking_date,
+                    booking.room_name,
+                    booking.start_time,
+                    booking.duration,
+                    booking.startups?.name || 'Unknown',
+                    booking.startups?.contact_person || '',
+                    booking.status
+                ])
+            ].map(row => row.map(field => `"${field}"`).join(',')).join('\n');
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', `booking-report-${currentReportData.dateRange.start}-to-${currentReportData.dateRange.end}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function exportToPDF() {
+            if (!currentReportData) {
+                alert('Please generate a report first');
+                return;
+            }
+
+            // Create a new window with the report content for printing
+            const printWindow = window.open('', '_blank');
+            const reportContent = generatePDFContent(currentReportData);
+
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>NIC Booking Report</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; margin: 20px; }
+                        .header { text-align: center; margin-bottom: 30px; }
+                        .summary { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-bottom: 30px; }
+                        .summary-item { border: 1px solid #ddd; padding: 15px; border-radius: 5px; }
+                        .table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+                        .table th, .table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                        .table th { background-color: #f5f5f5; }
+                        @media print { body { margin: 0; } }
+                    </style>
+                </head>
+                <body>
+                    ${reportContent}
+                </body>
+                </html>
+            `);
+
+            printWindow.document.close();
+            printWindow.focus();
+
+            // Wait for content to load then print
+            setTimeout(() => {
+                printWindow.print();
+                printWindow.close();
+            }, 250);
+        }
+
+        function generatePDFContent(reportData) {
+            const { summary, bookings, dateRange } = reportData;
+
+            return `
+                <div class="header">
+                    <h1>NIC Booking Management Report</h1>
+                    <p>Report Period: ${dateRange.start} to ${dateRange.end}</p>
+                    <p>Generated on: ${new Date().toLocaleDateString()}</p>
+                </div>
+
+                <div class="summary">
+                    <div class="summary-item">
+                        <h3>Total Bookings</h3>
+                        <p style="font-size: 24px; font-weight: bold;">${summary.totalBookings}</p>
+                    </div>
+                    <div class="summary-item">
+                        <h3>Total Hours</h3>
+                        <p style="font-size: 24px; font-weight: bold;">${summary.totalHours}</p>
+                    </div>
+                    <div class="summary-item">
+                        <h3>Active Startups</h3>
+                        <p style="font-size: 24px; font-weight: bold;">${summary.uniqueStartups}</p>
+                    </div>
+                    <div class="summary-item">
+                        <h3>Utilization Rate</h3>
+                        <p style="font-size: 24px; font-weight: bold;">${summary.utilizationRate}%</p>
+                    </div>
+                </div>
+
+                <h2>Detailed Booking List</h2>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Room</th>
+                            <th>Time</th>
+                            <th>Duration</th>
+                            <th>Startup</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${bookings.map(booking => `
+                            <tr>
+                                <td>${new Date(booking.booking_date).toLocaleDateString()}</td>
+                                <td>${booking.room_name}</td>
+                                <td>${booking.start_time}</td>
+                                <td>${booking.duration}h</td>
+                                <td>${booking.startups?.name || 'Unknown'}</td>
+                                <td>${booking.status}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
         }
 
         // ===== ADMIN CREATION SYSTEM =====
@@ -4331,9 +5156,9 @@
             { name: 'Sutlej (Focus Room)', maxDuration: 2, requiresEquipment: false, type: 'focus', capacity: 4, equipment: ['Whiteboard', 'Desk Setup'] },
             { name: 'Chenab (Focus Room)', maxDuration: 2, requiresEquipment: false, type: 'focus', capacity: 4, equipment: ['Whiteboard', 'Desk Setup'] },
             { name: 'Jhelum (Focus Room)', maxDuration: 2, requiresEquipment: false, type: 'focus', capacity: 4, equipment: ['Whiteboard', 'Desk Setup'] },
-            { name: 'Indus-Board Room', maxDuration: 2, requiresEquipment: false, type: 'special', capacity: 12, equipment: ['Large Screen', 'Video Conference', 'Whiteboard', 'Presentation Setup'] },
-            { name: 'Nexus-Session Hall', maxDuration: 2, requiresEquipment: false, type: 'special', capacity: 20, equipment: ['Audio System', 'Projector', 'Stage Setup', 'Microphones'] },
-            { name: 'Podcast Room', maxDuration: 2, requiresEquipment: true, type: 'special', capacity: 4, equipment: ['Recording Equipment', 'Soundproofing', 'Microphones', 'Audio Interface'] }
+            { name: 'Indus-Board Room', maxDuration: 8, requiresEquipment: false, type: 'special', capacity: 12, equipment: ['Large Screen', 'Video Conference', 'Whiteboard', 'Presentation Setup'] },
+            { name: 'Nexus-Session Hall', maxDuration: 8, requiresEquipment: false, type: 'special', capacity: 20, equipment: ['Audio System', 'Projector', 'Stage Setup', 'Microphones'] },
+            { name: 'Podcast Room', maxDuration: 8, requiresEquipment: true, type: 'special', capacity: 4, equipment: ['Recording Equipment', 'Soundproofing', 'Microphones', 'Audio Interface'] }
         ];
 
         // Enhanced booking limits system
