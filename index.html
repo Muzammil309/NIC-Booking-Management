@@ -2066,17 +2066,40 @@
         }
 
         async function createAdminAccount() {
-            const email = prompt('Enter admin email:');
+            // Show helpful message first
+            alert(
+                'CREATE NEW ADMIN ACCOUNT\n\n' +
+                'You are about to create a new admin account.\n\n' +
+                'Requirements:\n' +
+                '• Use a NEW email address (not already registered)\n' +
+                '• Password must be at least 6 characters\n' +
+                '• Provide a full name for the admin\n\n' +
+                'If the email already exists, you will be offered to convert that user to admin instead.'
+            );
+
+            const email = prompt('Enter NEW admin email address:');
             if (!email) return;
+
+            // Validate email format
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                showMessage('Please enter a valid email address.', 'error');
+                return;
+            }
 
             const password = prompt('Enter admin password (min 6 characters):');
             if (!password) return;
 
-            const name = prompt('Enter admin name:');
-            if (!name) return;
-
             if (password.length < 6) {
                 showMessage('Password must be at least 6 characters long.', 'error');
+                return;
+            }
+
+            const name = prompt('Enter admin full name:');
+            if (!name) return;
+
+            if (name.trim().length < 2) {
+                showMessage('Please enter a valid name (at least 2 characters).', 'error');
                 return;
             }
 
@@ -2095,30 +2118,47 @@
                     const existingUser = existingUsers[0];
 
                     if (existingUser.role === 'admin') {
-                        showMessage(`An admin account with email "${email}" already exists (${existingUser.name}).`, 'error');
+                        showMessage(
+                            `An admin account with email "${email}" already exists.\n\n` +
+                            `Name: ${existingUser.name}\n` +
+                            `Email: ${existingUser.email}\n\n` +
+                            `Please use a different email address to create a new admin account.`,
+                            'error'
+                        );
                         return;
                     } else {
-                        // User exists but is not an admin
+                        // User exists but is not an admin - offer to convert
                         const shouldConvert = confirm(
-                            `A user account with email "${email}" already exists (${existingUser.name}).\n\n` +
-                            `Current role: ${existingUser.role}\n\n` +
-                            `Would you like to convert this user to an admin instead?`
+                            `A user account with email "${email}" already exists.\n\n` +
+                            `Current Name: ${existingUser.name}\n` +
+                            `Current Role: ${existingUser.role}\n\n` +
+                            `Would you like to convert this user to an admin?\n\n` +
+                            `Note: This will change their role to "admin" but keep their existing name and profile.`
                         );
 
                         if (shouldConvert) {
-                            // Update existing user to admin role
+                            // Update existing user to admin role (keep existing name)
                             const { error: updateError } = await supabaseClient
                                 .from('users')
-                                .update({ role: 'admin', name: name })
+                                .update({ role: 'admin' })
                                 .eq('id', existingUser.id);
 
                             if (updateError) throw updateError;
 
-                            showMessage(`User "${name}" has been successfully converted to admin!`, 'success');
+                            showMessage(
+                                `User "${existingUser.name}" has been successfully converted to admin!\n\n` +
+                                `Email: ${existingUser.email}\n` +
+                                `New Role: admin`,
+                                'success'
+                            );
                             await loadStartupsData();
                             return;
                         } else {
-                            showMessage('Admin account creation cancelled. Please use a different email address.', 'info');
+                            showMessage(
+                                'Admin account creation cancelled.\n\n' +
+                                'Please use a different email address to create a new admin account.',
+                                'info'
+                            );
                             return;
                         }
                     }
