@@ -5902,6 +5902,11 @@
 
         function createRoomDisplayCard(display) {
             const room = display.rooms;
+
+            // Get updated capacity from availableRooms array
+            const updatedCapacity = getUpdatedRoomCapacity(room.name);
+            const displayCapacity = updatedCapacity !== null ? updatedCapacity : room.capacity;
+
             const statusColors = {
                 available: 'bg-green-100 text-green-800 border-green-200',
                 occupied: 'bg-red-100 text-red-800 border-red-200',
@@ -5919,7 +5924,7 @@
                     <div class="flex justify-between items-start mb-4">
                         <div>
                             <h3 class="text-lg font-semibold text-gray-900">${room.name}</h3>
-                            <p class="text-sm text-gray-600">Capacity: ${room.capacity} people</p>
+                            <p class="text-sm text-gray-600">Capacity: ${displayCapacity} people</p>
                             <p class="text-sm text-gray-600">Type: ${room.room_type}</p>
                         </div>
                         <span class="px-3 py-1 rounded-full text-xs font-medium border ${statusColor}">
@@ -6519,6 +6524,21 @@
             }
         }
 
+        // Helper function to get updated room capacity from availableRooms array
+        function getUpdatedRoomCapacity(roomName) {
+            // Find the room in availableRooms array to get the updated capacity
+            const room = availableRooms.find(r => {
+                // Match room name (handle variations like "HUB (Focus Room)" vs "HUB")
+                const cleanRoomName = roomName.replace(/\s*\(.*?\)\s*/g, '').trim();
+                const cleanAvailableName = r.name.replace(/\s*\(.*?\)\s*/g, '').trim();
+                return cleanRoomName.toLowerCase() === cleanAvailableName.toLowerCase() ||
+                       roomName.toLowerCase().includes(cleanAvailableName.toLowerCase()) ||
+                       cleanAvailableName.toLowerCase().includes(cleanRoomName.toLowerCase());
+            });
+
+            return room ? room.capacity : null;
+        }
+
         // Load Room Display Status
         async function loadRoomDisplayStatus() {
             try {
@@ -6536,6 +6556,12 @@
                 // Update status controls
                 document.getElementById('preview-status-select').value = roomDisplay.current_status;
                 document.getElementById('preview-status-message').value = roomDisplay.status_message || '';
+
+                // Override capacity with updated value from availableRooms array
+                const updatedCapacity = getUpdatedRoomCapacity(roomDisplay.rooms.name);
+                if (updatedCapacity !== null) {
+                    roomDisplay.rooms.capacity = updatedCapacity;
+                }
 
                 // Store room display data
                 window.currentRoomDisplayData = roomDisplay;
@@ -6861,13 +6887,9 @@
         }
 
         async function verifyAdminPasswordForExit() {
-            // If current user is admin, allow exit without password
-            if (currentUser?.role === 'admin') {
-                const shouldExit = confirm('You are about to exit fullscreen display mode. Continue?');
-                return shouldExit;
-            }
+            // ALL users (including admins) must enter password to exit fullscreen
+            // This prevents tampering with physical display screens even if admin session is left logged in
 
-            // For non-admin users, require password
             const password = prompt(
                 '🔒 DISPLAY LOCKED\n\n' +
                 'This room display is password protected.\n' +
