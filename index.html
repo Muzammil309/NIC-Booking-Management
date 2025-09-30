@@ -2067,16 +2067,64 @@
 
         async function createAdminAccount() {
             const email = prompt('Enter admin email:');
-            const password = prompt('Enter admin password (min 6 characters):');
-            const name = prompt('Enter admin name:');
+            if (!email) return;
 
-            if (!email || !password || !name || password.length < 6) {
-                showMessage('Please provide valid email, password (min 6 chars), and name.', 'error');
+            const password = prompt('Enter admin password (min 6 characters):');
+            if (!password) return;
+
+            const name = prompt('Enter admin name:');
+            if (!name) return;
+
+            if (password.length < 6) {
+                showMessage('Password must be at least 6 characters long.', 'error');
                 return;
             }
 
             try {
-                // Create auth user
+                // First, check if user with this email already exists
+                const { data: existingUsers, error: checkError } = await supabaseClient
+                    .from('users')
+                    .select('id, email, role, name')
+                    .eq('email', email);
+
+                if (checkError) {
+                    console.error('Error checking existing users:', checkError);
+                }
+
+                if (existingUsers && existingUsers.length > 0) {
+                    const existingUser = existingUsers[0];
+
+                    if (existingUser.role === 'admin') {
+                        showMessage(`An admin account with email "${email}" already exists (${existingUser.name}).`, 'error');
+                        return;
+                    } else {
+                        // User exists but is not an admin
+                        const shouldConvert = confirm(
+                            `A user account with email "${email}" already exists (${existingUser.name}).\n\n` +
+                            `Current role: ${existingUser.role}\n\n` +
+                            `Would you like to convert this user to an admin instead?`
+                        );
+
+                        if (shouldConvert) {
+                            // Update existing user to admin role
+                            const { error: updateError } = await supabaseClient
+                                .from('users')
+                                .update({ role: 'admin', name: name })
+                                .eq('id', existingUser.id);
+
+                            if (updateError) throw updateError;
+
+                            showMessage(`User "${name}" has been successfully converted to admin!`, 'success');
+                            await loadStartupsData();
+                            return;
+                        } else {
+                            showMessage('Admin account creation cancelled. Please use a different email address.', 'info');
+                            return;
+                        }
+                    }
+                }
+
+                // Create new auth user
                 const { data, error } = await supabaseClient.auth.signUp({
                     email,
                     password,
@@ -2088,9 +2136,21 @@
                     }
                 });
 
-                if (error) throw error;
+                if (error) {
+                    // Handle specific error cases
+                    if (error.message.includes('already registered') || error.message.includes('already exists')) {
+                        showMessage(
+                            `Email "${email}" is already registered in the authentication system. ` +
+                            `Please use a different email or contact the system administrator.`,
+                            'error'
+                        );
+                    } else {
+                        throw error;
+                    }
+                    return;
+                }
 
-                showMessage('Admin account created successfully!', 'success');
+                showMessage('Admin account created successfully! The user will receive a confirmation email.', 'success');
                 await loadStartupsData(); // Refresh the data
 
             } catch (error) {
@@ -6243,8 +6303,41 @@
         });
 
         async function closeRoomPreview() {
-            // Check if user is admin - if not, require password
-            if (currentUser?.role !== 'admin') {
+            // Check if we're in fullscreen mode
+            const isCurrentlyFullscreen = !!(
+                document.fullscreenElement ||
+                document.webkitFullscreenElement ||
+                document.mozFullScreenElement ||
+                document.msFullscreenElement
+            );
+
+            // If in fullscreen, require password verification first
+            if (isCurrentlyFullscreen || isFullscreenLocked) {
+                const passwordVerified = await verifyAdminPasswordForExit();
+
+                if (!passwordVerified) {
+                    return; // Don't close if password not verified
+                }
+
+                // Exit fullscreen first
+                isFullscreenLocked = false;
+                fullscreenElement = null;
+
+                try {
+                    if (document.exitFullscreen) {
+                        await document.exitFullscreen();
+                    } else if (document.webkitExitFullscreen) {
+                        await document.webkitExitFullscreen();
+                    } else if (document.mozCancelFullScreen) {
+                        await document.mozCancelFullScreen();
+                    } else if (document.msExitFullscreen) {
+                        await document.msExitFullscreen();
+                    }
+                } catch (error) {
+                    console.error('Error exiting fullscreen:', error);
+                }
+            } else if (currentUser?.role !== 'admin') {
+                // Not in fullscreen, but still require password for non-admin users
                 const password = prompt('This display is password protected. Please enter the admin password to exit:');
 
                 if (!password) {
@@ -6696,17 +6789,142 @@
             await loadRoomPreviewData();
         });
 
+        // Fullscreen state tracking
+        let isFullscreenLocked = false;
+        let fullscreenElement = null;
+
         // Fullscreen Preview Button
-        document.getElementById('fullscreen-preview-btn')?.addEventListener('click', () => {
+        document.getElementById('fullscreen-preview-btn')?.addEventListener('click', async () => {
             const previewContainer = document.getElementById('room-display-preview');
-            if (previewContainer.requestFullscreen) {
-                previewContainer.requestFullscreen();
-            } else if (previewContainer.webkitRequestFullscreen) {
-                previewContainer.webkitRequestFullscreen();
-            } else if (previewContainer.msRequestFullscreen) {
-                previewContainer.msRequestFullscreen();
+            fullscreenElement = previewContainer;
+
+            try {
+                if (previewContainer.requestFullscreen) {
+                    await previewContainer.requestFullscreen();
+                } else if (previewContainer.webkitRequestFullscreen) {
+                    await previewContainer.webkitRequestFullscreen();
+                } else if (previewContainer.msRequestFullscreen) {
+                    await previewContainer.msRequestFullscreen();
+                }
+
+                // Lock the fullscreen after entering
+                isFullscreenLocked = true;
+                showMessage('Display is now in fullscreen mode. Password required to exit.', 'info');
+            } catch (error) {
+                console.error('Error entering fullscreen:', error);
+                showMessage('Failed to enter fullscreen mode.', 'error');
             }
         });
+
+        // Monitor fullscreen changes and enforce password lock
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+        document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+        document.addEventListener('MSFullscreenChange', handleFullscreenChange);
+
+        async function handleFullscreenChange() {
+            const isCurrentlyFullscreen = !!(
+                document.fullscreenElement ||
+                document.webkitFullscreenElement ||
+                document.mozFullScreenElement ||
+                document.msFullscreenElement
+            );
+
+            // If we were in locked fullscreen and user is trying to exit
+            if (isFullscreenLocked && !isCurrentlyFullscreen) {
+                // User attempted to exit fullscreen - verify password
+                const passwordVerified = await verifyAdminPasswordForExit();
+
+                if (!passwordVerified) {
+                    // Re-enter fullscreen if password verification failed
+                    setTimeout(async () => {
+                        try {
+                            if (fullscreenElement) {
+                                if (fullscreenElement.requestFullscreen) {
+                                    await fullscreenElement.requestFullscreen();
+                                } else if (fullscreenElement.webkitRequestFullscreen) {
+                                    await fullscreenElement.webkitRequestFullscreen();
+                                } else if (fullscreenElement.msRequestFullscreen) {
+                                    await fullscreenElement.msRequestFullscreen();
+                                }
+                            }
+                        } catch (error) {
+                            console.error('Error re-entering fullscreen:', error);
+                        }
+                    }, 100);
+                } else {
+                    // Password verified, allow exit
+                    isFullscreenLocked = false;
+                    fullscreenElement = null;
+                }
+            }
+        }
+
+        async function verifyAdminPasswordForExit() {
+            // If current user is admin, allow exit without password
+            if (currentUser?.role === 'admin') {
+                const shouldExit = confirm('You are about to exit fullscreen display mode. Continue?');
+                return shouldExit;
+            }
+
+            // For non-admin users, require password
+            const password = prompt(
+                '🔒 DISPLAY LOCKED\n\n' +
+                'This room display is password protected.\n' +
+                'Enter the admin password to exit fullscreen mode:'
+            );
+
+            if (!password) {
+                showMessage('Password required to exit fullscreen mode.', 'error');
+                return false;
+            }
+
+            // Verify password by attempting to sign in
+            try {
+                const { error } = await supabaseClient.auth.signInWithPassword({
+                    email: 'admin@nic.com', // Default admin email
+                    password: password
+                });
+
+                if (error) {
+                    showMessage('Incorrect password. Access denied.', 'error');
+                    return false;
+                }
+
+                showMessage('Password verified. Exiting fullscreen mode.', 'success');
+                return true;
+            } catch (err) {
+                console.error('Password verification error:', err);
+                showMessage('Password verification failed. Access denied.', 'error');
+                return false;
+            }
+        }
+
+        // Prevent ESC key from exiting fullscreen when locked
+        document.addEventListener('keydown', async (e) => {
+            if (isFullscreenLocked && e.key === 'Escape') {
+                e.preventDefault();
+                e.stopPropagation();
+
+                const passwordVerified = await verifyAdminPasswordForExit();
+
+                if (passwordVerified) {
+                    isFullscreenLocked = false;
+                    fullscreenElement = null;
+
+                    // Exit fullscreen
+                    if (document.exitFullscreen) {
+                        document.exitFullscreen();
+                    } else if (document.webkitExitFullscreen) {
+                        document.webkitExitFullscreen();
+                    } else if (document.mozCancelFullScreen) {
+                        document.mozCancelFullScreen();
+                    } else if (document.msExitFullscreen) {
+                        document.msExitFullscreen();
+                    }
+                }
+            }
+        }, true);
 
         // Preview Content Button
         document.getElementById('preview-content-btn')?.addEventListener('click', async () => {
