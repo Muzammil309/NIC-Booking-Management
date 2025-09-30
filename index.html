@@ -6684,7 +6684,7 @@
             }
         }
 
-        // Render Live Status Display
+        // Render Live Status Display (ISSUE 2: Increased font sizes for readability from distance)
         function renderLiveStatusDisplay(container) {
             const roomData = window.currentRoomDisplayData;
             const currentBooking = window.currentBookingData;
@@ -6710,49 +6710,49 @@
 
             container.innerHTML = `
                 <div class="h-full flex flex-col ${statusColor.bg} text-white">
-                    <!-- Header -->
-                    <div class="flex justify-between items-center p-6 border-b ${statusColor.border}">
+                    <!-- Header - INCREASED FONT SIZES -->
+                    <div class="flex justify-between items-center p-8 border-b ${statusColor.border}">
                         <div>
-                            <h1 class="text-3xl font-bold">${roomData.rooms.name}</h1>
-                            <p class="text-lg opacity-90">Capacity: ${roomData.rooms.capacity} people</p>
+                            <h1 class="text-6xl font-bold mb-2">${roomData.rooms.name}</h1>
+                            <p class="text-3xl opacity-90">Capacity: ${roomData.rooms.capacity} people</p>
                         </div>
                         <div class="text-right">
-                            <div class="text-2xl font-bold">${currentTime}</div>
-                            <div class="text-sm opacity-90">${currentDate}</div>
+                            <div class="text-5xl font-bold">${currentTime}</div>
+                            <div class="text-2xl opacity-90">${currentDate}</div>
                         </div>
                     </div>
 
-                    <!-- Status Section -->
-                    <div class="flex-1 flex flex-col justify-center p-6">
-                        <div class="text-center mb-8">
-                            <div class="text-6xl font-bold mb-4">
+                    <!-- Status Section - INCREASED FONT SIZES -->
+                    <div class="flex-1 flex flex-col justify-center p-8">
+                        <div class="text-center mb-12">
+                            <div class="text-9xl font-bold mb-6 py-8 px-12 bg-black bg-opacity-30 rounded-3xl inline-block">
                                 ${roomData.current_status.toUpperCase()}
                             </div>
                             ${roomData.status_message ? `
-                                <div class="text-xl opacity-90 mb-4">${roomData.status_message}</div>
+                                <div class="text-4xl opacity-90 mt-6">${roomData.status_message}</div>
                             ` : ''}
                         </div>
 
-                        <!-- Current Booking -->
+                        <!-- Current Booking - INCREASED FONT SIZES -->
                         ${currentBooking?.has_booking ? `
-                            <div class="bg-black bg-opacity-20 rounded-lg p-4 mb-4">
-                                <h3 class="text-xl font-semibold mb-2">Current Meeting</h3>
-                                <div class="grid grid-cols-2 gap-4 text-sm">
+                            <div class="bg-black bg-opacity-20 rounded-2xl p-8 mb-6">
+                                <h3 class="text-4xl font-semibold mb-6">Current Meeting</h3>
+                                <div class="grid grid-cols-2 gap-6 text-2xl">
                                     <div>
                                         <span class="opacity-75">Company:</span>
-                                        <div class="font-medium">${currentBooking.startup_name}</div>
+                                        <div class="font-medium text-3xl mt-2">${currentBooking.startup_name}</div>
                                     </div>
                                     <div>
                                         <span class="opacity-75">Time:</span>
-                                        <div class="font-medium">${currentBooking.start_time} - ${currentBooking.end_time}</div>
+                                        <div class="font-medium text-3xl mt-2">${currentBooking.start_time} - ${currentBooking.end_time}</div>
                                     </div>
                                     <div>
                                         <span class="opacity-75">Contact:</span>
-                                        <div class="font-medium">${currentBooking.contact_person}</div>
+                                        <div class="font-medium text-3xl mt-2">${currentBooking.contact_person}</div>
                                     </div>
                                     <div>
                                         <span class="opacity-75">Remaining:</span>
-                                        <div class="font-medium text-yellow-300">
+                                        <div class="font-medium text-3xl text-yellow-300 mt-2">
                                             ${Math.floor(currentBooking.remaining_minutes / 60)}h ${Math.floor(currentBooking.remaining_minutes % 60)}m
                                         </div>
                                     </div>
@@ -6760,22 +6760,22 @@
                             </div>
                         ` : ''}
 
-                        <!-- Next Booking -->
+                        <!-- Next Booking - INCREASED FONT SIZES -->
                         ${nextBooking?.has_next_booking ? `
-                            <div class="bg-black bg-opacity-20 rounded-lg p-4">
-                                <h3 class="text-lg font-semibold mb-2">Next Meeting</h3>
-                                <div class="grid grid-cols-2 gap-4 text-sm">
+                            <div class="bg-black bg-opacity-20 rounded-2xl p-8">
+                                <h3 class="text-3xl font-semibold mb-6">Next Meeting</h3>
+                                <div class="grid grid-cols-2 gap-6 text-2xl">
                                     <div>
                                         <span class="opacity-75">Company:</span>
-                                        <div class="font-medium">${nextBooking.startup_name}</div>
+                                        <div class="font-medium text-3xl mt-2">${nextBooking.startup_name}</div>
                                     </div>
                                     <div>
                                         <span class="opacity-75">Time:</span>
-                                        <div class="font-medium">${nextBooking.start_time} - ${nextBooking.end_time}</div>
+                                        <div class="font-medium text-3xl mt-2">${nextBooking.start_time} - ${nextBooking.end_time}</div>
                                     </div>
                                     <div class="col-span-2">
                                         <span class="opacity-75">Starts in:</span>
-                                        <div class="font-medium text-blue-300">
+                                        <div class="font-medium text-3xl text-blue-300 mt-2">
                                             ${Math.floor(nextBooking.minutes_until_start / 60)}h ${Math.floor(nextBooking.minutes_until_start % 60)}m
                                         </div>
                                     </div>
@@ -6784,9 +6784,9 @@
                         ` : ''}
                     </div>
 
-                    <!-- Footer -->
-                    <div class="p-4 border-t ${statusColor.border} text-center">
-                        <div class="text-sm opacity-75">
+                    <!-- Footer - INCREASED FONT SIZE -->
+                    <div class="p-6 border-t ${statusColor.border} text-center">
+                        <div class="text-2xl opacity-75">
                             National Incubation Center • Room Display System
                         </div>
                     </div>
@@ -6937,44 +6937,76 @@
 
             // If we were in locked fullscreen and user is trying to exit
             if (isFullscreenLocked && !isCurrentlyFullscreen) {
-                console.log('Fullscreen exit detected - verifying password...');
+                console.log('🔒 FULLSCREEN EXIT DETECTED - Verifying password...');
 
-                // User attempted to exit fullscreen - verify password
+                // IMMEDIATELY re-enter fullscreen BEFORE asking for password
+                // This prevents the display from staying unlocked while password prompt is shown
+                const reEnterFullscreen = async () => {
+                    try {
+                        if (fullscreenElement) {
+                            console.log('⚡ Re-entering fullscreen mode immediately...');
+
+                            if (fullscreenElement.requestFullscreen) {
+                                await fullscreenElement.requestFullscreen();
+                            } else if (fullscreenElement.webkitRequestFullscreen) {
+                                await fullscreenElement.webkitRequestFullscreen();
+                            } else if (fullscreenElement.mozRequestFullscreen) {
+                                await fullscreenElement.mozRequestFullscreen();
+                            } else if (fullscreenElement.msRequestFullscreen) {
+                                await fullscreenElement.msRequestFullscreen();
+                            }
+
+                            console.log('✅ Fullscreen re-entered successfully');
+                        }
+                    } catch (error) {
+                        console.error('❌ Error re-entering fullscreen:', error);
+                    }
+                };
+
+                // Re-enter fullscreen immediately (don't wait)
+                await reEnterFullscreen();
+
+                // Now ask for password
                 const passwordVerified = await verifyAdminPasswordForExit();
 
                 if (!passwordVerified) {
-                    console.log('Password verification failed - re-entering fullscreen...');
+                    console.log('❌ Password verification FAILED - Display remains locked');
+                    showMessage('Incorrect password. Display remains locked.', 'error');
 
-                    // Re-enter fullscreen if password verification failed
-                    // Use a longer timeout to ensure browser has fully exited fullscreen
+                    // Make sure we're still in fullscreen (re-enter again if needed)
                     setTimeout(async () => {
-                        try {
-                            if (fullscreenElement) {
-                                console.log('Re-entering fullscreen mode...');
+                        const stillFullscreen = !!(
+                            document.fullscreenElement ||
+                            document.webkitFullscreenElement ||
+                            document.mozFullScreenElement ||
+                            document.msFullscreenElement
+                        );
 
-                                if (fullscreenElement.requestFullscreen) {
-                                    await fullscreenElement.requestFullscreen();
-                                } else if (fullscreenElement.webkitRequestFullscreen) {
-                                    await fullscreenElement.webkitRequestFullscreen();
-                                } else if (fullscreenElement.mozRequestFullscreen) {
-                                    await fullscreenElement.mozRequestFullscreen();
-                                } else if (fullscreenElement.msRequestFullscreen) {
-                                    await fullscreenElement.msRequestFullscreen();
-                                }
-
-                                console.log('Fullscreen re-entered successfully');
-                                showMessage('Access denied. Display remains locked.', 'error');
-                            }
-                        } catch (error) {
-                            console.error('Error re-entering fullscreen:', error);
-                            showMessage('Warning: Could not re-lock display. Please refresh.', 'error');
+                        if (!stillFullscreen && isFullscreenLocked) {
+                            console.log('⚠️ Not in fullscreen - re-entering again...');
+                            await reEnterFullscreen();
                         }
-                    }, 200); // Increased timeout for better reliability
+                    }, 100);
                 } else {
-                    console.log('Password verified - allowing fullscreen exit');
+                    console.log('✅ Password verified - Allowing fullscreen exit');
                     // Password verified, allow exit
                     isFullscreenLocked = false;
                     fullscreenElement = null;
+
+                    // Exit fullscreen
+                    try {
+                        if (document.exitFullscreen) {
+                            await document.exitFullscreen();
+                        } else if (document.webkitExitFullscreen) {
+                            await document.webkitExitFullscreen();
+                        } else if (document.mozCancelFullScreen) {
+                            await document.mozCancelFullScreen();
+                        } else if (document.msExitFullscreen) {
+                            await document.msExitFullscreen();
+                        }
+                    } catch (error) {
+                        console.error('Error exiting fullscreen:', error);
+                    }
                 }
             }
         }
@@ -7025,27 +7057,62 @@
             }
         }
 
-        // Prevent ESC key from exiting fullscreen when locked
+        // Prevent ESC key from exiting fullscreen when locked (ISSUE 1: Fixed password protection)
         document.addEventListener('keydown', async (e) => {
             if (isFullscreenLocked && e.key === 'Escape') {
+                console.log('🔒 ESC key pressed - Display is locked');
                 e.preventDefault();
                 e.stopPropagation();
+                e.stopImmediatePropagation();
 
+                // Verify password
                 const passwordVerified = await verifyAdminPasswordForExit();
 
                 if (passwordVerified) {
+                    console.log('✅ Password correct - Exiting fullscreen');
                     isFullscreenLocked = false;
                     fullscreenElement = null;
 
                     // Exit fullscreen
-                    if (document.exitFullscreen) {
-                        document.exitFullscreen();
-                    } else if (document.webkitExitFullscreen) {
-                        document.webkitExitFullscreen();
-                    } else if (document.mozCancelFullScreen) {
-                        document.mozCancelFullScreen();
-                    } else if (document.msExitFullscreen) {
-                        document.msExitFullscreen();
+                    try {
+                        if (document.exitFullscreen) {
+                            await document.exitFullscreen();
+                        } else if (document.webkitExitFullscreen) {
+                            await document.webkitExitFullscreen();
+                        } else if (document.mozCancelFullScreen) {
+                            await document.mozCancelFullScreen();
+                        } else if (document.msExitFullscreen) {
+                            await document.msExitFullscreen();
+                        }
+                    } catch (error) {
+                        console.error('Error exiting fullscreen:', error);
+                    }
+                } else {
+                    console.log('❌ Password incorrect - Staying in fullscreen');
+
+                    // Make absolutely sure we're still in fullscreen
+                    const isCurrentlyFullscreen = !!(
+                        document.fullscreenElement ||
+                        document.webkitFullscreenElement ||
+                        document.mozFullScreenElement ||
+                        document.msFullscreenElement
+                    );
+
+                    if (!isCurrentlyFullscreen && fullscreenElement) {
+                        console.log('⚠️ Not in fullscreen - Re-entering immediately...');
+                        try {
+                            if (fullscreenElement.requestFullscreen) {
+                                await fullscreenElement.requestFullscreen();
+                            } else if (fullscreenElement.webkitRequestFullscreen) {
+                                await fullscreenElement.webkitRequestFullscreen();
+                            } else if (fullscreenElement.mozRequestFullscreen) {
+                                await fullscreenElement.mozRequestFullscreen();
+                            } else if (fullscreenElement.msRequestFullscreen) {
+                                await fullscreenElement.msRequestFullscreen();
+                            }
+                        } catch (error) {
+                            console.error('Error re-entering fullscreen:', error);
+                        }
                     }
                 }
             }
