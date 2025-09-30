@@ -1865,25 +1865,52 @@
         // ===== DASHBOARD DATA LOADING =====
         async function loadDashboardData() {
             try {
-                // Load dashboard statistics
-                const { data: startupsData } = await supabaseClient
+                console.log('Loading dashboard statistics...');
+
+                // Load total startups count
+                const { count: startupsCount, error: startupsError } = await supabaseClient
                     .from('startups')
-                    .select('id', { count: 'exact' });
+                    .select('*', { count: 'exact', head: true });
 
-                const { data: upcomingBookings } = await supabaseClient
+                if (startupsError) {
+                    console.error('Error loading startups count:', startupsError);
+                }
+
+                // Load upcoming bookings count (future bookings)
+                const { count: upcomingCount, error: upcomingError } = await supabaseClient
                     .from('bookings')
-                    .select('*')
-                    .gte('booking_date', new Date().toISOString().split('T')[0])
-                    .order('booking_date');
+                    .select('*', { count: 'exact', head: true })
+                    .gte('booking_date', new Date().toISOString().split('T')[0]);
 
+                if (upcomingError) {
+                    console.error('Error loading upcoming bookings count:', upcomingError);
+                }
+
+                // Load today's bookings count
+                const { count: todayCount, error: todayError } = await supabaseClient
+                    .from('bookings')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('booking_date', new Date().toISOString().split('T')[0]);
+
+                if (todayError) {
+                    console.error('Error loading today bookings count:', todayError);
+                }
+
+                // Load today's bookings data for schedule display
                 const { data: todayBookings } = await supabaseClient
                     .from('bookings')
                     .select('*, startups(name)')
                     .eq('booking_date', new Date().toISOString().split('T')[0])
                     .order('start_time');
 
-                // Update dashboard stats
-                updateDashboardStats(startupsData?.length || 0, upcomingBookings?.length || 0, todayBookings?.length || 0);
+                console.log('Dashboard stats:', {
+                    startups: startupsCount,
+                    upcoming: upcomingCount,
+                    today: todayCount
+                });
+
+                // Update dashboard stats with real-time counts
+                updateDashboardStats(startupsCount || 0, upcomingCount || 0, todayCount || 0);
                 updateTodaySchedule(todayBookings || []);
 
             } catch (error) {
@@ -5880,7 +5907,8 @@
                             name,
                             capacity,
                             room_type,
-                            requires_equipment
+                            requires_equipment,
+                            status
                         )
                     `)
                     .eq('is_enabled', true);
@@ -5907,6 +5935,9 @@
             const updatedCapacity = getUpdatedRoomCapacity(room.name);
             const displayCapacity = updatedCapacity !== null ? updatedCapacity : room.capacity;
 
+            // Use room status from database (real-time status)
+            const currentStatus = room.status || display.current_status || 'available';
+
             const statusColors = {
                 available: 'bg-green-100 text-green-800 border-green-200',
                 occupied: 'bg-red-100 text-red-800 border-red-200',
@@ -5914,12 +5945,13 @@
                 reserved: 'bg-blue-100 text-blue-800 border-blue-200'
             };
 
-            const statusColor = statusColors[display.current_status] || statusColors.available;
+            const statusColor = statusColors[currentStatus] || statusColors.available;
 
             return `
                 <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition duration-200 cursor-pointer room-display-card"
                      onclick="openRoomPreview('${room.name}', '${display.id}')"
                      data-room-name="${room.name}"
+                     data-room-id="${room.id}"
                      data-display-id="${display.id}">
                     <div class="flex justify-between items-start mb-4">
                         <div>
@@ -5928,9 +5960,24 @@
                             <p class="text-sm text-gray-600">Type: ${room.room_type}</p>
                         </div>
                         <span class="px-3 py-1 rounded-full text-xs font-medium border ${statusColor}">
-                            ${display.current_status.charAt(0).toUpperCase() + display.current_status.slice(1)}
+                            ${currentStatus.charAt(0).toUpperCase() + currentStatus.slice(1)}
                         </span>
                     </div>
+
+                    ${currentUser?.role === 'admin' ? `
+                        <div class="mb-4 p-3 bg-gray-50 rounded-lg" onclick="event.stopPropagation();">
+                            <label class="block text-xs font-medium text-gray-700 mb-2">Change Room Status:</label>
+                            <select
+                                class="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                                onchange="updateRoomStatus('${room.id}', this.value)"
+                                data-room-id="${room.id}">
+                                <option value="available" ${currentStatus === 'available' ? 'selected' : ''}>Available</option>
+                                <option value="occupied" ${currentStatus === 'occupied' ? 'selected' : ''}>Occupied</option>
+                                <option value="maintenance" ${currentStatus === 'maintenance' ? 'selected' : ''}>Maintenance</option>
+                                <option value="reserved" ${currentStatus === 'reserved' ? 'selected' : ''}>Reserved</option>
+                            </select>
+                        </div>
+                    ` : ''}
 
                     ${display.status_message ? `
                         <div class="mb-4 p-3 bg-gray-50 rounded-lg">
@@ -5951,6 +5998,38 @@
                     </div>
                 </div>
             `;
+        }
+
+        // Update Room Status (Feature 2: Real-Time Room Status Management)
+        async function updateRoomStatus(roomId, newStatus) {
+            try {
+                console.log(`Updating room ${roomId} status to ${newStatus}...`);
+
+                // Update room status in database
+                const { error } = await supabaseClient
+                    .from('rooms')
+                    .update({
+                        status: newStatus,
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', roomId);
+
+                if (error) {
+                    console.error('Error updating room status:', error);
+                    showMessage(`Failed to update room status: ${error.message}`, 'error');
+                    return;
+                }
+
+                console.log('Room status updated successfully');
+                showMessage(`Room status updated to ${newStatus}`, 'success');
+
+                // Reload room displays to show updated status
+                await loadRoomStatusDisplays();
+
+            } catch (err) {
+                console.error('Error in updateRoomStatus:', err);
+                showMessage('Failed to update room status', 'error');
+            }
         }
 
         // Load Content Library
@@ -6858,27 +6937,41 @@
 
             // If we were in locked fullscreen and user is trying to exit
             if (isFullscreenLocked && !isCurrentlyFullscreen) {
+                console.log('Fullscreen exit detected - verifying password...');
+
                 // User attempted to exit fullscreen - verify password
                 const passwordVerified = await verifyAdminPasswordForExit();
 
                 if (!passwordVerified) {
+                    console.log('Password verification failed - re-entering fullscreen...');
+
                     // Re-enter fullscreen if password verification failed
+                    // Use a longer timeout to ensure browser has fully exited fullscreen
                     setTimeout(async () => {
                         try {
                             if (fullscreenElement) {
+                                console.log('Re-entering fullscreen mode...');
+
                                 if (fullscreenElement.requestFullscreen) {
                                     await fullscreenElement.requestFullscreen();
                                 } else if (fullscreenElement.webkitRequestFullscreen) {
                                     await fullscreenElement.webkitRequestFullscreen();
+                                } else if (fullscreenElement.mozRequestFullscreen) {
+                                    await fullscreenElement.mozRequestFullscreen();
                                 } else if (fullscreenElement.msRequestFullscreen) {
                                     await fullscreenElement.msRequestFullscreen();
                                 }
+
+                                console.log('Fullscreen re-entered successfully');
+                                showMessage('Access denied. Display remains locked.', 'error');
                             }
                         } catch (error) {
                             console.error('Error re-entering fullscreen:', error);
+                            showMessage('Warning: Could not re-lock display. Please refresh.', 'error');
                         }
-                    }, 100);
+                    }, 200); // Increased timeout for better reliability
                 } else {
+                    console.log('Password verified - allowing fullscreen exit');
                     // Password verified, allow exit
                     isFullscreenLocked = false;
                     fullscreenElement = null;
@@ -6901,20 +6994,30 @@
                 return false;
             }
 
-            // Verify password by attempting to sign in
+            // Verify password using server-side function (does NOT sign in or change session)
             try {
-                const { error } = await supabaseClient.auth.signInWithPassword({
-                    email: 'admin@nic.com', // Default admin email
-                    password: password
+                console.log('Verifying admin password...');
+
+                const { data, error } = await supabaseClient.rpc('verify_admin_password', {
+                    password_input: password
                 });
 
                 if (error) {
-                    showMessage('Incorrect password. Access denied.', 'error');
+                    console.error('Password verification error:', error);
+                    showMessage('Password verification failed. Access denied.', 'error');
                     return false;
                 }
 
-                showMessage('Password verified. Exiting fullscreen mode.', 'success');
-                return true;
+                // Check if password is correct
+                if (data === true) {
+                    console.log('Password verified successfully');
+                    showMessage('Password verified. Exiting fullscreen mode.', 'success');
+                    return true;
+                } else {
+                    console.log('Incorrect password entered');
+                    showMessage('Incorrect password. Access denied.', 'error');
+                    return false;
+                }
             } catch (err) {
                 console.error('Password verification error:', err);
                 showMessage('Password verification failed. Access denied.', 'error');
