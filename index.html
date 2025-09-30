@@ -2103,6 +2103,9 @@
                 return;
             }
 
+            const phone = prompt('Enter admin phone number (optional, press Cancel to skip):');
+            // Phone is optional, so we don't validate if empty
+
             try {
                 // First, check if user with this email already exists
                 const { data: existingUsers, error: checkError } = await supabaseClient
@@ -2190,8 +2193,41 @@
                     return;
                 }
 
-                showMessage('Admin account created successfully! The user will receive a confirmation email.', 'success');
-                await loadStartupsData(); // Refresh the data
+                // CRITICAL FIX: Create user record in database
+                // Without this, the user cannot login and won't appear in Contact Us tab
+                if (data?.user) {
+                    const { error: userError } = await supabaseClient
+                        .from('users')
+                        .insert({
+                            id: data.user.id,
+                            email: email,
+                            name: name,
+                            role: 'admin',
+                            phone: phone || null // Use provided phone or null
+                        });
+
+                    if (userError) {
+                        console.error('Error creating user profile:', userError);
+                        showMessage(
+                            `Admin authentication account created, but user profile creation failed.\n\n` +
+                            `Error: ${userError.message}\n\n` +
+                            `The admin may not be able to login. Please contact system administrator.`,
+                            'error'
+                        );
+                        return;
+                    }
+                }
+
+                showMessage(
+                    `Admin account created successfully!\n\n` +
+                    `Email: ${email}\n` +
+                    `Name: ${name}\n\n` +
+                    `The admin can now login and will appear in the Contact Us tab.`,
+                    'success'
+                );
+
+                await loadStartupsData(); // Refresh the Startups tab
+                await loadContactData(); // Refresh the Contact Us tab
 
             } catch (error) {
                 console.error('Error creating admin account:', error);
