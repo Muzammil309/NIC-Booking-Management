@@ -1651,11 +1651,11 @@
                 </button>
             </div>
 
-            <!-- ISSUE 1 FIX: Fully responsive layout with NO overlapping -->
+            <!-- ISSUE 2 FIX: Vertical stacked layout (NO side-by-side) to prevent overlapping -->
             <div class="p-4 md:p-6">
-                <div class="flex flex-col lg:flex-row gap-4 md:gap-6">
-                    <!-- Live Preview Display - FIXED: Proper flex sizing -->
-                    <div class="w-full lg:flex-[2] lg:min-w-0">
+                <div class="flex flex-col gap-6">
+                    <!-- Live Preview Display - FIXED: Full width, always on top -->
+                    <div class="w-full">
                         <div class="bg-gray-900 rounded-lg p-4 md:p-6 text-white min-h-[300px] md:min-h-[400px]" id="room-display-preview">
                             <!-- Room display content will be rendered here -->
                             <div class="text-center text-gray-400 py-20">
@@ -1677,8 +1677,8 @@
                         </div>
                     </div>
 
-                    <!-- Control Panel - FIXED: Proper flex sizing to prevent overlap -->
-                    <div class="w-full lg:flex-[1] lg:min-w-0 space-y-4 md:space-y-6">
+                    <!-- Control Panel - FIXED: Full width, always below preview -->
+                    <div class="w-full space-y-4 md:space-y-6">
                         <!-- Room Status Control -->
                         <div class="bg-gray-50 rounded-lg p-4" data-admin-only>
                             <h3 class="text-lg font-semibold text-gray-900 mb-4">Room Status Control</h3>
@@ -3843,6 +3843,11 @@
             document.body.appendChild(alertDiv);
             setTimeout(() => alertDiv.remove(), 5000);
         }
+
+        // ISSUE 1 FIX: Create showNotification alias for showMessage
+        // This fixes the "showNotification is not defined" error
+        const showNotification = showMessage;
+        console.log('✅ [showNotification] Function alias created successfully');
 
         // ===== INTERACTIVE CALENDAR SYSTEM =====
         let currentCalendarDate = new Date();
