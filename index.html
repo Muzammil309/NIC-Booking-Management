@@ -1651,11 +1651,11 @@
                 </button>
             </div>
 
-            <!-- ISSUE 2 FIX: Responsive layout with proper spacing -->
+            <!-- ISSUE 1 FIX: Fully responsive layout with NO overlapping -->
             <div class="p-4 md:p-6">
                 <div class="flex flex-col lg:flex-row gap-4 md:gap-6">
-                    <!-- Live Preview Display -->
-                    <div class="flex-1 lg:w-2/3">
+                    <!-- Live Preview Display - FIXED: Proper flex sizing -->
+                    <div class="w-full lg:flex-[2] lg:min-w-0">
                         <div class="bg-gray-900 rounded-lg p-4 md:p-6 text-white min-h-[300px] md:min-h-[400px]" id="room-display-preview">
                             <!-- Room display content will be rendered here -->
                             <div class="text-center text-gray-400 py-20">
@@ -1677,8 +1677,8 @@
                         </div>
                     </div>
 
-                    <!-- Control Panel - ISSUE 2 FIX: Responsive width -->
-                    <div class="w-full lg:w-1/3 space-y-4 md:space-y-6">
+                    <!-- Control Panel - FIXED: Proper flex sizing to prevent overlap -->
+                    <div class="w-full lg:flex-[1] lg:min-w-0 space-y-4 md:space-y-6">
                         <!-- Room Status Control -->
                         <div class="bg-gray-50 rounded-lg p-4" data-admin-only>
                             <h3 class="text-lg font-semibold text-gray-900 mb-4">Room Status Control</h3>
@@ -7470,16 +7470,19 @@
             }
         });
 
-        // ISSUE 1 FIX: Update Status Button in Preview Modal
+        // ISSUE 2 FIX: Update Status Button in Preview Modal - Enhanced Logging
         document.getElementById('update-preview-status')?.addEventListener('click', async () => {
+            console.log('🎯 [update-preview-status] ========== BUTTON CLICKED ==========');
+
             const newStatus = document.getElementById('preview-status-select').value;
             const statusMessage = document.getElementById('preview-status-message').value;
 
             try {
                 console.log('🔄 [update-preview-status] Starting status update...');
-                console.log('🔄 [update-preview-status] Room:', currentPreviewRoom);
-                console.log('🔄 [update-preview-status] New status:', newStatus);
-                console.log('🔄 [update-preview-status] Status message:', statusMessage);
+                console.log('🔄 [update-preview-status] Current Preview Room:', currentPreviewRoom);
+                console.log('🔄 [update-preview-status] Current Preview Display ID:', currentPreviewDisplayId);
+                console.log('🔄 [update-preview-status] Selected Status:', newStatus);
+                console.log('🔄 [update-preview-status] Status Message:', statusMessage || '(none)');
 
                 // ISSUE 1 FIX: Update room status directly instead of using RPC function
                 // First, get the room ID from the room name
@@ -7550,7 +7553,11 @@
                 }
 
             } catch (error) {
-                console.error('Error updating room status:', error);
+                console.error('❌ [update-preview-status] ========== ERROR OCCURRED ==========');
+                console.error('❌ [update-preview-status] Error Type:', error.constructor.name);
+                console.error('❌ [update-preview-status] Error Message:', error.message);
+                console.error('❌ [update-preview-status] Full Error:', error);
+                console.error('❌ [update-preview-status] Stack Trace:', error.stack);
                 showNotification('Error updating room status: ' + error.message, 'error');
             }
         });
