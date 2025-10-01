@@ -5597,9 +5597,15 @@
                 const phone = document.getElementById('edit-startup-phone').value;
 
                 console.log(`🔄 [saveStartupUserChanges] Updating startup ${startupId}...`);
+                console.log(`📝 [saveStartupUserChanges] Data to update:`, {
+                    name,
+                    contact_person: contactPerson,
+                    email,
+                    phone
+                });
 
-                // Update startup in database
-                const { error } = await supabaseClient
+                // ISSUE 2 FIX: Add .select() to get updated data and verify update
+                const { data, error } = await supabaseClient
                     .from('startups')
                     .update({
                         name: name,
@@ -5608,14 +5614,22 @@
                         phone: phone,
                         updated_at: new Date().toISOString()
                     })
-                    .eq('id', startupId);
+                    .eq('id', startupId)
+                    .select();
 
                 if (error) {
                     console.error('❌ [saveStartupUserChanges] Database error:', error);
+                    console.error('❌ [saveStartupUserChanges] Error details:', {
+                        message: error.message,
+                        details: error.details,
+                        hint: error.hint,
+                        code: error.code
+                    });
                     showMessage('Failed to update startup: ' + error.message, 'error');
                     return;
                 }
 
+                console.log('✅ [saveStartupUserChanges] Database response:', data);
                 console.log('✅ [saveStartupUserChanges] Startup updated successfully');
                 showMessage('Startup profile updated successfully', 'success');
 
@@ -5623,6 +5637,7 @@
                 document.getElementById('edit-startup-modal').classList.add('hidden');
 
                 // Reload contact data
+                console.log('🔄 [saveStartupUserChanges] Reloading contact data...');
                 await loadContactData();
 
             } catch (err) {
@@ -5661,23 +5676,33 @@
                 }
 
                 console.log('🔄 [deleteStartupUser] Deleting from database...');
+                console.log('🔄 [deleteStartupUser] Startup ID:', startupId);
 
-                // Delete startup from database
-                const { error } = await supabaseClient
+                // ISSUE 2 FIX: Add .select() to verify deletion
+                const { data, error } = await supabaseClient
                     .from('startups')
                     .delete()
-                    .eq('id', startupId);
+                    .eq('id', startupId)
+                    .select();
 
                 if (error) {
                     console.error('❌ [deleteStartupUser] Database error:', error);
+                    console.error('❌ [deleteStartupUser] Error details:', {
+                        message: error.message,
+                        details: error.details,
+                        hint: error.hint,
+                        code: error.code
+                    });
                     showMessage('Failed to delete startup: ' + error.message, 'error');
                     return;
                 }
 
+                console.log('✅ [deleteStartupUser] Database response:', data);
                 console.log('✅ [deleteStartupUser] Startup deleted successfully');
                 showMessage(`Startup "${startupName}" deleted successfully`, 'success');
 
                 // Reload contact data
+                console.log('🔄 [deleteStartupUser] Reloading contact data...');
                 await loadContactData();
 
             } catch (err) {
@@ -6158,6 +6183,7 @@
             const grid = document.getElementById('room-status-grid');
 
             try {
+                console.log('🔄 [loadRoomStatusDisplays] Loading room displays from database...');
                 grid.innerHTML = '<div class="text-center text-gray-500 py-8 col-span-full">Loading room displays...</div>';
 
                 const { data: roomDisplays, error } = await supabaseClient
@@ -6175,7 +6201,17 @@
                     `)
                     .eq('is_enabled', true);
 
-                if (error) throw error;
+                if (error) {
+                    console.error('❌ [loadRoomStatusDisplays] Database error:', error);
+                    throw error;
+                }
+
+                console.log('✅ [loadRoomStatusDisplays] Fetched room displays:', roomDisplays);
+
+                // Log capacities from database
+                roomDisplays.forEach(display => {
+                    console.log(`📊 [loadRoomStatusDisplays] ${display.rooms.name}: capacity = ${display.rooms.capacity} (from database)`);
+                });
 
                 if (roomDisplays.length === 0) {
                     grid.innerHTML = '<div class="text-center text-gray-500 py-8 col-span-full">No room displays found</div>';
@@ -6183,9 +6219,10 @@
                 }
 
                 grid.innerHTML = roomDisplays.map(display => createRoomDisplayCard(display)).join('');
+                console.log('✅ [loadRoomStatusDisplays] Room display cards rendered');
 
             } catch (error) {
-                console.error('Error loading room displays:', error);
+                console.error('❌ [loadRoomStatusDisplays] Error:', error);
                 grid.innerHTML = '<div class="text-center text-red-500 py-8 col-span-full">Error loading room displays</div>';
             }
         }
@@ -6193,9 +6230,9 @@
         function createRoomDisplayCard(display) {
             const room = display.rooms;
 
-            // Get updated capacity from availableRooms array
-            const updatedCapacity = getUpdatedRoomCapacity(room.name);
-            const displayCapacity = updatedCapacity !== null ? updatedCapacity : room.capacity;
+            // ISSUE 1 FIX: Use capacity directly from database (NOT from availableRooms array)
+            const displayCapacity = room.capacity;
+            console.log(`📊 [createRoomDisplayCard] ${room.name}: Using capacity ${displayCapacity} from database`);
 
             // Use room status from database (real-time status)
             const currentStatus = room.status || display.current_status || 'available';
