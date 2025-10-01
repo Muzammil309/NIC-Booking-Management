@@ -7236,20 +7236,43 @@
         // Load Room Display Status
         async function loadRoomDisplayStatus() {
             try {
+                console.log('🔄 [loadRoomDisplayStatus] Loading room display status...');
+                console.log('🔄 [loadRoomDisplayStatus] Display ID:', currentPreviewDisplayId);
+
+                // ISSUE 2 FIX: Fetch the status field from rooms table
                 const { data: roomDisplay, error } = await supabaseClient
                     .from('room_displays')
                     .select(`
                         *,
-                        rooms (name, capacity, room_type, requires_equipment)
+                        rooms (name, capacity, room_type, requires_equipment, status)
                     `)
                     .eq('id', currentPreviewDisplayId)
                     .single();
 
-                if (error) throw error;
+                if (error) {
+                    console.error('❌ [loadRoomDisplayStatus] Error:', error);
+                    throw error;
+                }
+
+                console.log('✅ [loadRoomDisplayStatus] Room display data:', roomDisplay);
+                console.log('📊 [loadRoomDisplayStatus] Room status from database:', roomDisplay.rooms.status);
+                console.log('📊 [loadRoomDisplayStatus] Display current_status:', roomDisplay.current_status);
+
+                // ISSUE 2 FIX: Use the status from rooms table (the source of truth)
+                // Override current_status with the actual room status from rooms table
+                if (roomDisplay.rooms.status) {
+                    console.log('🔄 [loadRoomDisplayStatus] Overriding current_status with rooms.status');
+                    console.log('🔄 [loadRoomDisplayStatus] Old current_status:', roomDisplay.current_status);
+                    console.log('🔄 [loadRoomDisplayStatus] New current_status:', roomDisplay.rooms.status);
+                    roomDisplay.current_status = roomDisplay.rooms.status;
+                }
 
                 // Update status controls
                 document.getElementById('preview-status-select').value = roomDisplay.current_status;
                 document.getElementById('preview-status-message').value = roomDisplay.status_message || '';
+
+                console.log('✅ [loadRoomDisplayStatus] Status controls updated');
+                console.log('✅ [loadRoomDisplayStatus] Dropdown value:', document.getElementById('preview-status-select').value);
 
                 // Override capacity with updated value from availableRooms array
                 const updatedCapacity = getUpdatedRoomCapacity(roomDisplay.rooms.name);
@@ -7259,9 +7282,11 @@
 
                 // Store room display data
                 window.currentRoomDisplayData = roomDisplay;
+                console.log('✅ [loadRoomDisplayStatus] Room display data stored in window.currentRoomDisplayData');
+                console.log('✅ [loadRoomDisplayStatus] Final current_status:', window.currentRoomDisplayData.current_status);
 
             } catch (error) {
-                console.error('Error loading room display status:', error);
+                console.error('❌ [loadRoomDisplayStatus] Error loading room display status:', error);
             }
         }
 
@@ -7287,8 +7312,10 @@
 
         // Render Display Preview
         function renderDisplayPreview() {
+            console.log('🎨 [renderDisplayPreview] ========== RENDERING DISPLAY ==========');
             const previewContainer = document.getElementById('room-display-preview');
             const mode = document.querySelector('.preview-mode-btn.active')?.dataset.mode || 'live';
+            console.log('🎨 [renderDisplayPreview] Display mode:', mode);
 
             if (mode === 'live') {
                 renderLiveStatusDisplay(previewContainer);
@@ -7301,11 +7328,19 @@
 
         // Render Live Status Display (ISSUE 2: Increased font sizes for readability from distance)
         function renderLiveStatusDisplay(container) {
+            console.log('🎨 [renderLiveStatusDisplay] Rendering live status display...');
             const roomData = window.currentRoomDisplayData;
             const currentBooking = window.currentBookingData;
             const nextBooking = window.nextBookingData;
 
-            if (!roomData) return;
+            if (!roomData) {
+                console.warn('⚠️ [renderLiveStatusDisplay] No room data available');
+                return;
+            }
+
+            console.log('📊 [renderLiveStatusDisplay] Room data:', roomData);
+            console.log('📊 [renderLiveStatusDisplay] Current status:', roomData.current_status);
+            console.log('📊 [renderLiveStatusDisplay] Room name:', roomData.rooms?.name);
 
             const statusColors = {
                 available: { bg: 'bg-green-600', text: 'text-green-100', border: 'border-green-400' },
@@ -7315,6 +7350,13 @@
             };
 
             const statusColor = statusColors[roomData.current_status] || statusColors.available;
+            console.log('🎨 [renderLiveStatusDisplay] Status color mapping:', {
+                status: roomData.current_status,
+                bg: statusColor.bg,
+                text: statusColor.text,
+                border: statusColor.border
+            });
+
             const currentTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             const currentDate = new Date().toLocaleDateString('en-US', {
                 weekday: 'long',
@@ -7409,6 +7451,10 @@
                     </div>
                 </div>
             `;
+
+            console.log('✅ [renderLiveStatusDisplay] Display rendered successfully');
+            console.log('✅ [renderLiveStatusDisplay] Displayed status:', roomData.current_status.toUpperCase());
+            console.log('✅ [renderLiveStatusDisplay] Background color:', statusColor.bg);
         }
 
         // Render Text Only Display
