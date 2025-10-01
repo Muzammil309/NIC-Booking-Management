@@ -825,7 +825,8 @@
 
                 <!-- Room Status Tab -->
                 <div id="room-status-tab" class="room-display-tab-content">
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" id="room-status-grid">
+                    <!-- UPDATED: Fixed 3x3 grid layout for 9 rooms - clean modern UI -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-7xl mx-auto" id="room-status-grid">
                         <div class="text-center text-gray-500 py-8 col-span-full">Loading room displays...</div>
                     </div>
                 </div>
@@ -4341,6 +4342,8 @@
             if (!roomCardsContainer) return;
 
             try {
+                console.log('🔄 [renderRoomStatusDashboard] Starting to render room status dashboard...');
+
                 // Show loading state
                 roomCardsContainer.innerHTML = `
                     <div class="col-span-full text-center py-8">
@@ -4353,6 +4356,14 @@
                 const now = new Date();
                 const currentDate = now.toISOString().split('T')[0];
                 const currentTime = now.toTimeString().split(' ')[0].substring(0, 5);
+
+                console.log(`📅 [renderRoomStatusDashboard] Current date: ${currentDate}, time: ${currentTime}`);
+                console.log(`📊 [renderRoomStatusDashboard] Total rooms in availableRooms array: ${availableRooms.length}`);
+
+                // Log all rooms
+                availableRooms.forEach((room, index) => {
+                    console.log(`   ${index + 1}. ${room.name} (capacity: ${room.capacity}, type: ${room.type})`);
+                });
 
                 // Load today's bookings with enhanced error handling
                 let todaysBookings = [];
@@ -5992,16 +6003,17 @@
         // ===== ENHANCED ROOM MANAGEMENT SYSTEM =====
 
         // Room data from reference file with enhanced features
+        // UPDATED: Added Hub room and updated capacities to match database
         const availableRooms = [
-            { name: 'HUB (Focus Room)', maxDuration: 2, requiresEquipment: false, type: 'focus', capacity: 6, equipment: ['Desk Setup'] },
-            { name: 'Hingol (Focus Room)', maxDuration: 2, requiresEquipment: false, type: 'focus', capacity: 6, equipment: ['Desk Setup'] },
-            { name: 'Telenor Velocity Room', maxDuration: 2, requiresEquipment: false, type: 'special', capacity: 4, equipment: ['Video Conference'] },
-            { name: 'Sutlej (Focus Room)', maxDuration: 2, requiresEquipment: false, type: 'focus', capacity: 6, equipment: ['Desk Setup'] },
-            { name: 'Chenab (Focus Room)', maxDuration: 2, requiresEquipment: false, type: 'focus', capacity: 6, equipment: ['Desk Setup'] },
-            { name: 'Jhelum (Focus Room)', maxDuration: 2, requiresEquipment: false, type: 'focus', capacity: 6, equipment: ['Desk Setup'] },
-            { name: 'Indus-Board Room', maxDuration: 8, requiresEquipment: false, type: 'special', capacity: 25, equipment: ['Large Screen', 'Video Conference', 'Projector', 'Presentation Setup'] },
-            { name: 'Nexus-Session Hall', maxDuration: 8, requiresEquipment: false, type: 'special', capacity: 50, equipment: ['Audio System', 'Projector', 'Stage Setup', 'Microphones'] },
-            { name: 'Podcast Room', maxDuration: 8, requiresEquipment: true, type: 'special', capacity: 4, equipment: ['Recording Equipment', 'Soundproofing', 'Microphones', 'Audio Interface'] }
+            { name: 'Hub', maxDuration: 2, requiresEquipment: false, type: 'focus', capacity: 6, equipment: ['Desk Setup'] },
+            { name: 'Hingol', maxDuration: 2, requiresEquipment: false, type: 'focus', capacity: 6, equipment: ['Desk Setup'] },
+            { name: 'Telenor Velocity', maxDuration: 2, requiresEquipment: false, type: 'focus', capacity: 4, equipment: ['Video Conference'] },
+            { name: 'Sutlej', maxDuration: 2, requiresEquipment: false, type: 'focus', capacity: 6, equipment: ['Desk Setup'] },
+            { name: 'Chenab', maxDuration: 2, requiresEquipment: false, type: 'focus', capacity: 6, equipment: ['Desk Setup'] },
+            { name: 'Jhelum', maxDuration: 2, requiresEquipment: false, type: 'focus', capacity: 6, equipment: ['Desk Setup'] },
+            { name: 'Indus Board', maxDuration: 8, requiresEquipment: false, type: 'board', capacity: 25, equipment: ['Large Screen', 'Video Conference', 'Projector', 'Presentation Setup'] },
+            { name: 'Nexus Session Hall', maxDuration: 8, requiresEquipment: false, type: 'session', capacity: 50, equipment: ['Audio System', 'Projector', 'Stage Setup', 'Microphones'] },
+            { name: 'Podcast Room', maxDuration: 8, requiresEquipment: true, type: 'podcast', capacity: 4, equipment: ['Recording Equipment', 'Soundproofing', 'Microphones', 'Audio Interface'] }
         ];
 
         // Enhanced booking limits system
@@ -6435,18 +6447,21 @@
                 console.log('🔄 [loadRoomStatusDisplays] Loading room displays from database...');
                 grid.innerHTML = '<div class="text-center text-gray-500 py-8 col-span-full">Loading room displays...</div>';
 
-                // ISSUE 2 FIX: First, verify database has correct capacities
-                console.log('🔍 [loadRoomStatusDisplays] Verifying room capacities in database...');
-                const { data: verifyRooms, error: verifyError } = await supabaseClient
+                // ENHANCED LOGGING: Fetch all rooms from database to verify Hub room exists
+                console.log('🔍 [loadRoomStatusDisplays] Fetching all active rooms from database...');
+                const { data: allRooms, error: allRoomsError } = await supabaseClient
                     .from('rooms')
-                    .select('name, capacity, max_duration, status')
-                    .in('name', ['Nexus-Session Hall', 'Indus-Board Room', 'Podcast Room']);
+                    .select('id, name, capacity, room_type, status, is_active')
+                    .eq('is_active', true)
+                    .order('name');
 
-                if (!verifyError && verifyRooms) {
-                    console.log('📊 [loadRoomStatusDisplays] Database verification:');
-                    verifyRooms.forEach(room => {
-                        console.log(`   ${room.name}: capacity = ${room.capacity}, max_duration = ${room.max_duration}, status = ${room.status}`);
+                if (!allRoomsError && allRooms) {
+                    console.log(`📊 [loadRoomStatusDisplays] Total active rooms in database: ${allRooms.length}`);
+                    allRooms.forEach((room, index) => {
+                        console.log(`   ${index + 1}. ${room.name} (capacity: ${room.capacity}, type: ${room.room_type}, status: ${room.status})`);
                     });
+                } else {
+                    console.error('❌ [loadRoomStatusDisplays] Error fetching all rooms:', allRoomsError);
                 }
 
                 const { data: roomDisplays, error } = await supabaseClient
@@ -6462,27 +6477,29 @@
                             status
                         )
                     `)
-                    .eq('is_enabled', true);
+                    .eq('is_enabled', true)
+                    .order('rooms(name)');
 
                 if (error) {
                     console.error('❌ [loadRoomStatusDisplays] Database error:', error);
                     throw error;
                 }
 
-                console.log('✅ [loadRoomStatusDisplays] Fetched room displays:', roomDisplays);
+                console.log(`✅ [loadRoomStatusDisplays] Fetched ${roomDisplays.length} room displays from room_displays table`);
 
-                // Log capacities from database
-                roomDisplays.forEach(display => {
-                    console.log(`📊 [loadRoomStatusDisplays] ${display.rooms.name}: capacity = ${display.rooms.capacity} (from database)`);
+                // Log each room display
+                roomDisplays.forEach((display, index) => {
+                    console.log(`   ${index + 1}. ${display.rooms.name}: capacity = ${display.rooms.capacity}, type = ${display.rooms.room_type}`);
                 });
 
                 if (roomDisplays.length === 0) {
-                    grid.innerHTML = '<div class="text-center text-gray-500 py-8 col-span-full">No room displays found</div>';
+                    console.warn('⚠️ [loadRoomStatusDisplays] No room displays found in room_displays table');
+                    grid.innerHTML = '<div class="text-center text-gray-500 py-8 col-span-full">No room displays found. Please create room display entries.</div>';
                     return;
                 }
 
                 grid.innerHTML = roomDisplays.map(display => createRoomDisplayCard(display)).join('');
-                console.log('✅ [loadRoomStatusDisplays] Room display cards rendered');
+                console.log(`✅ [loadRoomStatusDisplays] Rendered ${roomDisplays.length} room display cards in 3x3 grid layout`);
 
             } catch (error) {
                 console.error('❌ [loadRoomStatusDisplays] Error:', error);
