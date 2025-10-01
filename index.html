@@ -1443,6 +1443,61 @@
         </div>
     </div>
 
+    <!-- Configure Display Modal -->
+    <div id="configure-display-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-2xl">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold text-gray-800">Configure Room Display</h2>
+                <button id="configure-modal-close" class="text-gray-400 hover:text-gray-600">
+                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            <form id="configure-display-form" class="space-y-6">
+                <input type="hidden" id="configure-display-id">
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Display Name</label>
+                    <input type="text" id="configure-display-name" class="w-full border border-gray-300 rounded-lg px-3 py-2" required>
+                    <p class="text-xs text-gray-500 mt-1">The name shown on the display screen</p>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Status Message</label>
+                    <textarea id="configure-status-message" class="w-full border border-gray-300 rounded-lg px-3 py-2" rows="3" placeholder="Enter a custom message to display..."></textarea>
+                    <p class="text-xs text-gray-500 mt-1">Optional message to show on the display</p>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Current Status</label>
+                    <select id="configure-current-status" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+                        <option value="available">Available</option>
+                        <option value="occupied">Occupied</option>
+                        <option value="maintenance">Maintenance</option>
+                        <option value="reserved">Reserved</option>
+                    </select>
+                </div>
+
+                <div class="flex items-center">
+                    <input type="checkbox" id="configure-is-enabled" class="h-4 w-4 text-green-600 rounded border-gray-300 focus:ring-green-500">
+                    <label for="configure-is-enabled" class="ml-2 text-sm text-gray-700">Display Enabled</label>
+                    <p class="ml-2 text-xs text-gray-500">(Uncheck to temporarily disable this display)</p>
+                </div>
+
+                <div class="flex justify-end space-x-4 pt-4 border-t border-gray-200">
+                    <button type="button" id="configure-cancel-btn" class="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition duration-200">
+                        Cancel
+                    </button>
+                    <button type="submit" class="px-6 py-2 btn-primary rounded-lg text-white hover:bg-opacity-90 transition duration-200">
+                        Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Schedule Content Modal -->
     <div id="schedule-content-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
         <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-lg">
@@ -6422,19 +6477,38 @@
         }
 
         async function uploadFileToSupabase(file, contentType) {
+            console.log('📤 [uploadFileToSupabase] Starting upload...');
+            console.log('   File name:', file.name);
+            console.log('   File size:', (file.size / 1024 / 1024).toFixed(2), 'MB');
+            console.log('   File type:', file.type);
+            console.log('   Content type:', contentType);
+
             const fileExt = file.name.split('.').pop();
             const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
             const filePath = `${contentType}s/${fileName}`;
 
+            console.log('📤 [uploadFileToSupabase] Bucket: room-displays');
+            console.log('📤 [uploadFileToSupabase] Path:', filePath);
+
             const { data, error } = await supabaseClient.storage
                 .from('room-displays')
-                .upload(filePath, file);
+                .upload(filePath, file, {
+                    cacheControl: '3600',
+                    upsert: false
+                });
 
-            if (error) throw error;
+            if (error) {
+                console.error('❌ [uploadFileToSupabase] Upload failed:', error);
+                throw error;
+            }
+
+            console.log('✅ [uploadFileToSupabase] Upload successful:', data);
 
             const { data: urlData } = supabaseClient.storage
                 .from('room-displays')
                 .getPublicUrl(filePath);
+
+            console.log('✅ [uploadFileToSupabase] Public URL:', urlData.publicUrl);
 
             return urlData.publicUrl;
         }
@@ -6578,6 +6652,103 @@
                 </div>
             `;
         }
+
+        // ISSUE 1 FIX: Configure Display Settings
+        window.openDisplaySettings = async function(displayId) {
+            console.log('🔧 [openDisplaySettings] Opening configuration for display:', displayId);
+
+            try {
+                // Fetch current display settings
+                const { data: display, error } = await supabaseClient
+                    .from('room_displays')
+                    .select(`
+                        *,
+                        rooms (name)
+                    `)
+                    .eq('id', displayId)
+                    .single();
+
+                if (error) throw error;
+
+                console.log('✅ [openDisplaySettings] Loaded display data:', display);
+                console.log('   Display Name:', display.display_name);
+                console.log('   Room Name:', display.rooms.name);
+                console.log('   Current Status:', display.current_status);
+                console.log('   Is Enabled:', display.is_enabled);
+
+                // Populate form
+                document.getElementById('configure-display-id').value = displayId;
+                document.getElementById('configure-display-name').value = display.display_name || '';
+                document.getElementById('configure-status-message').value = display.status_message || '';
+                document.getElementById('configure-current-status').value = display.current_status || 'available';
+                document.getElementById('configure-is-enabled').checked = display.is_enabled;
+
+                // Show modal
+                document.getElementById('configure-display-modal').classList.remove('hidden');
+
+            } catch (error) {
+                console.error('❌ [openDisplaySettings] Error:', error);
+                showNotification('Failed to load display settings: ' + error.message, 'error');
+            }
+        };
+
+        async function saveDisplaySettings(e) {
+            e.preventDefault();
+
+            const displayId = document.getElementById('configure-display-id').value;
+            const displayName = document.getElementById('configure-display-name').value;
+            const statusMessage = document.getElementById('configure-status-message').value;
+            const currentStatus = document.getElementById('configure-current-status').value;
+            const isEnabled = document.getElementById('configure-is-enabled').checked;
+
+            console.log('💾 [saveDisplaySettings] Saving configuration for display:', displayId);
+            console.log('   Display Name:', displayName);
+            console.log('   Status Message:', statusMessage);
+            console.log('   Current Status:', currentStatus);
+            console.log('   Is Enabled:', isEnabled);
+
+            try {
+                const { error } = await supabaseClient
+                    .from('room_displays')
+                    .update({
+                        display_name: displayName,
+                        status_message: statusMessage,
+                        current_status: currentStatus,
+                        is_enabled: isEnabled,
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', displayId);
+
+                if (error) throw error;
+
+                console.log('✅ [saveDisplaySettings] Settings saved successfully');
+                showNotification('Display settings updated successfully!', 'success');
+
+                // Close modal
+                document.getElementById('configure-display-modal').classList.add('hidden');
+
+                // Refresh room displays
+                console.log('🔄 [saveDisplaySettings] Refreshing room displays...');
+                await loadRoomStatusDisplays();
+
+            } catch (error) {
+                console.error('❌ [saveDisplaySettings] Error:', error);
+                showNotification('Failed to save settings: ' + error.message, 'error');
+            }
+        }
+
+        // Add event listeners for configure modal
+        document.getElementById('configure-modal-close')?.addEventListener('click', () => {
+            console.log('🔧 [Configure Modal] Closing modal (X button)');
+            document.getElementById('configure-display-modal').classList.add('hidden');
+        });
+
+        document.getElementById('configure-cancel-btn')?.addEventListener('click', () => {
+            console.log('🔧 [Configure Modal] Closing modal (Cancel button)');
+            document.getElementById('configure-display-modal').classList.add('hidden');
+        });
+
+        document.getElementById('configure-display-form')?.addEventListener('submit', saveDisplaySettings);
 
         // Update Room Status (ISSUE 3 FIX: Room Status Management)
         async function updateRoomStatus(roomId, newStatus) {
