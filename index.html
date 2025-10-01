@@ -1651,11 +1651,12 @@
                 </button>
             </div>
 
-            <div class="p-6">
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- ISSUE 2 FIX: Responsive layout with proper spacing -->
+            <div class="p-4 md:p-6">
+                <div class="flex flex-col lg:flex-row gap-4 md:gap-6">
                     <!-- Live Preview Display -->
-                    <div class="lg:col-span-2">
-                        <div class="bg-gray-900 rounded-lg p-6 text-white min-h-[400px]" id="room-display-preview">
+                    <div class="flex-1 lg:w-2/3">
+                        <div class="bg-gray-900 rounded-lg p-4 md:p-6 text-white min-h-[300px] md:min-h-[400px]" id="room-display-preview">
                             <!-- Room display content will be rendered here -->
                             <div class="text-center text-gray-400 py-20">
                                 Loading room display preview...
@@ -1663,21 +1664,21 @@
                         </div>
 
                         <!-- Display Mode Controls -->
-                        <div class="mt-4 flex justify-center space-x-4" data-admin-only>
-                            <button class="preview-mode-btn active px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium" data-mode="live">
+                        <div class="mt-4 flex flex-wrap justify-center gap-2 md:gap-4" data-admin-only>
+                            <button class="preview-mode-btn active px-3 md:px-4 py-2 rounded-lg bg-blue-600 text-white text-xs md:text-sm font-medium" data-mode="live">
                                 Live Status
                             </button>
-                            <button class="preview-mode-btn px-4 py-2 rounded-lg bg-gray-200 text-gray-700 text-sm font-medium hover:bg-gray-300" data-mode="text">
+                            <button class="preview-mode-btn px-3 md:px-4 py-2 rounded-lg bg-gray-200 text-gray-700 text-xs md:text-sm font-medium hover:bg-gray-300" data-mode="text">
                                 Text Only
                             </button>
-                            <button class="preview-mode-btn px-4 py-2 rounded-lg bg-gray-200 text-gray-700 text-sm font-medium hover:bg-gray-300" data-mode="image">
+                            <button class="preview-mode-btn px-3 md:px-4 py-2 rounded-lg bg-gray-200 text-gray-700 text-xs md:text-sm font-medium hover:bg-gray-300" data-mode="image">
                                 Image Mode
                             </button>
                         </div>
                     </div>
 
-                    <!-- Control Panel -->
-                    <div class="space-y-6">
+                    <!-- Control Panel - ISSUE 2 FIX: Responsive width -->
+                    <div class="w-full lg:w-1/3 space-y-4 md:space-y-6">
                         <!-- Room Status Control -->
                         <div class="bg-gray-50 rounded-lg p-4" data-admin-only>
                             <h3 class="text-lg font-semibold text-gray-900 mb-4">Room Status Control</h3>
@@ -1915,16 +1916,30 @@
         // ===== DASHBOARD DATA LOADING =====
         async function loadDashboardData() {
             try {
-                console.log('Loading dashboard statistics...');
+                console.log('🔄 [loadDashboardData] Loading dashboard statistics...');
 
-                // Load total startups count
-                const { count: startupsCount, error: startupsError } = await supabaseClient
+                // ISSUE 3 FIX: Load UNIQUE startups count (not individual users)
+                // Count distinct startup organizations, not individual users
+                const { data: startupsData, error: startupsError } = await supabaseClient
                     .from('startups')
-                    .select('*', { count: 'exact', head: true });
+                    .select('id, name');
 
                 if (startupsError) {
-                    console.error('Error loading startups count:', startupsError);
+                    console.error('❌ [loadDashboardData] Error loading startups:', startupsError);
                 }
+
+                // Count unique startups by name (e.g., "NIC ADMIN" counts as 1 even if 6 users)
+                const uniqueStartups = new Set();
+                if (startupsData) {
+                    startupsData.forEach(startup => {
+                        uniqueStartups.add(startup.name);
+                    });
+                }
+                const startupsCount = uniqueStartups.size;
+
+                console.log('📊 [loadDashboardData] Total startup entries in database:', startupsData?.length || 0);
+                console.log('📊 [loadDashboardData] Unique startups (by name):', startupsCount);
+                console.log('📊 [loadDashboardData] Unique startup names:', Array.from(uniqueStartups));
 
                 // Load upcoming bookings count (future bookings)
                 const { count: upcomingCount, error: upcomingError } = await supabaseClient
@@ -7455,28 +7470,82 @@
             }
         });
 
-        // Update Status Button
+        // ISSUE 1 FIX: Update Status Button in Preview Modal
         document.getElementById('update-preview-status')?.addEventListener('click', async () => {
             const newStatus = document.getElementById('preview-status-select').value;
             const statusMessage = document.getElementById('preview-status-message').value;
 
             try {
-                const { error } = await supabaseClient.rpc('update_room_display_status', {
-                    room_name_param: currentPreviewRoom,
-                    new_status: newStatus,
-                    status_message_param: statusMessage || null
-                });
+                console.log('🔄 [update-preview-status] Starting status update...');
+                console.log('🔄 [update-preview-status] Room:', currentPreviewRoom);
+                console.log('🔄 [update-preview-status] New status:', newStatus);
+                console.log('🔄 [update-preview-status] Status message:', statusMessage);
 
-                if (error) throw error;
+                // ISSUE 1 FIX: Update room status directly instead of using RPC function
+                // First, get the room ID from the room name
+                const { data: roomData, error: roomError } = await supabaseClient
+                    .from('rooms')
+                    .select('id')
+                    .eq('name', currentPreviewRoom)
+                    .single();
+
+                if (roomError) {
+                    console.error('❌ [update-preview-status] Error fetching room:', roomError);
+                    throw roomError;
+                }
+
+                console.log('✅ [update-preview-status] Room ID:', roomData.id);
+
+                // Update room status in rooms table
+                const { data: updateData, error: updateError } = await supabaseClient
+                    .from('rooms')
+                    .update({
+                        status: newStatus,
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', roomData.id)
+                    .select();
+
+                if (updateError) {
+                    console.error('❌ [update-preview-status] Error updating room:', updateError);
+                    console.error('❌ [update-preview-status] Error details:', {
+                        message: updateError.message,
+                        details: updateError.details,
+                        hint: updateError.hint,
+                        code: updateError.code
+                    });
+                    throw updateError;
+                }
+
+                console.log('✅ [update-preview-status] Room status updated:', updateData);
+
+                // Update room_displays table if status message is provided
+                if (statusMessage) {
+                    const { error: displayError } = await supabaseClient
+                        .from('room_displays')
+                        .update({
+                            status_message: statusMessage,
+                            last_updated: new Date().toISOString()
+                        })
+                        .eq('id', currentPreviewDisplayId);
+
+                    if (displayError) {
+                        console.warn('⚠️ [update-preview-status] Error updating display message:', displayError);
+                    } else {
+                        console.log('✅ [update-preview-status] Display message updated');
+                    }
+                }
 
                 showNotification('Room status updated successfully', 'success');
 
                 // Refresh preview data
+                console.log('🔄 [update-preview-status] Refreshing preview data...');
                 await loadRoomDisplayStatus();
                 renderDisplayPreview();
 
                 // Refresh main room displays if visible
                 if (!document.getElementById('room-status-tab').classList.contains('hidden')) {
+                    console.log('🔄 [update-preview-status] Refreshing main room displays...');
                     loadRoomStatusDisplays();
                 }
 
