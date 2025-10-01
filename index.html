@@ -1774,6 +1774,163 @@
         let allBookings = [];
         let allStartups = [];
 
+        // Real-time subscription channels
+        let usersChannel = null;
+        let startupsChannel = null;
+
+        // ===== REAL-TIME DATABASE SYNCHRONIZATION =====
+
+        /**
+         * Set up real-time subscriptions for database changes
+         * This enables automatic UI updates when data changes in Supabase
+         */
+        function setupRealtimeSubscriptions() {
+            console.log('🔄 [Realtime] Setting up real-time subscriptions...');
+
+            // Unsubscribe from existing channels if any
+            if (usersChannel) {
+                supabaseClient.removeChannel(usersChannel);
+                usersChannel = null;
+            }
+            if (startupsChannel) {
+                supabaseClient.removeChannel(startupsChannel);
+                startupsChannel = null;
+            }
+
+            // Subscribe to users table changes
+            usersChannel = supabaseClient
+                .channel('users-changes')
+                .on(
+                    'postgres_changes',
+                    {
+                        event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
+                        schema: 'public',
+                        table: 'users'
+                    },
+                    (payload) => {
+                        console.log('🔔 [Realtime] Users table changed:', payload);
+                        handleUsersTableChange(payload);
+                    }
+                )
+                .subscribe((status) => {
+                    if (status === 'SUBSCRIBED') {
+                        console.log('✅ [Realtime] Subscribed to users table changes');
+                    } else if (status === 'CHANNEL_ERROR') {
+                        console.error('❌ [Realtime] Error subscribing to users table');
+                    }
+                });
+
+            // Subscribe to startups table changes
+            startupsChannel = supabaseClient
+                .channel('startups-changes')
+                .on(
+                    'postgres_changes',
+                    {
+                        event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
+                        schema: 'public',
+                        table: 'startups'
+                    },
+                    (payload) => {
+                        console.log('🔔 [Realtime] Startups table changed:', payload);
+                        handleStartupsTableChange(payload);
+                    }
+                )
+                .subscribe((status) => {
+                    if (status === 'SUBSCRIBED') {
+                        console.log('✅ [Realtime] Subscribed to startups table changes');
+                    } else if (status === 'CHANNEL_ERROR') {
+                        console.error('❌ [Realtime] Error subscribing to startups table');
+                    }
+                });
+        }
+
+        /**
+         * Handle changes to the users table
+         * Refreshes Contact Us tab (for admin users) and Startups tab (User Management section)
+         */
+        async function handleUsersTableChange(payload) {
+            const { eventType, old: oldRecord, new: newRecord } = payload;
+
+            console.log('🔄 [Realtime] Users table event:', eventType);
+
+            if (eventType === 'INSERT') {
+                console.log('🔄 [Realtime] User created:', newRecord);
+            } else if (eventType === 'UPDATE') {
+                console.log('🔄 [Realtime] User updated:', newRecord);
+            } else if (eventType === 'DELETE') {
+                console.log('🔄 [Realtime] User deleted:', oldRecord);
+            }
+
+            // Refresh Contact Us tab if it's currently visible
+            const contactPage = document.getElementById('contact');
+            if (contactPage && !contactPage.classList.contains('hidden')) {
+                console.log('🔄 [Contact Us] Refreshing admin contacts...');
+                await loadContactData();
+                console.log('✅ [Contact Us] Admin contacts updated');
+            }
+
+            // Refresh Startups tab if it's currently visible and user is admin
+            const startupsPage = document.getElementById('startups');
+            if (startupsPage && !startupsPage.classList.contains('hidden') && currentUser?.role === 'admin') {
+                console.log('🔄 [Startups] Refreshing user management...');
+                await loadStartupsData();
+                console.log('✅ [Startups] User management updated');
+            }
+        }
+
+        /**
+         * Handle changes to the startups table
+         * Refreshes Startups tab (Registered Startups section) and Contact Us tab (for admin view)
+         */
+        async function handleStartupsTableChange(payload) {
+            const { eventType, old: oldRecord, new: newRecord } = payload;
+
+            console.log('🔄 [Realtime] Startups table event:', eventType);
+
+            if (eventType === 'INSERT') {
+                console.log('🔄 [Realtime] Startup created:', newRecord);
+            } else if (eventType === 'UPDATE') {
+                console.log('🔄 [Realtime] Startup updated:', newRecord);
+            } else if (eventType === 'DELETE') {
+                console.log('🔄 [Realtime] Startup deleted:', oldRecord);
+            }
+
+            // Refresh Startups tab if it's currently visible and user is admin
+            const startupsPage = document.getElementById('startups');
+            if (startupsPage && !startupsPage.classList.contains('hidden') && currentUser?.role === 'admin') {
+                console.log('🔄 [Startups] Refreshing registered startups...');
+                await loadStartupsData();
+                console.log('✅ [Startups] Registered startups updated');
+            }
+
+            // Refresh Contact Us tab if it's currently visible (admin view shows startups list)
+            const contactPage = document.getElementById('contact');
+            if (contactPage && !contactPage.classList.contains('hidden') && currentUser?.role === 'admin') {
+                console.log('🔄 [Contact Us] Refreshing startups list...');
+                await loadContactData();
+                console.log('✅ [Contact Us] Startups list updated');
+            }
+        }
+
+        /**
+         * Clean up real-time subscriptions when user logs out
+         */
+        function cleanupRealtimeSubscriptions() {
+            console.log('🔄 [Realtime] Cleaning up subscriptions...');
+
+            if (usersChannel) {
+                supabaseClient.removeChannel(usersChannel);
+                usersChannel = null;
+                console.log('✅ [Realtime] Users channel unsubscribed');
+            }
+
+            if (startupsChannel) {
+                supabaseClient.removeChannel(startupsChannel);
+                startupsChannel = null;
+                console.log('✅ [Realtime] Startups channel unsubscribed');
+            }
+        }
+
         // ===== UI ENHANCEMENT FUNCTIONS =====
         const triggerConfetti = () => {
             const container = document.getElementById('confetti-container');
@@ -2956,6 +3113,10 @@
                 // Update UI based on user role
                 updateUIForUserRole(currentUser.role);
 
+                // Set up real-time database synchronization
+                console.log('🔄 Setting up real-time subscriptions...');
+                setupRealtimeSubscriptions();
+
                 // Load initial page data
                 const currentHash = window.location.hash || '#dashboard';
                 showPage(currentHash);
@@ -3043,6 +3204,8 @@
                 showApp();
                 bootstrapData(session.user);
             } else {
+                // Clean up real-time subscriptions when user logs out
+                cleanupRealtimeSubscriptions();
                 showAuth('login');
             }
         });
@@ -3187,6 +3350,10 @@
         const logoutBtn = document.getElementById('logout-btn');
         logoutBtn?.addEventListener('click', async () => {
             console.log('User logging out...');
+
+            // Clean up real-time subscriptions
+            cleanupRealtimeSubscriptions();
+
             await supabaseClient.auth.signOut();
             currentUser = null;
             currentStartup = null;
