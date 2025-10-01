@@ -3424,16 +3424,56 @@
 
         window.adminCancelBooking = async function(bookingId) {
             try {
-                if (currentUser?.role !== 'admin') return alert('Only admins can cancel bookings.');
+                console.log('🔄 [adminCancelBooking] Starting cancellation for booking:', bookingId);
+
+                if (currentUser?.role !== 'admin') {
+                    console.error('❌ [adminCancelBooking] User is not admin');
+                    return alert('Only admins can cancel bookings.');
+                }
+
                 const reason = prompt('Enter a reason for cancellation (optional):', 'Admin cancelled');
-                if (reason === null) return;
-                const { data, error } = await supabaseClient.rpc('cancel_booking_admin', { p_booking_id: bookingId, p_reason: reason });
-                if (error) throw error;
+                if (reason === null) {
+                    console.log('⚠️ [adminCancelBooking] User cancelled the action');
+                    return;
+                }
+
+                console.log('🔄 [adminCancelBooking] Deleting booking from database...');
+                console.log('🔄 [adminCancelBooking] Booking ID:', bookingId);
+
+                // ISSUE 3 FIX: Use direct DELETE instead of RPC function
+                const { data, error } = await supabaseClient
+                    .from('bookings')
+                    .delete()
+                    .eq('id', bookingId)
+                    .select();
+
+                if (error) {
+                    console.error('❌ [adminCancelBooking] Database error:', error);
+                    console.error('❌ [adminCancelBooking] Error details:', {
+                        message: error.message,
+                        details: error.details,
+                        hint: error.hint,
+                        code: error.code
+                    });
+                    throw error;
+                }
+
+                if (!data || data.length === 0) {
+                    console.warn('⚠️ [adminCancelBooking] No rows deleted - booking may not exist or RLS policy blocking');
+                    showNotification('Booking cancellation failed - no rows affected', 'error');
+                    return;
+                }
+
+                console.log('✅ [adminCancelBooking] Booking deleted successfully:', data);
                 showNotification('Booking cancelled successfully', 'success');
+
+                console.log('🔄 [adminCancelBooking] Reloading booking lists...');
                 await loadAdminBookingsData();
                 await loadMyBookingsData();
+
+                console.log('✅ [adminCancelBooking] Complete!');
             } catch (e) {
-                console.error('adminCancelBooking error', e);
+                console.error('❌ [adminCancelBooking] Exception:', e);
                 showNotification('Failed to cancel booking: ' + e.message, 'error');
             }
         }
@@ -6499,7 +6539,7 @@
         setInterval(syncRoomStatusWithBookings, 60000); // Every 60 seconds
         console.log('✅ Room status sync scheduled (every 60 seconds)');
 
-        // ISSUE 3: Admin Booking Management - Cancel Booking
+        // ISSUE 3 FIX: Admin Booking Management - Cancel Booking
         async function cancelCurrentBooking(roomName, bookingDate, startTime) {
             try {
                 console.log(`🔄 [cancelCurrentBooking] Room: ${roomName}, Date: ${bookingDate}, Time: ${startTime}`);
@@ -6520,21 +6560,34 @@
 
                 console.log('🔄 [cancelCurrentBooking] Deleting booking from database...');
 
-                // Delete the booking from database
-                const { error } = await supabaseClient
+                // ISSUE 3 FIX: Enhanced logging and error handling
+                const { data, error } = await supabaseClient
                     .from('bookings')
                     .delete()
                     .eq('room_name', roomName)
                     .eq('booking_date', bookingDate)
-                    .eq('start_time', startTime);
+                    .eq('start_time', startTime)
+                    .select();
 
                 if (error) {
                     console.error('❌ [cancelCurrentBooking] Database error:', error);
+                    console.error('❌ [cancelCurrentBooking] Error details:', {
+                        message: error.message,
+                        details: error.details,
+                        hint: error.hint,
+                        code: error.code
+                    });
                     showMessage(`Failed to cancel booking: ${error.message}`, 'error');
                     return;
                 }
 
-                console.log('✅ [cancelCurrentBooking] Booking deleted successfully');
+                if (!data || data.length === 0) {
+                    console.warn('⚠️ [cancelCurrentBooking] No rows deleted - booking may not exist or RLS policy blocking');
+                    showMessage('Booking cancellation failed - no rows affected', 'error');
+                    return;
+                }
+
+                console.log('✅ [cancelCurrentBooking] Booking deleted successfully:', data);
                 showMessage('Booking cancelled successfully', 'success');
 
                 // Sync room status (will set to available)
