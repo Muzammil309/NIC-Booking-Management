@@ -721,10 +721,48 @@
                             <span class="px-2 py-1 text-xs rounded bg-blue-100 text-blue-700 font-medium">Admin</span>
                         </div>
                         <div class="bg-white rounded-lg border border-gray-200">
-                            <div class="p-4 border-b border-gray-200 flex items-center justify-between">
-                                <div class="text-sm text-gray-600">View, cancel, or reschedule any booking</div>
-                                <button id="refresh-admin-bookings" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded text-sm">Refresh</button>
+                            <!-- Search and Filter Section -->
+                            <div class="p-4 border-b border-gray-200 bg-gray-50">
+                                <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+                                    <input type="text" id="admin-search-startup" placeholder="Search by startup..." class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500">
+                                    <select id="admin-filter-room" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500">
+                                        <option value="">All Rooms</option>
+                                        <option value="Hub">Hub</option>
+                                        <option value="Hingol">Hingol</option>
+                                        <option value="Telenor Velocity">Telenor Velocity</option>
+                                        <option value="Sutlej">Sutlej</option>
+                                        <option value="Chenab">Chenab</option>
+                                        <option value="Jhelum">Jhelum</option>
+                                        <option value="Indus Board">Indus Board</option>
+                                        <option value="Nexus Session Hall">Nexus Session Hall</option>
+                                        <option value="Podcast Room">Podcast Room</option>
+                                    </select>
+                                    <select id="admin-filter-status" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500">
+                                        <option value="">All Statuses</option>
+                                        <option value="confirmed">Confirmed</option>
+                                        <option value="cancelled">Cancelled</option>
+                                        <option value="completed">Completed</option>
+                                    </select>
+                                    <button id="refresh-admin-bookings" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition duration-200">
+                                        <svg class="h-4 w-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                        </svg>
+                                        Refresh
+                                    </button>
+                                </div>
                             </div>
+
+                            <div class="p-4 border-b border-gray-200 flex items-center justify-between">
+                                <div class="text-sm text-gray-600">
+                                    <span id="admin-bookings-count">0</span> bookings found • Full CRUD access
+                                </div>
+                                <div class="text-xs text-gray-500">
+                                    <span class="inline-block w-3 h-3 bg-green-100 rounded mr-1"></span> Confirmed
+                                    <span class="inline-block w-3 h-3 bg-red-100 rounded ml-3 mr-1"></span> Cancelled
+                                    <span class="inline-block w-3 h-3 bg-gray-100 rounded ml-3 mr-1"></span> Completed
+                                </div>
+                            </div>
+
                             <div id="admin-bookings-list" class="divide-y divide-gray-100">
                                 <div class="text-center text-gray-500 py-8">Loading all bookings...</div>
                             </div>
@@ -1693,6 +1731,81 @@
                         Cancel
                     </button>
                     <button type="submit" class="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition duration-200">
+                        Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Booking Modal (Admin) -->
+    <div id="edit-booking-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl m-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center p-6 border-b border-gray-200">
+                <h2 class="text-2xl font-bold text-gray-800">Edit Booking</h2>
+                <button id="edit-booking-modal-close" class="text-gray-400 hover:text-gray-600">
+                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            <form id="edit-booking-form" class="p-6 space-y-6">
+                <input type="hidden" id="edit-booking-id">
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Room *</label>
+                        <select id="edit-booking-room" class="w-full border border-gray-300 rounded-lg px-3 py-2" required>
+                            <option value="">Select a room</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Status *</label>
+                        <select id="edit-booking-status" class="w-full border border-gray-300 rounded-lg px-3 py-2" required>
+                            <option value="confirmed">Confirmed</option>
+                            <option value="cancelled">Cancelled</option>
+                            <option value="completed">Completed</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Date *</label>
+                        <input type="date" id="edit-booking-date" class="w-full border border-gray-300 rounded-lg px-3 py-2" required>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Start Time *</label>
+                        <input type="time" id="edit-booking-time" class="w-full border border-gray-300 rounded-lg px-3 py-2" required>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Duration (hours) *</label>
+                        <input type="number" id="edit-booking-duration" min="1" max="8" class="w-full border border-gray-300 rounded-lg px-3 py-2" required>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Startup</label>
+                        <input type="text" id="edit-booking-startup" class="w-full border border-gray-300 rounded-lg px-3 py-2 bg-gray-50" readonly>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Equipment Notes</label>
+                    <textarea id="edit-booking-equipment" class="w-full border border-gray-300 rounded-lg px-3 py-2" rows="3" placeholder="Equipment requirements or notes..."></textarea>
+                </div>
+
+                <div class="flex items-center">
+                    <input type="checkbox" id="edit-booking-confidential" class="h-4 w-4 text-green-600 rounded border-gray-300 focus:ring-green-500">
+                    <label for="edit-booking-confidential" class="ml-2 text-sm text-gray-700">Confidential Meeting</label>
+                </div>
+
+                <div class="flex justify-end space-x-4 pt-4 border-t border-gray-200">
+                    <button type="button" id="edit-booking-cancel-btn" class="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition duration-200">
+                        Cancel
+                    </button>
+                    <button type="submit" class="px-6 py-2 btn-primary rounded-lg text-white hover:bg-opacity-90 transition duration-200">
                         Save Changes
                     </button>
                 </div>
@@ -2772,8 +2885,8 @@
             // Update room preview
             updateRoomPreview(room);
 
-            // Check if room has extended hours (using correct room names with hyphens)
-            const extendedHoursRooms = ['Indus-Board Room', 'Podcast Room', 'Nexus-Session Hall'];
+            // Check if room has extended hours (FIXED: using correct room names from database)
+            const extendedHoursRooms = ['Indus Board', 'Podcast Room', 'Nexus Session Hall'];
             const hasExtendedHours = extendedHoursRooms.includes(selectedRoomName);
             const maxDuration = hasExtendedHours ? 8 : 2;
 
@@ -3546,7 +3659,8 @@
             }
 
             // Validate duration limit based on room (standard: 2h, extended rooms: up to 8h)
-            const extendedRooms = ['Indus-Board Room', 'Podcast Room', 'Nexus-Session Hall'];
+            // FIXED: using correct room names from database
+            const extendedRooms = ['Indus Board', 'Podcast Room', 'Nexus Session Hall'];
             const maxAllowed = extendedRooms.includes(roomName) ? 8 : 2;
             if (duration > maxAllowed) {
                 showBookingBanner(`Maximum booking duration is ${maxAllowed} hours for ${roomName}.`, 'red');
@@ -3637,7 +3751,13 @@
 
         function renderAdminBookingsList(bookings, startupMap) {
             const list = document.getElementById('admin-bookings-list');
+            const countEl = document.getElementById('admin-bookings-count');
+
             if (!list) return;
+
+            // Update count
+            if (countEl) countEl.textContent = bookings.length;
+
             if (!bookings.length) {
                 list.innerHTML = '<div class="text-center text-gray-500 py-8">No bookings found.</div>';
                 return;
@@ -3647,20 +3767,66 @@
                 const s = startupMap[b.startup_id];
                 const startupName = s?.name || 'Unknown Startup';
                 const contact = s?.contact_person || '';
+                const statusColor = b.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                                   (b.status === 'confirmed' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800');
+                const confidentialBadge = b.is_confidential ? '<span class="ml-2 px-2 py-0.5 bg-purple-100 text-purple-700 text-xs rounded">🔒 Confidential</span>' : '';
+
                 return `
-                    <div class="p-4 flex items-start justify-between">
-                        <div>
-                            <div class="font-semibold text-gray-900">${b.room_name}</div>
-                            <div class="text-sm text-gray-700">${new Date(b.booking_date).toLocaleDateString()} • ${b.start_time} • ${b.duration}h</div>
-                            <div class="text-xs text-gray-500 mt-1">${startupName}${contact ? ' • ' + contact : ''}</div>
-                        </div>
-                        <div class="text-right">
-                            <div class="mb-2">
-                                <span class="inline-block px-2 py-1 rounded text-xs font-medium ${b.status === 'cancelled' ? 'bg-red-100 text-red-800' : (b.status === 'confirmed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800')}">${b.status}</span>
+                    <div class="p-4 hover:bg-gray-50 transition duration-150">
+                        <div class="flex items-start justify-between">
+                            <div class="flex-1">
+                                <div class="flex items-center mb-2">
+                                    <div class="font-semibold text-gray-900 text-lg">${b.room_name}</div>
+                                    ${confidentialBadge}
+                                </div>
+                                <div class="grid grid-cols-2 gap-2 text-sm text-gray-700 mb-2">
+                                    <div>
+                                        <svg class="h-4 w-4 inline mr-1 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                        </svg>
+                                        ${new Date(b.booking_date).toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}
+                                    </div>
+                                    <div>
+                                        <svg class="h-4 w-4 inline mr-1 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                        </svg>
+                                        ${b.start_time} • ${b.duration}h duration
+                                    </div>
+                                </div>
+                                <div class="text-xs text-gray-600">
+                                    <svg class="h-4 w-4 inline mr-1 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                                    </svg>
+                                    <strong>${startupName}</strong>${contact ? ' • ' + contact : ''}
+                                </div>
+                                <div class="text-xs text-gray-500 mt-1">
+                                    Booking ID: ${b.id.substring(0, 8)}...
+                                </div>
                             </div>
-                            <div class="space-x-2">
-                                <button class="px-3 py-1.5 rounded bg-gray-100 hover:bg-gray-200 text-sm" onclick="adminRescheduleBooking('${b.id}')" ${b.status === 'cancelled' ? 'disabled' : ''}>Reschedule</button>
-                                <button class="px-3 py-1.5 rounded bg-red-600 hover:bg-red-700 text-white text-sm" onclick="adminCancelBooking('${b.id}')" ${b.status === 'cancelled' ? 'disabled' : ''}>Cancel</button>
+                            <div class="text-right ml-4">
+                                <div class="mb-3">
+                                    <span class="inline-block px-3 py-1 rounded-full text-xs font-semibold ${statusColor}">${b.status.toUpperCase()}</span>
+                                </div>
+                                <div class="flex flex-col space-y-2">
+                                    <button class="px-3 py-1.5 rounded bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition duration-200 flex items-center justify-center" onclick="adminEditBooking('${b.id}')">
+                                        <svg class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                        </svg>
+                                        Edit
+                                    </button>
+                                    <button class="px-3 py-1.5 rounded bg-orange-600 hover:bg-orange-700 text-white text-sm font-medium transition duration-200 flex items-center justify-center" onclick="adminCancelBooking('${b.id}')" ${b.status === 'cancelled' ? 'disabled' : ''}>
+                                        <svg class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
+                                        </svg>
+                                        Cancel
+                                    </button>
+                                    <button class="px-3 py-1.5 rounded bg-red-600 hover:bg-red-700 text-white text-sm font-medium transition duration-200 flex items-center justify-center" onclick="adminDeleteBooking('${b.id}')">
+                                        <svg class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                        </svg>
+                                        Delete
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -3749,7 +3915,246 @@
             }
         }
 
+        // ===== ADMIN EDIT BOOKING =====
+        window.adminEditBooking = async function(bookingId) {
+            try {
+                console.log('🔧 [adminEditBooking] Opening edit modal for booking:', bookingId);
+
+                if (currentUser?.role !== 'admin') {
+                    console.error('❌ [adminEditBooking] User is not admin');
+                    return alert('Only admins can edit bookings.');
+                }
+
+                // Fetch booking details
+                const { data: booking, error } = await supabaseClient
+                    .from('bookings')
+                    .select(`
+                        *,
+                        startups (name, contact_person)
+                    `)
+                    .eq('id', bookingId)
+                    .single();
+
+                if (error) throw error;
+
+                console.log('✅ [adminEditBooking] Loaded booking:', booking);
+
+                // Populate room dropdown
+                const roomSelect = document.getElementById('edit-booking-room');
+                if (roomSelect) {
+                    roomSelect.innerHTML = '<option value="">Select a room</option>' +
+                        availableRooms.map(r => `<option value="${r.name}" ${r.name === booking.room_name ? 'selected' : ''}>${r.name}</option>`).join('');
+                }
+
+                // Populate form fields
+                document.getElementById('edit-booking-id').value = bookingId;
+                document.getElementById('edit-booking-room').value = booking.room_name || '';
+                document.getElementById('edit-booking-status').value = booking.status || 'confirmed';
+                document.getElementById('edit-booking-date').value = booking.booking_date || '';
+                document.getElementById('edit-booking-time').value = booking.start_time || '';
+                document.getElementById('edit-booking-duration').value = booking.duration || 1;
+                document.getElementById('edit-booking-startup').value = booking.startups?.name || 'Unknown Startup';
+                document.getElementById('edit-booking-equipment').value = booking.equipment_notes || '';
+                document.getElementById('edit-booking-confidential').checked = booking.is_confidential || false;
+
+                // Show modal
+                document.getElementById('edit-booking-modal').classList.remove('hidden');
+
+            } catch (error) {
+                console.error('❌ [adminEditBooking] Error:', error);
+                showNotification('Failed to load booking details: ' + error.message, 'error');
+            }
+        };
+
+        // Save edited booking
+        async function saveEditedBooking(e) {
+            e.preventDefault();
+
+            const bookingId = document.getElementById('edit-booking-id').value;
+            const roomName = document.getElementById('edit-booking-room').value;
+            const status = document.getElementById('edit-booking-status').value;
+            const bookingDate = document.getElementById('edit-booking-date').value;
+            const startTime = document.getElementById('edit-booking-time').value;
+            const duration = parseInt(document.getElementById('edit-booking-duration').value);
+            const equipmentNotes = document.getElementById('edit-booking-equipment').value;
+            const isConfidential = document.getElementById('edit-booking-confidential').checked;
+
+            console.log('💾 [saveEditedBooking] Saving changes for booking:', bookingId);
+            console.log('   Room:', roomName);
+            console.log('   Status:', status);
+            console.log('   Date:', bookingDate);
+            console.log('   Time:', startTime);
+            console.log('   Duration:', duration);
+
+            try {
+                const { error } = await supabaseClient
+                    .from('bookings')
+                    .update({
+                        room_name: roomName,
+                        status: status,
+                        booking_date: bookingDate,
+                        start_time: startTime,
+                        duration: duration,
+                        equipment_notes: equipmentNotes,
+                        is_confidential: isConfidential
+                    })
+                    .eq('id', bookingId);
+
+                if (error) throw error;
+
+                console.log('✅ [saveEditedBooking] Booking updated successfully');
+                showNotification('Booking updated successfully!', 'success');
+
+                // Close modal
+                document.getElementById('edit-booking-modal').classList.add('hidden');
+
+                // Refresh booking lists
+                console.log('🔄 [saveEditedBooking] Refreshing booking lists...');
+                await loadAdminBookingsData();
+                await loadMyBookingsData();
+
+            } catch (error) {
+                console.error('❌ [saveEditedBooking] Error:', error);
+                showNotification('Failed to update booking: ' + error.message, 'error');
+            }
+        }
+
+        // ===== ADMIN DELETE BOOKING (PERMANENT) =====
+        window.adminDeleteBooking = async function(bookingId) {
+            try {
+                console.log('🗑️ [adminDeleteBooking] Starting permanent deletion for booking:', bookingId);
+
+                if (currentUser?.role !== 'admin') {
+                    console.error('❌ [adminDeleteBooking] User is not admin');
+                    return alert('Only admins can delete bookings.');
+                }
+
+                // Strong confirmation
+                const confirmText = prompt(
+                    '⚠️ PERMANENT DELETION WARNING ⚠️\n\n' +
+                    'This will PERMANENTLY DELETE this booking from the database.\n' +
+                    'This action CANNOT be undone!\n\n' +
+                    'Type "DELETE" (in capital letters) to confirm:'
+                );
+
+                if (confirmText !== 'DELETE') {
+                    console.log('⚠️ [adminDeleteBooking] Deletion cancelled - confirmation failed');
+                    showNotification('Deletion cancelled', 'info');
+                    return;
+                }
+
+                console.log('🔄 [adminDeleteBooking] Permanently deleting booking from database...');
+                console.log('🔄 [adminDeleteBooking] Booking ID:', bookingId);
+
+                const { data, error } = await supabaseClient
+                    .from('bookings')
+                    .delete()
+                    .eq('id', bookingId)
+                    .select();
+
+                if (error) {
+                    console.error('❌ [adminDeleteBooking] Database error:', error);
+                    throw error;
+                }
+
+                if (!data || data.length === 0) {
+                    console.warn('⚠️ [adminDeleteBooking] No rows deleted - booking may not exist');
+                    showNotification('Deletion failed - booking not found', 'error');
+                    return;
+                }
+
+                console.log('✅ [adminDeleteBooking] Booking permanently deleted:', data);
+                showNotification('Booking permanently deleted', 'success');
+
+                console.log('🔄 [adminDeleteBooking] Reloading booking lists...');
+                await loadAdminBookingsData();
+                await loadMyBookingsData();
+
+                console.log('✅ [adminDeleteBooking] Complete!');
+            } catch (e) {
+                console.error('❌ [adminDeleteBooking] Exception:', e);
+                showNotification('Failed to delete booking: ' + e.message, 'error');
+            }
+        };
+
+        // ===== ADMIN SEARCH AND FILTER =====
+        let allAdminBookings = [];
+        let allStartupMap = {};
+
+        // Modified loadAdminBookingsData to store all bookings
+        const originalLoadAdminBookingsData = loadAdminBookingsData;
+        loadAdminBookingsData = async function() {
+            try {
+                if (currentUser?.role !== 'admin') return;
+                const list = document.getElementById('admin-bookings-list');
+                if (!list) return;
+                list.innerHTML = '<div class="text-center text-gray-500 py-8">Loading all bookings...</div>';
+
+                let { data: bookings, error } = await supabaseClient
+                    .from('bookings')
+                    .select('id, room_name, booking_date, start_time, duration, status, is_confidential, startup_id, equipment_notes')
+                    .order('booking_date', { ascending: false })
+                    .order('start_time', { ascending: false });
+
+                if (error) throw error;
+
+                const { data: startups } = await supabaseClient.from('startups').select('id, name, contact_person');
+                const startupMap = {};
+                (startups || []).forEach(s => { startupMap[s.id] = s; });
+
+                // Store for filtering
+                allAdminBookings = bookings || [];
+                allStartupMap = startupMap;
+
+                renderAdminBookingsList(allAdminBookings, allStartupMap);
+            } catch (e) {
+                console.error('loadAdminBookingsData error', e);
+                const list = document.getElementById('admin-bookings-list');
+                if (list) list.innerHTML = `<div class="text-center text-red-600 py-8">Failed to load bookings: ${e.message}</div>`;
+            }
+        };
+
+        function filterAdminBookings() {
+            const searchText = document.getElementById('admin-search-startup')?.value.toLowerCase() || '';
+            const filterRoom = document.getElementById('admin-filter-room')?.value || '';
+            const filterStatus = document.getElementById('admin-filter-status')?.value || '';
+
+            console.log('🔍 [filterAdminBookings] Filtering with:', { searchText, filterRoom, filterStatus });
+
+            const filtered = allAdminBookings.filter(b => {
+                const startup = allStartupMap[b.startup_id];
+                const startupName = startup?.name?.toLowerCase() || '';
+                const contactPerson = startup?.contact_person?.toLowerCase() || '';
+
+                const matchesSearch = !searchText || startupName.includes(searchText) || contactPerson.includes(searchText);
+                const matchesRoom = !filterRoom || b.room_name === filterRoom;
+                const matchesStatus = !filterStatus || b.status === filterStatus;
+
+                return matchesSearch && matchesRoom && matchesStatus;
+            });
+
+            console.log(`✅ [filterAdminBookings] Showing ${filtered.length} of ${allAdminBookings.length} bookings`);
+            renderAdminBookingsList(filtered, allStartupMap);
+        }
+
+        // Add event listeners for search and filter
+        document.getElementById('admin-search-startup')?.addEventListener('input', filterAdminBookings);
+        document.getElementById('admin-filter-room')?.addEventListener('change', filterAdminBookings);
+        document.getElementById('admin-filter-status')?.addEventListener('change', filterAdminBookings);
         document.getElementById('refresh-admin-bookings')?.addEventListener('click', () => loadAdminBookingsData());
+
+        // Add event listeners for edit booking modal
+        document.getElementById('edit-booking-modal-close')?.addEventListener('click', () => {
+            console.log('🔧 [Edit Booking Modal] Closing modal (X button)');
+            document.getElementById('edit-booking-modal').classList.add('hidden');
+        });
+
+        document.getElementById('edit-booking-cancel-btn')?.addEventListener('click', () => {
+            console.log('🔧 [Edit Booking Modal] Closing modal (Cancel button)');
+            document.getElementById('edit-booking-modal').classList.add('hidden');
+        });
+
+        document.getElementById('edit-booking-form')?.addEventListener('submit', saveEditedBooking);
 
         // ===== SETTINGS EVENT HANDLERS =====
         // Settings page event handlers
