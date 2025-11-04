@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Syntax Test</title>
+</head>
+<body>
+    <div id="test"></div>
+    <script>
+        const statusBg = 'bg-green-50';
+        const statusBorder = 'border-green-200';
+        const statusColor = 'text-green-700';
+        const booking = {id: '123', room_name: 'Test Room'};
+        const status = 'Confirmed';
+        const currentUser = {role: 'admin'};
+        
+        let scheduleHTML = `
+            <div class="border-2 rounded-xl p-6 hover:shadow-md transition-all duration-200 ${statusBg} ${statusBorder}">
+                <span class="px-3 py-1 ${statusBg} ${statusColor} text-sm font-semibold rounded-full border ${statusBorder}">
+                    ${status}
+                </span>
+                ${currentUser && currentUser.role === 'admin' && status !== 'Cancelled' ? `
+                    <div class="pt-4 border-t border-gray-200">
+                        <button onclick='showCancelBookingModal("${booking.id}")' class="w-full md:w-auto px-6 py-2.5 bg-red-600 text-white rounded-lg">
+                            Cancel Booking
+                        </button>
+                    </div>
+                ` : ''}
+            </div>
+        `;
+        
+        document.getElementById('test').innerHTML = scheduleHTML;
+        console.log('Test passed!');
+    </script>
+</body>
+</html>
+
