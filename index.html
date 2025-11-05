@@ -445,7 +445,7 @@
 
                 <!-- Stats Cards -->
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                    <div class="stat-card bg-white p-6 rounded-xl shadow-lg">
+                    <div id="stat-card-startups" class="stat-card bg-white p-6 rounded-xl shadow-lg transition-all duration-200 hover:shadow-xl hover:scale-105 cursor-pointer" data-admin-only>
                         <div class="flex items-center">
                             <div class="p-3 rounded-full bg-blue-100 text-blue-600">
                                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -459,7 +459,7 @@
                         </div>
                     </div>
 
-                    <div class="stat-card bg-white p-6 rounded-xl shadow-lg">
+                    <div id="stat-card-upcoming" class="stat-card bg-white p-6 rounded-xl shadow-lg transition-all duration-200 hover:shadow-xl hover:scale-105 cursor-pointer" data-admin-only>
                         <div class="flex items-center">
                             <div class="p-3 rounded-full bg-green-100 text-green-600">
                                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -473,7 +473,7 @@
                         </div>
                     </div>
 
-                    <div class="stat-card bg-white p-6 rounded-xl shadow-lg">
+                    <div id="stat-card-today" class="stat-card bg-white p-6 rounded-xl shadow-lg transition-all duration-200 hover:shadow-xl hover:scale-105 cursor-pointer" data-admin-only>
                         <div class="flex items-center">
                             <div class="p-3 rounded-full bg-yellow-100 text-yellow-600">
                                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -487,7 +487,7 @@
                         </div>
                     </div>
 
-                    <div class="stat-card bg-white p-6 rounded-xl shadow-lg">
+                    <div id="stat-card-rooms" class="stat-card bg-white p-6 rounded-xl shadow-lg transition-all duration-200 hover:shadow-xl hover:scale-105 cursor-pointer" data-admin-only>
                         <div class="flex items-center">
                             <div class="p-3 rounded-full bg-purple-100 text-purple-600">
                                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2547,6 +2547,9 @@
                 updateDashboardStats(startupsCount || 0, upcomingCount || 0, todayCount || 0);
                 updateTodaySchedule(todayBookings || []);
 
+                // Setup clickable dashboard cards for admin users
+                setupDashboardCardClickHandlers();
+
             } catch (error) {
                 console.error('Error loading dashboard data:', error);
             }
@@ -2564,6 +2567,49 @@
             if (availableRoomsEl) {
                 availableRoomsEl.textContent = availableRooms.length;
             }
+        }
+
+        // ===== DASHBOARD STATISTICS CARDS CLICK HANDLERS (ADMIN ONLY) =====
+        function setupDashboardCardClickHandlers() {
+            // Only enable for admin users
+            if (currentUser?.role !== 'admin') {
+                // Remove hover effects and cursor for non-admin users
+                const statCards = document.querySelectorAll('.stat-card[data-admin-only]');
+                statCards.forEach(card => {
+                    card.classList.remove('hover:shadow-xl', 'hover:scale-105', 'cursor-pointer');
+                });
+                return;
+            }
+
+            // Card 1: Total Startups -> Navigate to Startups tab
+            const startupsCard = document.getElementById('stat-card-startups');
+            startupsCard?.addEventListener('click', () => {
+                console.log('📊 Navigating to Startups tab from dashboard card');
+                window.location.hash = '#startups';
+            });
+
+            // Card 2: Upcoming Bookings -> Navigate to Schedule tab
+            const upcomingCard = document.getElementById('stat-card-upcoming');
+            upcomingCard?.addEventListener('click', () => {
+                console.log('📊 Navigating to Schedule tab from dashboard card (Upcoming Bookings)');
+                window.location.hash = '#schedule';
+            });
+
+            // Card 3: Today's Bookings -> Navigate to Schedule tab
+            const todayCard = document.getElementById('stat-card-today');
+            todayCard?.addEventListener('click', () => {
+                console.log('📊 Navigating to Schedule tab from dashboard card (Today\'s Bookings)');
+                window.location.hash = '#schedule';
+            });
+
+            // Card 4: Available Rooms -> Navigate to Room Displays tab
+            const roomsCard = document.getElementById('stat-card-rooms');
+            roomsCard?.addEventListener('click', () => {
+                console.log('📊 Navigating to Room Displays tab from dashboard card');
+                window.location.hash = '#room-displays';
+            });
+
+            console.log('✅ Dashboard card click handlers enabled for admin user');
         }
 
         function updateTodaySchedule(bookings) {
@@ -3884,19 +3930,47 @@
         // Login
         loginFormEl?.addEventListener('submit', async (e) => {
             e.preventDefault();
+
+            // Clear previous error messages
             loginErrorEl.textContent = '';
+            loginErrorEl.classList.add('hidden');
+
             const email = document.getElementById('login-email')?.value?.trim();
             const password = document.getElementById('login-password')?.value;
+
             if (!email || !password) {
                 loginErrorEl.textContent = 'Enter email and password.';
+                loginErrorEl.classList.remove('hidden');
                 return;
             }
+
             try {
                 const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
-                if (error) throw error;
+
+                if (error) {
+                    // Show user-friendly error message for invalid credentials
+                    if (error.message.includes('Invalid login credentials') ||
+                        error.message.includes('Email not confirmed') ||
+                        error.message.includes('Invalid email or password')) {
+                        loginErrorEl.textContent = 'Invalid email or password. Please try again.';
+                    } else {
+                        loginErrorEl.textContent = error.message || 'Login failed. Please try again.';
+                    }
+                    loginErrorEl.classList.remove('hidden');
+                    throw error;
+                }
+
+                // Show success message
+                loginErrorEl.classList.remove('hidden');
+                loginErrorEl.classList.remove('text-red-600', 'bg-red-50');
+                loginErrorEl.classList.add('text-green-600', 'bg-green-50');
+                loginErrorEl.textContent = 'Login successful! Redirecting to dashboard...';
+
+                // The auth state change listener will handle the redirect
+
             } catch (err) {
                 console.error('Login error', err);
-                loginErrorEl.textContent = err.message || 'Login failed. Please try again.';
+                // Error message already set above
             }
         });
 
