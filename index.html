@@ -1986,6 +1986,68 @@
         </div>
     </div>
 
+    <!-- Delete Startup Confirmation Modal (Admin Only) -->
+    <div id="delete-startup-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md m-4">
+            <div class="flex justify-between items-center p-6 border-b border-gray-200">
+                <h2 class="text-2xl font-bold text-red-600">Delete Startup</h2>
+                <button id="delete-startup-modal-close" class="text-gray-400 hover:text-gray-600">
+                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="p-6">
+                <div class="mb-6">
+                    <div class="flex items-center justify-center w-16 h-16 mx-auto mb-4 bg-red-100 rounded-full">
+                        <svg class="w-8 h-8 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                        </svg>
+                    </div>
+                    <p class="text-center text-gray-700 mb-4">
+                        Are you sure you want to delete <strong id="delete-startup-name" class="text-red-600"></strong>?
+                    </p>
+                    <p class="text-center text-sm text-gray-600 mb-4">
+                        This action will:
+                    </p>
+                    <ul class="text-sm text-gray-600 space-y-2 mb-4">
+                        <li class="flex items-start">
+                            <svg class="w-5 h-5 text-red-500 mr-2 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                            Delete the startup record from the database
+                        </li>
+                        <li class="flex items-start">
+                            <svg class="w-5 h-5 text-red-500 mr-2 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                            Delete the associated user account (if exists)
+                        </li>
+                        <li class="flex items-start">
+                            <svg class="w-5 h-5 text-red-500 mr-2 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                            Cancel all future bookings for this startup
+                        </li>
+                    </ul>
+                    <p class="text-center text-sm font-semibold text-red-600">
+                        This action cannot be undone!
+                    </p>
+                </div>
+
+                <div class="flex space-x-3">
+                    <button id="delete-startup-cancel" class="flex-1 px-6 py-3 border border-gray-300 rounded-lg text-gray-700 font-semibold hover:bg-gray-50 transition duration-200">
+                        Keep Startup
+                    </button>
+                    <button id="delete-startup-confirm" class="flex-1 px-6 py-3 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition duration-200">
+                        Delete Startup
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Room Display Preview Modal -->
     <div id="room-preview-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
         <div class="bg-white rounded-xl shadow-2xl w-full max-w-6xl max-h-[95vh] overflow-y-auto m-4">
@@ -2635,21 +2697,163 @@
             container.innerHTML = startups.map(startup => `
                 <div class="bg-gray-50 p-6 rounded-xl border">
                     <div class="flex justify-between items-start">
-                        <div>
+                        <div class="flex-1">
                             <h3 class="text-xl font-bold text-gray-800">${startup.name}</h3>
                             <p class="text-gray-600">${startup.contact_person}</p>
                             <p class="text-sm text-gray-500">${startup.email}</p>
                             <p class="text-sm text-gray-500">${startup.phone}</p>
                         </div>
-                        <div class="text-right">
+                        <div class="text-right flex flex-col items-end space-y-2">
                             <p class="text-xs text-gray-500">
                                 Joined: ${new Date(startup.created_at).toLocaleDateString()}
                             </p>
+                            ${currentUser?.role === 'admin' ? `
+                                <button
+                                    onclick="showDeleteStartupModal('${startup.id}', '${startup.name.replace(/'/g, "\\'")}', '${startup.user_id || ''}')"
+                                    class="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition duration-200">
+                                    Delete Startup
+                                </button>
+                            ` : ''}
                         </div>
                     </div>
                 </div>
             `).join('');
         }
+
+        // ===== DELETE STARTUP FUNCTIONS =====
+        let startupToDelete = null;
+
+        function showDeleteStartupModal(startupId, startupName, userId) {
+            if (currentUser?.role !== 'admin') {
+                alert('Only administrators can delete startups.');
+                return;
+            }
+
+            startupToDelete = { id: startupId, name: startupName, userId: userId };
+
+            const modal = document.getElementById('delete-startup-modal');
+            const nameElement = document.getElementById('delete-startup-name');
+
+            if (nameElement) {
+                nameElement.textContent = startupName;
+            }
+
+            if (modal) {
+                modal.classList.remove('hidden');
+            }
+        }
+
+        async function handleDeleteStartup() {
+            if (!startupToDelete || currentUser?.role !== 'admin') {
+                return;
+            }
+
+            try {
+                console.log('🗑️ Deleting startup:', startupToDelete);
+
+                // Step 1: Cancel all future bookings for this startup
+                const today = new Date().toISOString().split('T')[0];
+                const { data: futureBookings, error: fetchError } = await supabaseClient
+                    .from('bookings')
+                    .select('id')
+                    .eq('startup_id', startupToDelete.id)
+                    .gte('booking_date', today)
+                    .neq('status', 'Cancelled');
+
+                if (fetchError) {
+                    console.error('Error fetching future bookings:', fetchError);
+                } else if (futureBookings && futureBookings.length > 0) {
+                    const bookingIds = futureBookings.map(b => b.id);
+                    const { error: cancelError } = await supabaseClient
+                        .from('bookings')
+                        .update({
+                            status: 'Cancelled',
+                            equipment_notes: (equipment_notes) =>
+                                equipment_notes ? `${equipment_notes}\n\n[AUTO-CANCELLED] Startup deleted by admin on ${new Date().toLocaleString()}`
+                                : `[AUTO-CANCELLED] Startup deleted by admin on ${new Date().toLocaleString()}`
+                        })
+                        .in('id', bookingIds);
+
+                    if (cancelError) {
+                        console.error('Error cancelling bookings:', cancelError);
+                    } else {
+                        console.log(`✅ Cancelled ${futureBookings.length} future booking(s)`);
+                    }
+                }
+
+                // Step 2: Delete the startup record
+                const { error: startupError } = await supabaseClient
+                    .from('startups')
+                    .delete()
+                    .eq('id', startupToDelete.id);
+
+                if (startupError) throw startupError;
+                console.log('✅ Startup record deleted');
+
+                // Step 3: Delete the associated user account (if exists)
+                if (startupToDelete.userId) {
+                    const { error: userError } = await supabaseClient
+                        .from('users')
+                        .delete()
+                        .eq('id', startupToDelete.userId);
+
+                    if (userError) {
+                        console.warn('Warning: Could not delete user account:', userError);
+                        showMessage(`Startup "${startupToDelete.name}" deleted, but user account could not be removed.`, 'warning');
+                    } else {
+                        console.log('✅ User account deleted');
+                        showMessage(`Startup "${startupToDelete.name}" and associated user account have been deleted successfully!`, 'success');
+                    }
+                } else {
+                    showMessage(`Startup "${startupToDelete.name}" has been deleted successfully!`, 'success');
+                }
+
+                // Close modal and refresh data
+                closeDeleteStartupModal();
+                await loadStartupsData();
+
+            } catch (error) {
+                console.error('Error deleting startup:', error);
+                showMessage(`Failed to delete startup: ${error.message}`, 'error');
+            }
+        }
+
+        function closeDeleteStartupModal() {
+            const modal = document.getElementById('delete-startup-modal');
+            if (modal) {
+                modal.classList.add('hidden');
+            }
+            startupToDelete = null;
+        }
+
+        // Setup delete startup modal event listeners
+        document.addEventListener('DOMContentLoaded', () => {
+            const deleteModal = document.getElementById('delete-startup-modal');
+            const closeBtn = document.getElementById('delete-startup-modal-close');
+            const cancelBtn = document.getElementById('delete-startup-cancel');
+            const confirmBtn = document.getElementById('delete-startup-confirm');
+
+            if (closeBtn) {
+                closeBtn.addEventListener('click', closeDeleteStartupModal);
+            }
+
+            if (cancelBtn) {
+                cancelBtn.addEventListener('click', closeDeleteStartupModal);
+            }
+
+            if (confirmBtn) {
+                confirmBtn.addEventListener('click', handleDeleteStartup);
+            }
+
+            // Close modal when clicking outside
+            if (deleteModal) {
+                deleteModal.addEventListener('click', (e) => {
+                    if (e.target === deleteModal) {
+                        closeDeleteStartupModal();
+                    }
+                });
+            }
+        });
 
         // ===== USER MANAGEMENT FUNCTIONS =====
         async function toggleUserRole(userId, currentRole) {
@@ -4515,6 +4719,88 @@
                     alert(`Failed to update profile: ${err.message}`);
                 }
             });
+
+            // Password change form
+            const passwordForm = document.getElementById('password-form');
+            passwordForm?.addEventListener('submit', async (e) => {
+                e.preventDefault();
+
+                const currentPassword = document.getElementById('current-password').value;
+                const newPassword = document.getElementById('new-password').value;
+                const confirmPassword = document.getElementById('confirm-password').value;
+                const messageEl = document.getElementById('password-message');
+
+                // Clear previous messages
+                if (messageEl) {
+                    messageEl.classList.add('hidden');
+                    messageEl.innerHTML = '';
+                }
+
+                // Validation
+                if (newPassword.length < 6) {
+                    if (messageEl) {
+                        messageEl.innerHTML = '<div class="p-4 rounded-lg bg-red-100 text-red-700">New password must be at least 6 characters long.</div>';
+                        messageEl.classList.remove('hidden');
+                    }
+                    return;
+                }
+
+                if (newPassword !== confirmPassword) {
+                    if (messageEl) {
+                        messageEl.innerHTML = '<div class="p-4 rounded-lg bg-red-100 text-red-700">New password and confirm password do not match.</div>';
+                        messageEl.classList.remove('hidden');
+                    }
+                    return;
+                }
+
+                try {
+                    // Verify current password by attempting to sign in
+                    const { error: signInError } = await supabaseClient.auth.signInWithPassword({
+                        email: currentUser.email,
+                        password: currentPassword
+                    });
+
+                    if (signInError) {
+                        if (messageEl) {
+                            messageEl.innerHTML = '<div class="p-4 rounded-lg bg-red-100 text-red-700">Current password is incorrect.</div>';
+                            messageEl.classList.remove('hidden');
+                        }
+                        return;
+                    }
+
+                    // Update password using Supabase Auth
+                    const { error: updateError } = await supabaseClient.auth.updateUser({
+                        password: newPassword
+                    });
+
+                    if (updateError) throw updateError;
+
+                    // Success
+                    if (messageEl) {
+                        messageEl.innerHTML = '<div class="p-4 rounded-lg bg-green-100 text-green-700">✅ Password updated successfully!</div>';
+                        messageEl.classList.remove('hidden');
+                    }
+
+                    // Clear form fields
+                    document.getElementById('current-password').value = '';
+                    document.getElementById('new-password').value = '';
+                    document.getElementById('confirm-password').value = '';
+
+                    // Hide success message after 5 seconds
+                    setTimeout(() => {
+                        if (messageEl) {
+                            messageEl.classList.add('hidden');
+                        }
+                    }, 5000);
+
+                } catch (err) {
+                    console.error('Error updating password:', err);
+                    if (messageEl) {
+                        messageEl.innerHTML = `<div class="p-4 rounded-lg bg-red-100 text-red-700">Failed to update password: ${err.message}</div>`;
+                        messageEl.classList.remove('hidden');
+                    }
+                }
+            });
         });
 
         async function handleStartupProfileUpdate(e) {
@@ -4685,7 +4971,10 @@
             renderCalendar(currentCalendarDate);
             // Select today by default
             const today = new Date();
-            selectDate(today.toISOString().split('T')[0]);
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            selectDate(`${year}-${month}-${day}`);
         }
 
         function renderCalendar(date) {
@@ -4741,7 +5030,12 @@
 
                 // Highlight today with green background
                 const today = new Date();
-                if (currentDate.toDateString() === today.toDateString()) {
+                const todayYear = today.getFullYear();
+                const todayMonth = String(today.getMonth() + 1).padStart(2, '0');
+                const todayDay = String(today.getDate()).padStart(2, '0');
+                const todayDateString = `${todayYear}-${todayMonth}-${todayDay}`;
+
+                if (dayElement.dataset.date === todayDateString) {
                     dayElement.className = 'calendar-day relative p-4 text-center cursor-pointer transition-all duration-200 border-r border-b border-gray-200 bg-green-600 text-white font-bold hover:bg-green-700';
                     // Remove right border for last column
                     if ((i + 1) % 7 === 0) {
@@ -4754,8 +5048,8 @@
                 }
 
                 // Highlight selected date with ring
-                if (selectedDate && currentDate.toISOString().split('T')[0] === selectedDate) {
-                    if (currentDate.toDateString() !== today.toDateString()) {
+                if (selectedDate && dayElement.dataset.date === selectedDate) {
+                    if (dayElement.dataset.date !== todayDateString) {
                         dayElement.className += ' ring-2 ring-inset ring-green-500 bg-green-50';
                     }
                 }
