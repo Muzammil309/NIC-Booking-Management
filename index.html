@@ -2606,6 +2606,24 @@
         async function loadDashboardData() {
             try {
                 console.log('🔄 [loadDashboardData] Loading dashboard statistics...');
+                console.log('🔍 [DEBUG] currentUser at dashboard load:', currentUser);
+                console.log('🔍 [DEBUG] currentUser.role at dashboard load:', currentUser?.role);
+
+                // Wait for currentUser to be loaded if not yet available
+                if (!currentUser) {
+                    console.log('⏳ [loadDashboardData] Waiting for currentUser to be loaded...');
+                    // Wait up to 5 seconds for currentUser to be set
+                    let waitCount = 0;
+                    while (!currentUser && waitCount < 50) {
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                        waitCount++;
+                    }
+                    if (!currentUser) {
+                        console.error('❌ [loadDashboardData] currentUser not loaded after 5 seconds');
+                        return;
+                    }
+                    console.log('✅ [loadDashboardData] currentUser loaded:', currentUser);
+                }
 
                 // ISSUE 3 FIX: Load UNIQUE startups count (not individual users)
                 // Count distinct startup organizations, not individual users
@@ -2691,8 +2709,14 @@
 
         // ===== DASHBOARD STATISTICS CARDS CLICK HANDLERS (ADMIN ONLY) =====
         function setupDashboardCardClickHandlers() {
+            console.log('🔍 [DEBUG] setupDashboardCardClickHandlers called');
+            console.log('🔍 [DEBUG] currentUser:', currentUser);
+            console.log('🔍 [DEBUG] currentUser.role:', currentUser?.role);
+            console.log('🔍 [DEBUG] Is admin?', currentUser?.role === 'admin');
+
             // Only enable for admin users
             if (currentUser?.role !== 'admin') {
+                console.log('⚠️ [DEBUG] User is NOT admin, removing hover effects');
                 // Remove hover effects and cursor for non-admin users
                 const statCards = document.querySelectorAll('.stat-card[data-admin-only]');
                 statCards.forEach(card => {
@@ -2700,6 +2724,8 @@
                 });
                 return;
             }
+
+            console.log('✅ [DEBUG] User IS admin, setting up click handlers');
 
             // Card 1: Total Startups -> Navigate to Startups tab
             const startupsCard = document.getElementById('stat-card-startups');
@@ -2759,6 +2785,20 @@
 
         // ===== STARTUPS DATA LOADING =====
         async function loadStartupsData() {
+            // Wait for currentUser to be loaded if not yet available
+            if (!currentUser) {
+                console.log('⏳ [loadStartupsData] Waiting for currentUser to be loaded...');
+                let waitCount = 0;
+                while (!currentUser && waitCount < 50) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    waitCount++;
+                }
+                if (!currentUser) {
+                    console.error('❌ [loadStartupsData] currentUser not loaded after 5 seconds');
+                    return;
+                }
+            }
+
             if (currentUser?.role !== 'admin') return;
 
             try {
@@ -3861,9 +3901,13 @@
                     }
                 } else {
                     console.log('✅ User profile loaded:', userProfile);
+                    console.log('🔍 [DEBUG] User role from database:', userProfile.role);
+                    console.log('🔍 [DEBUG] User email:', userProfile.email);
                 }
 
                 currentUser = userProfile;
+                console.log('🔍 [DEBUG] currentUser set to:', currentUser);
+                console.log('🔍 [DEBUG] currentUser.role:', currentUser?.role);
 
                 // Step 2: Load startup profile with retry logic
                 console.log('📝 Step 2: Loading startup profile...');
@@ -4056,10 +4100,10 @@
         }
 
         // Listen for auth state changes
-        supabaseClient?.auth.onAuthStateChange((_event, session) => {
+        supabaseClient?.auth.onAuthStateChange(async (_event, session) => {
             if (session?.user) {
                 showApp();
-                bootstrapData(session.user);
+                await bootstrapData(session.user);
             } else {
                 // Clean up real-time subscriptions when user logs out
                 cleanupRealtimeSubscriptions();
