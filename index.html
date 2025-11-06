@@ -3834,76 +3834,69 @@
 
                 // Step 1: Load user profile with retry logic
                 console.log('📝 Step 1: Loading user profile...');
+                console.log('🔍 [DEBUG] User ID to query:', user.id);
                 let userProfile = null;
                 let retryCount = 0;
                 const maxRetries = 3;
 
                 while (!userProfile && retryCount < maxRetries) {
-                    const { data, error } = await supabaseClient
-                        .from('users')
-                        .select('*')
-                        .eq('id', user.id)
-                        .maybeSingle();
+                    console.log(`🔍 [DEBUG] Attempt ${retryCount + 1}/${maxRetries} - Querying users table...`);
 
-                    if (error && error.code !== 'PGRST116') {
-                        console.error(`❌ Error loading user profile (attempt ${retryCount + 1}):`, error);
+                    try {
+                        // Add timeout to prevent hanging
+                        const queryPromise = supabaseClient
+                            .from('users')
+                            .select('*')
+                            .eq('id', user.id)
+                            .maybeSingle();
+
+                        const timeoutPromise = new Promise((_, reject) =>
+                            setTimeout(() => reject(new Error('Query timeout after 10 seconds')), 10000)
+                        );
+
+                        const { data, error } = await Promise.race([queryPromise, timeoutPromise]);
+
+                        console.log('🔍 [DEBUG] Query completed. Data:', data);
+                        console.log('🔍 [DEBUG] Query error:', error);
+
+                        if (error && error.code !== 'PGRST116') {
+                            console.error(`❌ Error loading user profile (attempt ${retryCount + 1}):`, error);
+                            retryCount++;
+                            if (retryCount < maxRetries) {
+                                console.log('⏳ Retrying in 1 second...');
+                                await new Promise(resolve => setTimeout(resolve, 1000));
+                            }
+                        } else {
+                            console.log('🔍 [DEBUG] Setting userProfile to:', data);
+                            userProfile = data;
+                            break;
+                        }
+                    } catch (queryError) {
+                        console.error('❌ [DEBUG] Exception during query:', queryError);
                         retryCount++;
                         if (retryCount < maxRetries) {
                             console.log('⏳ Retrying in 1 second...');
                             await new Promise(resolve => setTimeout(resolve, 1000));
                         }
-                    } else {
-                        userProfile = data;
-                        break;
                     }
                 }
 
-                // Create user profile if it still doesn't exist after retries
+                console.log('🔍 [DEBUG] After retry loop. userProfile:', userProfile);
+
+                // Check if user profile was loaded successfully
                 if (!userProfile) {
-                    console.log('⚠️ No user profile found after retries, creating one...');
-                    try {
-                        const { data: newUserProfile, error: userCreateError } = await supabaseClient
-                            .from('users')
-                            .insert({
-                                id: user.id,
-                                email: user.email,
-                                name: user.user_metadata?.name || user.email.split('@')[0],
-                                phone: user.user_metadata?.phone || '',
-                                role: user.user_metadata?.role || 'startup'
-                            })
-                            .select()
-                            .single();
+                    console.error('❌❌❌ CRITICAL: Failed to load user profile from database after retries');
+                    console.error('❌❌❌ User ID:', user.id);
+                    console.error('❌❌❌ User email:', user.email);
 
-                        if (userCreateError) {
-                            console.error('❌ Could not create user profile:', userCreateError);
-                            // Use fallback profile
-                            userProfile = {
-                                id: user.id,
-                                email: user.email,
-                                name: user.user_metadata?.name || user.email.split('@')[0],
-                                phone: user.user_metadata?.phone || '',
-                                role: user.user_metadata?.role || 'startup'
-                            };
-                        } else {
-                            console.log('✅ User profile created successfully');
-                            userProfile = newUserProfile;
-                        }
-                    } catch (createError) {
-                        console.error('❌ Exception creating user profile:', createError);
-                        // Use fallback profile
-                        userProfile = {
-                            id: user.id,
-                            email: user.email,
-                            name: user.user_metadata?.name || user.email.split('@')[0],
-                            phone: user.user_metadata?.phone || '',
-                            role: user.user_metadata?.role || 'startup'
-                        };
-                    }
-                } else {
-                    console.log('✅ User profile loaded:', userProfile);
-                    console.log('🔍 [DEBUG] User role from database:', userProfile.role);
-                    console.log('🔍 [DEBUG] User email:', userProfile.email);
+                    // DO NOT create fallback profile - this causes admin users to get role='startup'
+                    // Instead, throw an error to force user to try again
+                    throw new Error('Failed to load user profile from database. This may be due to Row Level Security policies blocking access. Please contact support or try logging out and back in.');
                 }
+
+                console.log('✅ User profile loaded:', userProfile);
+                console.log('🔍 [DEBUG] User role from database:', userProfile.role);
+                console.log('🔍 [DEBUG] User email:', userProfile.email);
 
                 currentUser = userProfile;
                 console.log('🔍 [DEBUG] currentUser set to:', currentUser);
@@ -4023,7 +4016,12 @@
                 showPage(currentHash);
 
             } catch (error) {
-                console.error('Bootstrap data error:', error);
+                console.error('❌❌❌ Bootstrap data error:', error);
+                console.error('❌❌❌ Error stack:', error.stack);
+                console.error('❌❌❌ Error message:', error.message);
+
+                // Show error to user
+                alert('Failed to load user data. Please refresh the page and try again.\n\nError: ' + error.message);
             }
         }
 
