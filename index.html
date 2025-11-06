@@ -2297,7 +2297,17 @@
         // ===== SUPABASE CONFIGURATION =====
         const SUPABASE_URL = 'https://ylmitcrmtdjbomkvryzh.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlsbWl0Y3JtdGRqYm9ta3ZyeXpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg2OTU0MTgsImV4cCI6MjA3NDI3MTQxOH0.gBUdTLqCOVJxKWdQSelTK_axjkyUYzYEXmsnbJCX9WA';
-        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // Create Supabase client with automatic session refresh enabled
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+            auth: {
+                autoRefreshToken: true,  // Automatically refresh expired tokens
+                persistSession: true,     // Persist session in localStorage
+                detectSessionInUrl: true  // Detect session from URL (for OAuth)
+            }
+        });
+
+        console.log('✅ Supabase client initialized with auto-refresh enabled');
 
         // ===== GLOBAL VARIABLES =====
         let currentUser = null;
@@ -2309,6 +2319,8 @@
         // Real-time subscription channels
         let usersChannel = null;
         let startupsChannel = null;
+        let bookingsChannel = null;
+        let roomsChannel = null;
 
         // ===== REAL-TIME DATABASE SYNCHRONIZATION =====
 
@@ -2327,6 +2339,14 @@
             if (startupsChannel) {
                 supabaseClient.removeChannel(startupsChannel);
                 startupsChannel = null;
+            }
+            if (bookingsChannel) {
+                supabaseClient.removeChannel(bookingsChannel);
+                bookingsChannel = null;
+            }
+            if (roomsChannel) {
+                supabaseClient.removeChannel(roomsChannel);
+                roomsChannel = null;
             }
 
             // Subscribe to users table changes
@@ -2372,6 +2392,52 @@
                         console.log('✅ [Realtime] Subscribed to startups table changes');
                     } else if (status === 'CHANNEL_ERROR') {
                         console.error('❌ [Realtime] Error subscribing to startups table');
+                    }
+                });
+
+            // Subscribe to bookings table changes
+            bookingsChannel = supabaseClient
+                .channel('bookings-changes')
+                .on(
+                    'postgres_changes',
+                    {
+                        event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
+                        schema: 'public',
+                        table: 'bookings'
+                    },
+                    (payload) => {
+                        console.log('🔔 [Realtime] Bookings table changed:', payload);
+                        handleBookingsTableChange(payload);
+                    }
+                )
+                .subscribe((status) => {
+                    if (status === 'SUBSCRIBED') {
+                        console.log('✅ [Realtime] Subscribed to bookings table changes');
+                    } else if (status === 'CHANNEL_ERROR') {
+                        console.error('❌ [Realtime] Error subscribing to bookings table');
+                    }
+                });
+
+            // Subscribe to rooms table changes
+            roomsChannel = supabaseClient
+                .channel('rooms-changes')
+                .on(
+                    'postgres_changes',
+                    {
+                        event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
+                        schema: 'public',
+                        table: 'rooms'
+                    },
+                    (payload) => {
+                        console.log('🔔 [Realtime] Rooms table changed:', payload);
+                        handleRoomsTableChange(payload);
+                    }
+                )
+                .subscribe((status) => {
+                    if (status === 'SUBSCRIBED') {
+                        console.log('✅ [Realtime] Subscribed to rooms table changes');
+                    } else if (status === 'CHANNEL_ERROR') {
+                        console.error('❌ [Realtime] Error subscribing to rooms table');
                     }
                 });
         }
@@ -2445,6 +2511,82 @@
         }
 
         /**
+         * Handle changes to the bookings table
+         * Refreshes Dashboard, My Bookings, and Schedule tabs
+         */
+        async function handleBookingsTableChange(payload) {
+            const { eventType, old: oldRecord, new: newRecord } = payload;
+
+            console.log('🔄 [Realtime] Bookings table event:', eventType);
+
+            if (eventType === 'INSERT') {
+                console.log('🔄 [Realtime] Booking created:', newRecord);
+            } else if (eventType === 'UPDATE') {
+                console.log('🔄 [Realtime] Booking updated:', newRecord);
+            } else if (eventType === 'DELETE') {
+                console.log('🔄 [Realtime] Booking deleted:', oldRecord);
+            }
+
+            // Refresh Dashboard if it's currently visible
+            const dashboardPage = document.getElementById('dashboard');
+            if (dashboardPage && !dashboardPage.classList.contains('hidden')) {
+                console.log('🔄 [Dashboard] Refreshing statistics and schedule...');
+                await loadDashboardData();
+                console.log('✅ [Dashboard] Statistics and schedule updated');
+            }
+
+            // Refresh My Bookings tab if it's currently visible
+            const bookingsPage = document.getElementById('my-bookings');
+            if (bookingsPage && !bookingsPage.classList.contains('hidden')) {
+                console.log('🔄 [My Bookings] Refreshing bookings list...');
+                await loadMyBookingsData();
+                console.log('✅ [My Bookings] Bookings list updated');
+            }
+
+            // Refresh Schedule tab if it's currently visible
+            const schedulePage = document.getElementById('schedule');
+            if (schedulePage && !schedulePage.classList.contains('hidden')) {
+                console.log('🔄 [Schedule] Refreshing calendar...');
+                await loadScheduleData();
+                console.log('✅ [Schedule] Calendar updated');
+            }
+        }
+
+        /**
+         * Handle changes to the rooms table
+         * Refreshes Room Displays tab and Book a Room tab
+         */
+        async function handleRoomsTableChange(payload) {
+            const { eventType, old: oldRecord, new: newRecord } = payload;
+
+            console.log('🔄 [Realtime] Rooms table event:', eventType);
+
+            if (eventType === 'INSERT') {
+                console.log('🔄 [Realtime] Room created:', newRecord);
+            } else if (eventType === 'UPDATE') {
+                console.log('🔄 [Realtime] Room updated:', newRecord);
+            } else if (eventType === 'DELETE') {
+                console.log('🔄 [Realtime] Room deleted:', oldRecord);
+            }
+
+            // Refresh Room Displays tab if it's currently visible
+            const roomDisplaysPage = document.getElementById('room-displays');
+            if (roomDisplaysPage && !roomDisplaysPage.classList.contains('hidden')) {
+                console.log('🔄 [Room Displays] Refreshing rooms list...');
+                await loadRoomDisplaysData();
+                console.log('✅ [Room Displays] Rooms list updated');
+            }
+
+            // Refresh Book a Room tab if it's currently visible
+            const bookRoomPage = document.getElementById('book-room');
+            if (bookRoomPage && !bookRoomPage.classList.contains('hidden')) {
+                console.log('🔄 [Book a Room] Refreshing rooms list...');
+                await loadBookRoomData();
+                console.log('✅ [Book a Room] Rooms list updated');
+            }
+        }
+
+        /**
          * Clean up real-time subscriptions when user logs out
          */
         function cleanupRealtimeSubscriptions() {
@@ -2460,6 +2602,18 @@
                 supabaseClient.removeChannel(startupsChannel);
                 startupsChannel = null;
                 console.log('✅ [Realtime] Startups channel unsubscribed');
+            }
+
+            if (bookingsChannel) {
+                supabaseClient.removeChannel(bookingsChannel);
+                bookingsChannel = null;
+                console.log('✅ [Realtime] Bookings channel unsubscribed');
+            }
+
+            if (roomsChannel) {
+                supabaseClient.removeChannel(roomsChannel);
+                roomsChannel = null;
+                console.log('✅ [Realtime] Rooms channel unsubscribed');
             }
         }
 
@@ -2609,6 +2763,15 @@
                 console.log('🔍 [DEBUG] currentUser at dashboard load:', currentUser);
                 console.log('🔍 [DEBUG] currentUser.role at dashboard load:', currentUser?.role);
 
+                // Validate session before loading data
+                const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
+                if (sessionError || !session) {
+                    console.error('❌ [loadDashboardData] No valid session, redirecting to login');
+                    showAuth('login');
+                    return;
+                }
+                console.log('✅ [loadDashboardData] Session valid');
+
                 // Wait for currentUser to be loaded if not yet available
                 if (!currentUser) {
                     console.log('⏳ [loadDashboardData] Waiting for currentUser to be loaded...');
@@ -2620,6 +2783,19 @@
                     }
                     if (!currentUser) {
                         console.error('❌ [loadDashboardData] currentUser not loaded after 5 seconds');
+                        // Show error message to user
+                        const scheduleContainer = document.getElementById('today-schedule-container');
+                        if (scheduleContainer) {
+                            scheduleContainer.innerHTML = `
+                                <div class="text-center py-8">
+                                    <p class="text-red-600 font-semibold">Failed to load user data</p>
+                                    <p class="text-gray-600 mt-2">Please refresh the page or try logging out and back in.</p>
+                                    <button onclick="location.reload()" class="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                                        Refresh Page
+                                    </button>
+                                </div>
+                            `;
+                        }
                         return;
                     }
                     console.log('✅ [loadDashboardData] currentUser loaded:', currentUser);
@@ -2633,6 +2809,9 @@
 
                 if (startupsError) {
                     console.error('❌ [loadDashboardData] Error loading startups:', startupsError);
+                    console.error('❌ [loadDashboardData] Error details:', startupsError.message, startupsError.code);
+                    // Show error to user
+                    showMessage('Failed to load startups data. Please refresh the page.', 'error');
                 }
 
                 // Count unique startups by name (e.g., "NIC ADMIN" counts as 1 even if 6 users)
@@ -2655,7 +2834,8 @@
                     .gte('booking_date', new Date().toISOString().split('T')[0]);
 
                 if (upcomingError) {
-                    console.error('Error loading upcoming bookings count:', upcomingError);
+                    console.error('❌ [loadDashboardData] Error loading upcoming bookings count:', upcomingError);
+                    console.error('❌ [loadDashboardData] Error details:', upcomingError.message, upcomingError.code);
                 }
 
                 // Load today's bookings count
@@ -2665,15 +2845,21 @@
                     .eq('booking_date', new Date().toISOString().split('T')[0]);
 
                 if (todayError) {
-                    console.error('Error loading today bookings count:', todayError);
+                    console.error('❌ [loadDashboardData] Error loading today bookings count:', todayError);
+                    console.error('❌ [loadDashboardData] Error details:', todayError.message, todayError.code);
                 }
 
                 // Load today's bookings data for schedule display
-                const { data: todayBookings } = await supabaseClient
+                const { data: todayBookings, error: todayBookingsError } = await supabaseClient
                     .from('bookings')
                     .select('*, startups(name)')
                     .eq('booking_date', new Date().toISOString().split('T')[0])
                     .order('start_time');
+
+                if (todayBookingsError) {
+                    console.error('❌ [loadDashboardData] Error loading today bookings:', todayBookingsError);
+                    console.error('❌ [loadDashboardData] Error details:', todayBookingsError.message, todayBookingsError.code);
+                }
 
                 console.log('Dashboard stats:', {
                     startups: startupsCount,
@@ -4105,12 +4291,36 @@
         }
 
         // Listen for auth state changes
-        supabaseClient?.auth.onAuthStateChange(async (_event, session) => {
-            if (session?.user) {
+        supabaseClient?.auth.onAuthStateChange(async (event, session) => {
+            console.log('🔐 [Auth] State change event:', event);
+
+            if (event === 'TOKEN_REFRESHED') {
+                console.log('✅ [Auth] Session token refreshed successfully');
+                // Session was automatically refreshed, no action needed
+                // The new token is already being used by the client
+            } else if (event === 'SIGNED_IN') {
+                console.log('✅ [Auth] User signed in');
+                if (session?.user) {
+                    showApp();
+                    await bootstrapData(session.user);
+                }
+            } else if (event === 'SIGNED_OUT') {
+                console.log('🔐 [Auth] User signed out');
+                // Clean up real-time subscriptions when user logs out
+                cleanupRealtimeSubscriptions();
+                showAuth('login');
+            } else if (event === 'USER_UPDATED') {
+                console.log('🔐 [Auth] User updated');
+                // User data was updated, refresh if needed
+            }
+
+            // Fallback: if we have a session but no specific event handling
+            if (session?.user && !currentUser) {
+                console.log('🔐 [Auth] Session exists but no currentUser, bootstrapping...');
                 showApp();
                 await bootstrapData(session.user);
-            } else {
-                // Clean up real-time subscriptions when user logs out
+            } else if (!session) {
+                // No session, show login
                 cleanupRealtimeSubscriptions();
                 showAuth('login');
             }
