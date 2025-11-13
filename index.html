@@ -343,8 +343,8 @@
 
     <!-- Main App Container -->
     <div id="app" class="flex h-screen bg-white hidden">
-        <!-- Mobile Header -->
-        <div class="mobile-header hidden">
+        <!-- Mobile Header (controlled by CSS media queries, not hidden class) -->
+        <div class="mobile-header">
             <button id="sidebar-toggle" class="p-2 rounded-lg hover:bg-gray-100 transition duration-200">
                 <svg class="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
@@ -2861,21 +2861,43 @@
                     console.error('❌ [loadDashboardData] Error details:', todayBookingsError.message, todayBookingsError.code);
                 }
 
-                console.log('Dashboard stats:', {
+                console.log('📊 [loadDashboardData] Dashboard stats:', {
                     startups: startupsCount,
                     upcoming: upcomingCount,
-                    today: todayCount
+                    today: todayCount,
+                    todayBookingsCount: todayBookings?.length || 0
                 });
 
                 // Update dashboard stats with real-time counts
+                console.log('📊 [loadDashboardData] Updating dashboard stats...');
                 updateDashboardStats(startupsCount || 0, upcomingCount || 0, todayCount || 0);
+
+                console.log('📊 [loadDashboardData] Updating today\'s schedule with', todayBookings?.length || 0, 'bookings');
                 updateTodaySchedule(todayBookings || []);
 
                 // Setup clickable dashboard cards for admin users
+                console.log('📊 [loadDashboardData] Setting up dashboard card click handlers...');
                 setupDashboardCardClickHandlers();
 
+                console.log('✅ [loadDashboardData] Dashboard data loaded successfully');
+
             } catch (error) {
-                console.error('Error loading dashboard data:', error);
+                console.error('❌❌❌ [loadDashboardData] Critical error loading dashboard data:', error);
+                console.error('❌❌❌ [loadDashboardData] Error stack:', error.stack);
+
+                // Show error to user
+                const scheduleContainer = document.getElementById('today-schedule');
+                if (scheduleContainer) {
+                    scheduleContainer.innerHTML = `
+                        <div class="text-center py-8">
+                            <p class="text-red-600 font-semibold">Failed to load dashboard data</p>
+                            <p class="text-gray-600 mt-2">${error.message}</p>
+                            <button onclick="loadDashboardData()" class="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                                Retry
+                            </button>
+                        </div>
+                    `;
+                }
             }
         }
 
@@ -2945,14 +2967,24 @@
         }
 
         function updateTodaySchedule(bookings) {
-            const container = document.getElementById('today-schedule');
-            if (!container) return;
+            console.log('📅 [updateTodaySchedule] Called with', bookings?.length || 0, 'bookings');
+            console.log('📅 [updateTodaySchedule] Bookings data:', bookings);
 
-            if (bookings.length === 0) {
+            const container = document.getElementById('today-schedule');
+            if (!container) {
+                console.error('❌ [updateTodaySchedule] Container element not found!');
+                return;
+            }
+
+            console.log('✅ [updateTodaySchedule] Container element found');
+
+            if (!bookings || bookings.length === 0) {
+                console.log('📅 [updateTodaySchedule] No bookings, showing empty message');
                 container.innerHTML = '<p class="text-gray-500 text-center py-8">No bookings scheduled for today.</p>';
                 return;
             }
 
+            console.log('📅 [updateTodaySchedule] Rendering', bookings.length, 'bookings');
             container.innerHTML = bookings.map(booking => `
                 <div class="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
                     <div>
@@ -2967,6 +2999,7 @@
                     </span>
                 </div>
             `).join('');
+            console.log('✅ [updateTodaySchedule] Schedule updated successfully');
         }
 
         // ===== STARTUPS DATA LOADING =====
@@ -4219,8 +4252,13 @@
         }
 
         function updateUIForUserRole(role) {
+            console.log('🎨 [updateUIForUserRole] Updating UI for role:', role);
+            console.log('🎨 [updateUIForUserRole] currentUser:', currentUser);
+
             // Show/hide admin-only elements
             const adminElements = document.querySelectorAll('[data-admin-only]');
+            console.log('🎨 [updateUIForUserRole] Found', adminElements.length, 'admin-only elements');
+
             adminElements.forEach(el => {
                 if (role === 'admin') {
                     el.classList.remove('hidden');
@@ -4234,11 +4272,36 @@
             const headerUserNameEl = document.getElementById('header-user-name');
             const userRoleEl = document.getElementById('user-role');
 
+            console.log('🎨 [updateUIForUserRole] User display elements:', {
+                userNameEl: !!userNameEl,
+                headerUserNameEl: !!headerUserNameEl,
+                userRoleEl: !!userRoleEl
+            });
+
             if (currentUser) {
-                if (userNameEl) userNameEl.textContent = currentUser.name || 'User';
-                if (headerUserNameEl) headerUserNameEl.textContent = currentUser.name || 'User';
-                if (userRoleEl) userRoleEl.textContent = currentUser.role || 'User';
+                const displayName = currentUser.name || currentUser.email?.split('@')[0] || 'User';
+                const displayRole = currentUser.role || 'user';
+
+                console.log('🎨 [updateUIForUserRole] Setting display name:', displayName);
+                console.log('🎨 [updateUIForUserRole] Setting display role:', displayRole);
+
+                if (userNameEl) {
+                    userNameEl.textContent = displayName;
+                    console.log('✅ [updateUIForUserRole] Updated sidebar user name');
+                }
+                if (headerUserNameEl) {
+                    headerUserNameEl.textContent = displayName;
+                    console.log('✅ [updateUIForUserRole] Updated header user name');
+                }
+                if (userRoleEl) {
+                    userRoleEl.textContent = displayRole;
+                    console.log('✅ [updateUIForUserRole] Updated user role display');
+                }
+            } else {
+                console.warn('⚠️ [updateUIForUserRole] currentUser is null, cannot update UI');
             }
+
+            console.log('✅ [updateUIForUserRole] UI update complete');
         }
 
         // ===== AUTHENTICATION HANDLERS =====
@@ -9942,6 +10005,103 @@
                 }
             });
         }
+
+        // ===== DEBUGGING UTILITY =====
+        /**
+         * Comprehensive debugging function to diagnose data loading issues
+         * Run this in the browser console: await debugDataLoading()
+         */
+        window.debugDataLoading = async function() {
+            console.log('🔍 ===== COMPREHENSIVE DATA LOADING DEBUG =====');
+
+            // 1. Check authentication
+            console.log('\n📋 1. AUTHENTICATION STATUS:');
+            const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
+            console.log('   Session:', session);
+            console.log('   Session Error:', sessionError);
+            console.log('   User ID:', session?.user?.id);
+            console.log('   User Email:', session?.user?.email);
+
+            // 2. Check currentUser global variable
+            console.log('\n📋 2. CURRENT USER GLOBAL VARIABLE:');
+            console.log('   currentUser:', currentUser);
+            console.log('   currentUser.role:', currentUser?.role);
+            console.log('   currentUser.name:', currentUser?.name);
+            console.log('   currentUser.email:', currentUser?.email);
+
+            // 3. Test users table query
+            console.log('\n📋 3. USERS TABLE QUERY TEST:');
+            try {
+                const { data: userData, error: userError } = await supabaseClient
+                    .from('users')
+                    .select('*')
+                    .eq('id', session?.user?.id)
+                    .maybeSingle();
+                console.log('   Users Query Data:', userData);
+                console.log('   Users Query Error:', userError);
+            } catch (err) {
+                console.error('   Users Query Exception:', err);
+            }
+
+            // 4. Test startups table query
+            console.log('\n📋 4. STARTUPS TABLE QUERY TEST:');
+            try {
+                const { data: startupsData, error: startupsError } = await supabaseClient
+                    .from('startups')
+                    .select('id, name');
+                console.log('   Startups Query Data:', startupsData);
+                console.log('   Startups Query Error:', startupsError);
+                console.log('   Startups Count:', startupsData?.length || 0);
+            } catch (err) {
+                console.error('   Startups Query Exception:', err);
+            }
+
+            // 5. Test bookings table query
+            console.log('\n📋 5. BOOKINGS TABLE QUERY TEST:');
+            try {
+                const { data: bookingsData, error: bookingsError } = await supabaseClient
+                    .from('bookings')
+                    .select('*', { count: 'exact' });
+                console.log('   Bookings Query Data:', bookingsData);
+                console.log('   Bookings Query Error:', bookingsError);
+                console.log('   Bookings Count:', bookingsData?.length || 0);
+            } catch (err) {
+                console.error('   Bookings Query Exception:', err);
+            }
+
+            // 6. Test rooms table query
+            console.log('\n📋 6. ROOMS TABLE QUERY TEST:');
+            try {
+                const { data: roomsData, error: roomsError } = await supabaseClient
+                    .from('rooms')
+                    .select('*');
+                console.log('   Rooms Query Data:', roomsData);
+                console.log('   Rooms Query Error:', roomsError);
+                console.log('   Rooms Count:', roomsData?.length || 0);
+            } catch (err) {
+                console.error('   Rooms Query Exception:', err);
+            }
+
+            // 7. Check UI elements
+            console.log('\n📋 7. UI ELEMENTS CHECK:');
+            console.log('   user-name element:', document.getElementById('user-name'));
+            console.log('   header-user-name element:', document.getElementById('header-user-name'));
+            console.log('   user-role element:', document.getElementById('user-role'));
+            console.log('   today-schedule element:', document.getElementById('today-schedule'));
+            console.log('   Admin-only elements count:', document.querySelectorAll('[data-admin-only]').length);
+
+            // 8. Check real-time subscriptions
+            console.log('\n📋 8. REAL-TIME SUBSCRIPTIONS:');
+            console.log('   usersChannel:', usersChannel);
+            console.log('   startupsChannel:', startupsChannel);
+            console.log('   bookingsChannel:', bookingsChannel);
+            console.log('   roomsChannel:', roomsChannel);
+
+            console.log('\n✅ ===== DEBUG COMPLETE =====');
+            console.log('Please share this output with support for diagnosis.');
+        };
+
+        console.log('💡 TIP: Run "await debugDataLoading()" in the console to diagnose data loading issues');
 
         // Initialize the application
         handleAuthState();
