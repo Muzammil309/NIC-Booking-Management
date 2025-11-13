@@ -2439,10 +2439,68 @@
         let bookingsChannel = null;
         let roomsChannel = null;
 
+        // Subscription reconnection tracking
+        let subscriptionReconnectAttempts = {
+            users: 0,
+            startups: 0,
+            bookings: 0,
+            rooms: 0
+        };
+        const MAX_RECONNECT_ATTEMPTS = 5;
+        const RECONNECT_BASE_DELAY = 2000; // 2 seconds
+
+        // Periodic data refresh interval
+        let dashboardRefreshInterval = null;
+
+        // ===== SESSION VALIDATION WRAPPER =====
+
+        /**
+         * Validates session before executing a database query
+         * Returns null if session is invalid, otherwise returns the session
+         */
+        async function validateSession() {
+            try {
+                const { data: { session }, error } = await supabaseClient.auth.getSession();
+
+                if (error) {
+                    console.error('❌ [Session] Error getting session:', error);
+                    return null;
+                }
+
+                if (!session) {
+                    console.warn('⚠️ [Session] No active session found');
+                    return null;
+                }
+
+                // Check if token is about to expire (within 5 minutes)
+                const expiresAt = session.expires_at;
+                const now = Math.floor(Date.now() / 1000);
+                const timeUntilExpiry = expiresAt - now;
+
+                if (timeUntilExpiry < 300) { // Less than 5 minutes
+                    console.log('⚠️ [Session] Token expiring soon, refreshing...');
+                    const { data: { session: newSession }, error: refreshError } = await supabaseClient.auth.refreshSession();
+
+                    if (refreshError) {
+                        console.error('❌ [Session] Failed to refresh session:', refreshError);
+                        return null;
+                    }
+
+                    console.log('✅ [Session] Session refreshed successfully');
+                    return newSession;
+                }
+
+                return session;
+            } catch (error) {
+                console.error('❌ [Session] Unexpected error during validation:', error);
+                return null;
+            }
+        }
+
         // ===== REAL-TIME DATABASE SYNCHRONIZATION =====
 
         /**
-         * Set up real-time subscriptions for database changes
+         * Set up real-time subscriptions for database changes with automatic reconnection
          * This enables automatic UI updates when data changes in Supabase
          */
         function setupRealtimeSubscriptions() {
@@ -2466,7 +2524,7 @@
                 roomsChannel = null;
             }
 
-            // Subscribe to users table changes
+            // Subscribe to users table changes with enhanced error handling
             usersChannel = supabaseClient
                 .channel('users-changes')
                 .on(
@@ -2482,14 +2540,10 @@
                     }
                 )
                 .subscribe((status) => {
-                    if (status === 'SUBSCRIBED') {
-                        console.log('✅ [Realtime] Subscribed to users table changes');
-                    } else if (status === 'CHANNEL_ERROR') {
-                        console.error('❌ [Realtime] Error subscribing to users table');
-                    }
+                    handleSubscriptionStatus('users', status, usersChannel);
                 });
 
-            // Subscribe to startups table changes
+            // Subscribe to startups table changes with enhanced error handling
             startupsChannel = supabaseClient
                 .channel('startups-changes')
                 .on(
@@ -2505,14 +2559,10 @@
                     }
                 )
                 .subscribe((status) => {
-                    if (status === 'SUBSCRIBED') {
-                        console.log('✅ [Realtime] Subscribed to startups table changes');
-                    } else if (status === 'CHANNEL_ERROR') {
-                        console.error('❌ [Realtime] Error subscribing to startups table');
-                    }
+                    handleSubscriptionStatus('startups', status, startupsChannel);
                 });
 
-            // Subscribe to bookings table changes
+            // Subscribe to bookings table changes with enhanced error handling
             bookingsChannel = supabaseClient
                 .channel('bookings-changes')
                 .on(
@@ -2528,14 +2578,10 @@
                     }
                 )
                 .subscribe((status) => {
-                    if (status === 'SUBSCRIBED') {
-                        console.log('✅ [Realtime] Subscribed to bookings table changes');
-                    } else if (status === 'CHANNEL_ERROR') {
-                        console.error('❌ [Realtime] Error subscribing to bookings table');
-                    }
+                    handleSubscriptionStatus('bookings', status, bookingsChannel);
                 });
 
-            // Subscribe to rooms table changes
+            // Subscribe to rooms table changes with enhanced error handling
             roomsChannel = supabaseClient
                 .channel('rooms-changes')
                 .on(
@@ -2551,12 +2597,155 @@
                     }
                 )
                 .subscribe((status) => {
-                    if (status === 'SUBSCRIBED') {
-                        console.log('✅ [Realtime] Subscribed to rooms table changes');
-                    } else if (status === 'CHANNEL_ERROR') {
-                        console.error('❌ [Realtime] Error subscribing to rooms table');
-                    }
+                    handleSubscriptionStatus('rooms', status, roomsChannel);
                 });
+        }
+
+        /**
+         * Handle subscription status changes with automatic reconnection
+         * Handles all subscription states: SUBSCRIBED, CHANNEL_ERROR, TIMED_OUT, CLOSED
+         */
+        function handleSubscriptionStatus(tableName, status, channel) {
+            console.log(`📡 [Realtime] ${tableName} subscription status:`, status);
+
+            if (status === 'SUBSCRIBED') {
+                console.log(`✅ [Realtime] Successfully subscribed to ${tableName} table changes`);
+                // Reset reconnection attempts on successful subscription
+                subscriptionReconnectAttempts[tableName] = 0;
+
+            } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+                console.error(`❌ [Realtime] ${tableName} subscription ${status}`);
+
+                // Attempt to reconnect with exponential backoff
+                const attempts = subscriptionReconnectAttempts[tableName];
+
+                if (attempts < MAX_RECONNECT_ATTEMPTS) {
+                    const delay = RECONNECT_BASE_DELAY * Math.pow(2, attempts);
+                    subscriptionReconnectAttempts[tableName]++;
+
+                    console.log(`🔄 [Realtime] Attempting to reconnect ${tableName} in ${delay}ms (attempt ${attempts + 1}/${MAX_RECONNECT_ATTEMPTS})`);
+
+                    setTimeout(() => {
+                        console.log(`🔄 [Realtime] Reconnecting ${tableName} subscription...`);
+                        setupRealtimeSubscriptions();
+                    }, delay);
+                } else {
+                    console.error(`❌ [Realtime] Max reconnection attempts reached for ${tableName}. Manual refresh required.`);
+                    // Show user-friendly error message
+                    showNotification(`Real-time updates for ${tableName} are temporarily unavailable. Please refresh the page.`, 'warning');
+                }
+            }
+        }
+
+        /**
+         * Start periodic dashboard data refresh
+         * Refreshes dashboard statistics every 5 minutes as a fallback
+         * Only refreshes if user is on the dashboard page
+         */
+        function startDashboardAutoRefresh() {
+            // Clear existing interval if any
+            if (dashboardRefreshInterval) {
+                clearInterval(dashboardRefreshInterval);
+            }
+
+            console.log('⏰ [Dashboard] Starting auto-refresh (every 5 minutes)');
+
+            // Refresh every 5 minutes
+            dashboardRefreshInterval = setInterval(async () => {
+                const currentPage = window.location.hash;
+
+                // Only refresh if on dashboard page
+                if (currentPage === '#dashboard' || currentPage === '' || currentPage === '#') {
+                    console.log('🔄 [Auto-Refresh] Refreshing dashboard data...');
+
+                    // Validate session before refresh
+                    const session = await validateSession();
+                    if (!session) {
+                        console.warn('⚠️ [Auto-Refresh] Invalid session, stopping auto-refresh');
+                        clearInterval(dashboardRefreshInterval);
+                        showAuth('login');
+                        return;
+                    }
+
+                    // Refresh dashboard data
+                    try {
+                        await loadDashboardData();
+                        console.log('✅ [Auto-Refresh] Dashboard data refreshed successfully');
+                    } catch (error) {
+                        console.error('❌ [Auto-Refresh] Error refreshing dashboard:', error);
+                    }
+                }
+            }, 5 * 60 * 1000); // 5 minutes
+        }
+
+        /**
+         * Stop periodic dashboard refresh
+         */
+        function stopDashboardAutoRefresh() {
+            if (dashboardRefreshInterval) {
+                clearInterval(dashboardRefreshInterval);
+                dashboardRefreshInterval = null;
+                console.log('⏹️ [Dashboard] Auto-refresh stopped');
+            }
+        }
+
+        /**
+         * Health check for real-time subscriptions
+         * Verifies all subscriptions are active and reconnects if needed
+         */
+        async function checkRealtimeHealth() {
+            console.log('🏥 [Health Check] Checking real-time subscription health...');
+
+            const channels = [
+                { name: 'users', channel: usersChannel },
+                { name: 'startups', channel: startupsChannel },
+                { name: 'bookings', channel: bookingsChannel },
+                { name: 'rooms', channel: roomsChannel }
+            ];
+
+            let allHealthy = true;
+
+            for (const { name, channel } of channels) {
+                if (!channel) {
+                    console.warn(`⚠️ [Health Check] ${name} channel is null`);
+                    allHealthy = false;
+                } else {
+                    const state = channel.state;
+                    console.log(`📡 [Health Check] ${name} channel state:`, state);
+
+                    if (state !== 'joined') {
+                        console.warn(`⚠️ [Health Check] ${name} channel not joined (state: ${state})`);
+                        allHealthy = false;
+                    }
+                }
+            }
+
+            if (!allHealthy) {
+                console.log('🔄 [Health Check] Some subscriptions unhealthy, reconnecting...');
+                setupRealtimeSubscriptions();
+            } else {
+                console.log('✅ [Health Check] All subscriptions healthy');
+            }
+
+            return allHealthy;
+        }
+
+        /**
+         * Start periodic health checks for real-time subscriptions
+         * Checks every 2 minutes and reconnects if needed
+         */
+        let healthCheckInterval = null;
+        function startRealtimeHealthChecks() {
+            if (healthCheckInterval) {
+                clearInterval(healthCheckInterval);
+            }
+
+            console.log('🏥 [Health Check] Starting periodic health checks (every 2 minutes)');
+
+            // Check every 2 minutes
+            healthCheckInterval = setInterval(async () => {
+                await checkRealtimeHealth();
+            }, 2 * 60 * 1000);
         }
 
         /**
@@ -2880,9 +3069,9 @@
                 console.log('🔍 [DEBUG] currentUser at dashboard load:', currentUser);
                 console.log('🔍 [DEBUG] currentUser.role at dashboard load:', currentUser?.role);
 
-                // Validate session before loading data
-                const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
-                if (sessionError || !session) {
+                // Validate session before loading data using the wrapper
+                const session = await validateSession();
+                if (!session) {
                     console.error('❌ [loadDashboardData] No valid session, redirecting to login');
                     showAuth('login');
                     return;
@@ -4353,6 +4542,14 @@
                 // Set up real-time database synchronization
                 console.log('🔄 Setting up real-time subscriptions...');
                 setupRealtimeSubscriptions();
+
+                // Start periodic dashboard refresh
+                console.log('⏰ Starting dashboard auto-refresh...');
+                startDashboardAutoRefresh();
+
+                // Start real-time health checks
+                console.log('🏥 Starting real-time health checks...');
+                startRealtimeHealthChecks();
 
                 // Load initial page data
                 const currentHash = window.location.hash || '#dashboard';
@@ -10194,6 +10391,94 @@
         }
 
         // ===== DEBUGGING UTILITY =====
+
+        /**
+         * Comprehensive system health check
+         * Run this in the browser console: await checkSystemHealth()
+         */
+        window.checkSystemHealth = async function() {
+            console.log('🏥 ===== SYSTEM HEALTH CHECK =====\n');
+
+            const results = {
+                session: false,
+                realtimeSubscriptions: false,
+                dashboardRefresh: false,
+                healthChecks: false,
+                dataAccess: { users: false, startups: false, bookings: false, rooms: false }
+            };
+
+            // 1. Check session
+            console.log('1️⃣ SESSION VALIDATION:');
+            const session = await validateSession();
+            if (session) {
+                console.log('   ✅ Session valid - User:', session.user.email);
+                results.session = true;
+            } else {
+                console.log('   ❌ Session invalid or expired');
+            }
+
+            // 2. Check real-time subscriptions
+            console.log('\n2️⃣ REAL-TIME SUBSCRIPTIONS:');
+            const channels = [
+                { name: 'users', channel: usersChannel },
+                { name: 'startups', channel: startupsChannel },
+                { name: 'bookings', channel: bookingsChannel },
+                { name: 'rooms', channel: roomsChannel }
+            ];
+
+            let allSubscribed = true;
+            for (const { name, channel } of channels) {
+                if (channel && channel.state === 'joined') {
+                    console.log(`   ✅ ${name}: SUBSCRIBED`);
+                } else {
+                    console.log(`   ❌ ${name}: ${channel ? channel.state : 'NULL'}`);
+                    allSubscribed = false;
+                }
+            }
+            results.realtimeSubscriptions = allSubscribed;
+
+            // 3. Check periodic systems
+            console.log('\n3️⃣ PERIODIC SYSTEMS:');
+            console.log(`   ${dashboardRefreshInterval ? '✅' : '❌'} Dashboard auto-refresh`);
+            console.log(`   ${healthCheckInterval ? '✅' : '❌'} Health checks`);
+            results.dashboardRefresh = !!dashboardRefreshInterval;
+            results.healthChecks = !!healthCheckInterval;
+
+            // 4. Test database access
+            console.log('\n4️⃣ DATABASE ACCESS:');
+            for (const table of ['users', 'startups', 'bookings', 'rooms']) {
+                try {
+                    const { error } = await supabaseClient.from(table).select('id').limit(1);
+                    if (!error) {
+                        console.log(`   ✅ ${table} table: ACCESSIBLE`);
+                        results.dataAccess[table] = true;
+                    } else {
+                        console.log(`   ❌ ${table} table:`, error.message);
+                    }
+                } catch (err) {
+                    console.log(`   ❌ ${table} table:`, err.message);
+                }
+            }
+
+            // Summary
+            console.log('\n📊 SUMMARY:');
+            const allHealthy = results.session && results.realtimeSubscriptions &&
+                              results.dashboardRefresh && results.healthChecks &&
+                              Object.values(results.dataAccess).every(v => v);
+
+            console.log(allHealthy ? '   ✅ ALL SYSTEMS OPERATIONAL' : '   ⚠️ SOME SYSTEMS NEED ATTENTION');
+
+            if (!allHealthy) {
+                console.log('\n🔧 RECOMMENDATIONS:');
+                if (!results.session) console.log('   - Refresh page or log in again');
+                if (!results.realtimeSubscriptions) console.log('   - Run: setupRealtimeSubscriptions()');
+                if (!results.dashboardRefresh) console.log('   - Run: startDashboardAutoRefresh()');
+                if (!results.healthChecks) console.log('   - Run: startRealtimeHealthChecks()');
+            }
+
+            return results;
+        };
+
         /**
          * Comprehensive debugging function to diagnose data loading issues
          * Run this in the browser console: await debugDataLoading()
@@ -10467,16 +10752,55 @@
         // Check periodically
         setInterval(checkForNewVersion, VERSION_CHECK_INTERVAL);
 
-        // Force reload on visibility change if page was hidden for more than 10 minutes
+        // Enhanced visibility change handler - refresh data and check for updates
         let hiddenTime = null;
-        document.addEventListener('visibilitychange', () => {
+        document.addEventListener('visibilitychange', async () => {
             if (document.hidden) {
                 hiddenTime = Date.now();
+                console.log('👁️ [Visibility] Page hidden at:', new Date(hiddenTime).toLocaleTimeString());
             } else {
-                if (hiddenTime && (Date.now() - hiddenTime) > 10 * 60 * 1000) {
+                const timeHidden = hiddenTime ? Date.now() - hiddenTime : 0;
+                console.log('👁️ [Visibility] Page visible again. Was hidden for:', Math.round(timeHidden / 1000), 'seconds');
+
+                // If page was hidden for more than 2 minutes, refresh data
+                if (hiddenTime && timeHidden > 2 * 60 * 1000) {
+                    console.log('🔄 [Visibility] Page was hidden for >2 minutes, refreshing data...');
+
+                    // Validate session
+                    const session = await validateSession();
+                    if (!session) {
+                        console.warn('⚠️ [Visibility] Invalid session, redirecting to login');
+                        showAuth('login');
+                        return;
+                    }
+
+                    // Reconnect real-time subscriptions
+                    console.log('🔄 [Visibility] Reconnecting real-time subscriptions...');
+                    setupRealtimeSubscriptions();
+
+                    // Refresh current page data
+                    const currentPage = window.location.hash;
+                    console.log('🔄 [Visibility] Refreshing current page:', currentPage);
+
+                    if (currentPage === '#dashboard' || currentPage === '' || currentPage === '#') {
+                        await loadDashboardData();
+                    } else if (currentPage === '#bookings') {
+                        await loadBookingsData();
+                    } else if (currentPage === '#startups') {
+                        await loadStartupsData();
+                    } else if (currentPage === '#rooms') {
+                        await loadRoomsData();
+                    }
+
+                    console.log('✅ [Visibility] Data refreshed successfully');
+                }
+
+                // If page was hidden for more than 10 minutes, check for version updates
+                if (hiddenTime && timeHidden > 10 * 60 * 1000) {
                     console.log('🔄 [Version Check] Page was hidden for >10 minutes, checking for updates...');
                     checkForNewVersion();
                 }
+
                 hiddenTime = null;
             }
         });
