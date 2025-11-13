@@ -1,5 +1,6 @@
 {
   "buildCommand": "node update-build-timestamp.js",
+  "outputDirectory": ".",
   "headers": [
     {
       "source": "/index.html",
