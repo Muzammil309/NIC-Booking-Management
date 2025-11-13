@@ -1,0 +1,17 @@
+{
+  "name": "nic-booking-management",
+  "version": "2.0.0",
+  "description": "NIC Islamabad Room Booking Management System",
+  "scripts": {
+    "build": "node update-build-timestamp.js",
+    "deploy": "npm run build && vercel --prod"
+  },
+  "keywords": [
+    "booking",
+    "room-management",
+    "nic-islamabad"
+  ],
+  "author": "NIC Islamabad",
+  "license": "MIT"
+}
+

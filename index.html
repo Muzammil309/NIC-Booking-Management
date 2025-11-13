@@ -4,6 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NIC Islamabad | Room Booking</title>
+
+    <!-- Cache Control Meta Tags -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+
+    <!-- App Version for Cache Busting -->
+    <meta name="app-version" content="2.0.0">
+    <meta name="build-timestamp" content="BUILD_TIMESTAMP_PLACEHOLDER">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -10102,6 +10112,197 @@
         };
 
         console.log('💡 TIP: Run "await debugDataLoading()" in the console to diagnose data loading issues');
+
+        // ===== VERSION DETECTION & AUTO-RELOAD SYSTEM =====
+        /**
+         * Detects when a new version of the app is deployed and prompts user to reload
+         * This prevents users from using stale cached versions
+         */
+        const APP_VERSION = '2.0.0';
+        const VERSION_CHECK_INTERVAL = 5 * 60 * 1000; // Check every 5 minutes
+
+        // Get current version from meta tag
+        function getCurrentVersion() {
+            const metaTag = document.querySelector('meta[name="app-version"]');
+            return metaTag ? metaTag.content : APP_VERSION;
+        }
+
+        // Check if a new version is available
+        async function checkForNewVersion() {
+            try {
+                // Fetch the HTML with cache-busting timestamp
+                const response = await fetch(`/index.html?t=${Date.now()}`, {
+                    method: 'GET',
+                    cache: 'no-cache',
+                    headers: {
+                        'Cache-Control': 'no-cache, no-store, must-revalidate',
+                        'Pragma': 'no-cache'
+                    }
+                });
+
+                if (!response.ok) {
+                    console.warn('⚠️ [Version Check] Failed to fetch latest version');
+                    return;
+                }
+
+                const html = await response.text();
+
+                // Extract version from the fetched HTML
+                const versionMatch = html.match(/<meta name="app-version" content="([^"]+)">/);
+                const latestVersion = versionMatch ? versionMatch[1] : null;
+
+                const currentVersion = getCurrentVersion();
+
+                console.log('🔍 [Version Check] Current:', currentVersion, '| Latest:', latestVersion);
+
+                if (latestVersion && latestVersion !== currentVersion) {
+                    console.log('🆕 [Version Check] New version available!');
+                    showNewVersionNotification(currentVersion, latestVersion);
+                }
+            } catch (error) {
+                console.error('❌ [Version Check] Error:', error);
+            }
+        }
+
+        // Show notification when new version is available
+        function showNewVersionNotification(currentVersion, newVersion) {
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.id = 'version-notification';
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                padding: 20px 24px;
+                border-radius: 12px;
+                box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+                z-index: 10000;
+                max-width: 400px;
+                animation: slideIn 0.3s ease-out;
+            `;
+
+            notification.innerHTML = `
+                <div style="display: flex; align-items: start; gap: 12px;">
+                    <div style="flex-shrink: 0; font-size: 24px;">🚀</div>
+                    <div style="flex: 1;">
+                        <div style="font-weight: 700; font-size: 16px; margin-bottom: 8px;">
+                            New Version Available!
+                        </div>
+                        <div style="font-size: 14px; opacity: 0.9; margin-bottom: 12px;">
+                            Version ${newVersion} is now available. Please reload to get the latest features and fixes.
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <button onclick="location.reload(true)" style="
+                                background: white;
+                                color: #667eea;
+                                border: none;
+                                padding: 8px 16px;
+                                border-radius: 6px;
+                                font-weight: 600;
+                                cursor: pointer;
+                                font-size: 14px;
+                            ">
+                                Reload Now
+                            </button>
+                            <button onclick="document.getElementById('version-notification').remove()" style="
+                                background: rgba(255, 255, 255, 0.2);
+                                color: white;
+                                border: none;
+                                padding: 8px 16px;
+                                border-radius: 6px;
+                                font-weight: 600;
+                                cursor: pointer;
+                                font-size: 14px;
+                            ">
+                                Later
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Add animation
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes slideIn {
+                    from {
+                        transform: translateX(400px);
+                        opacity: 0;
+                    }
+                    to {
+                        transform: translateX(0);
+                        opacity: 1;
+                    }
+                }
+            `;
+            document.head.appendChild(style);
+
+            document.body.appendChild(notification);
+
+            // Auto-reload after 30 seconds if user doesn't respond
+            setTimeout(() => {
+                if (document.getElementById('version-notification')) {
+                    console.log('🔄 [Version Check] Auto-reloading to new version...');
+                    location.reload(true);
+                }
+            }, 30000);
+        }
+
+        // Clear any service worker caches (if they exist)
+        async function clearServiceWorkerCaches() {
+            if ('serviceWorker' in navigator) {
+                try {
+                    const registrations = await navigator.serviceWorker.getRegistrations();
+                    for (const registration of registrations) {
+                        await registration.unregister();
+                        console.log('✅ [Cache] Service worker unregistered');
+                    }
+                } catch (error) {
+                    console.warn('⚠️ [Cache] Could not unregister service workers:', error);
+                }
+            }
+
+            if ('caches' in window) {
+                try {
+                    const cacheNames = await caches.keys();
+                    for (const cacheName of cacheNames) {
+                        await caches.delete(cacheName);
+                        console.log('✅ [Cache] Deleted cache:', cacheName);
+                    }
+                } catch (error) {
+                    console.warn('⚠️ [Cache] Could not clear caches:', error);
+                }
+            }
+        }
+
+        // Initialize version checking
+        console.log('🔍 [Version Check] Current version:', getCurrentVersion());
+        console.log('🔍 [Version Check] Starting periodic version checks...');
+
+        // Clear service worker caches on load
+        clearServiceWorkerCaches();
+
+        // Check for new version immediately
+        setTimeout(checkForNewVersion, 5000); // Wait 5 seconds after load
+
+        // Check periodically
+        setInterval(checkForNewVersion, VERSION_CHECK_INTERVAL);
+
+        // Force reload on visibility change if page was hidden for more than 10 minutes
+        let hiddenTime = null;
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                hiddenTime = Date.now();
+            } else {
+                if (hiddenTime && (Date.now() - hiddenTime) > 10 * 60 * 1000) {
+                    console.log('🔄 [Version Check] Page was hidden for >10 minutes, checking for updates...');
+                    checkForNewVersion();
+                }
+                hiddenTime = null;
+            }
+        });
 
         // Initialize the application
         handleAuthState();
