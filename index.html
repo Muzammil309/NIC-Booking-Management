@@ -2775,6 +2775,29 @@
         }
 
         /**
+         * Periodic session health checks
+         * Runs a full system health check with auto-recovery enabled every 30 minutes
+         */
+        let sessionHealthCheckInterval = null;
+        function startSessionHealthChecks() {
+            if (sessionHealthCheckInterval) {
+                clearInterval(sessionHealthCheckInterval);
+            }
+
+            console.log('🏥 [Session Health] Starting periodic session health checks (every 30 minutes)');
+
+            sessionHealthCheckInterval = setInterval(async () => {
+                try {
+                    console.log('🏥 [Session Health] Running periodic health check with auto-recovery...');
+                    await window.checkSystemHealth({ autoRecover: true });
+                } catch (err) {
+                    console.error('❌ [Session Health] Error during periodic health check:', err);
+                }
+            }, 30 * 60 * 1000); // Every 30 minutes
+        }
+
+
+        /**
          * Handle changes to the users table
          * Refreshes Contact Us tab (for admin users) and Startups tab (User Management section)
          */
@@ -4378,7 +4401,7 @@
         }
 
         // ===== AUTHENTICATION INTEGRATION =====
-        async function bootstrapData(user) {
+
         // Handles critical bootstrap failures (e.g., stuck user profile query or stale sessions)
         async function handleBootstrapRecovery(reason) {
             try {
@@ -4413,6 +4436,7 @@
             }
         }
 
+        async function bootstrapData(user) {
 
             try {
                 console.log('🔄 Bootstrap Data - Starting for user:', user.id);
@@ -4613,6 +4637,10 @@
                 // Start real-time health checks
                 console.log('🏥 Starting real-time health checks...');
                 startRealtimeHealthChecks();
+
+                // Start periodic session health checks
+                console.log('🏥 Starting session health checks...');
+                startSessionHealthChecks();
 
                 // Load initial page data
                 const currentHash = window.location.hash || '#dashboard';
@@ -10459,20 +10487,28 @@
          * Comprehensive system health check
          * Run this in the browser console: await checkSystemHealth()
          */
-        window.checkSystemHealth = async function() {
+        window.checkSystemHealth = async function(options = {}) {
             console.log('🏥 ===== SYSTEM HEALTH CHECK =====\n');
+
+            // Support both object-style and boolean-style parameter for convenience
+            const autoRecover = typeof options === 'boolean'
+                ? options
+                : !!(options && options.autoRecover);
 
             const results = {
                 session: false,
                 realtimeSubscriptions: false,
                 dashboardRefresh: false,
                 healthChecks: false,
-                dataAccess: { users: false, startups: false, bookings: false, rooms: false }
+                dataAccess: { users: false, startups: false, bookings: false, rooms: false },
+                recoveryTriggered: false
             };
+
+            let session = null;
 
             // 1. Check session
             console.log('1️⃣ SESSION VALIDATION:');
-            const session = await validateSession();
+            session = await validateSession();
             if (session) {
                 console.log('   ✅ Session valid - User:', session.user.email);
                 results.session = true;
@@ -10523,7 +10559,7 @@
                 }
             }
 
-            // Summary
+            // Summary of overall health
             console.log('\n📊 SUMMARY:');
             const allHealthy = results.session && results.realtimeSubscriptions &&
                               results.dashboardRefresh && results.healthChecks &&
@@ -10531,12 +10567,61 @@
 
             console.log(allHealthy ? '   ✅ ALL SYSTEMS OPERATIONAL' : '   ⚠️ SOME SYSTEMS NEED ATTENTION');
 
-            if (!allHealthy) {
+            // Detect critical failures for potential auto-recovery
+            const criticalFailures = [];
+
+            if (!results.session) {
+                criticalFailures.push('Session validation failed');
+            }
+
+            const allTablesInaccessible = Object.values(results.dataAccess).every(v => !v);
+            if (allTablesInaccessible) {
+                criticalFailures.push('All database tables inaccessible');
+            }
+
+            // If we have a session, run a focused user profile health check to detect session corruption
+            if (results.session && session && session.user) {
+                console.log('\n🧪 USER PROFILE HEALTH CHECK:');
+                try {
+                    const { data: profileData, error: profileError } = await withTimeout(
+                        supabaseClient
+                            .from('users')
+                            .select('*')
+                            .eq('id', session.user.id)
+                            .maybeSingle(),
+                        5000,
+                        'User profile health check'
+                    );
+
+                    console.log('   Profile data:', profileData);
+                    console.log('   Profile error:', profileError);
+
+                    if (profileError || !profileData) {
+                        criticalFailures.push('User profile query failed (possible session corruption)');
+                    }
+                } catch (err) {
+                    console.log('   User profile health check exception:', err.message || err);
+                    criticalFailures.push('User profile query failed (possible session corruption)');
+                }
+            }
+
+            if (!allHealthy || criticalFailures.length > 0) {
                 console.log('\n🔧 RECOMMENDATIONS:');
                 if (!results.session) console.log('   - Refresh page or log in again');
                 if (!results.realtimeSubscriptions) console.log('   - Run: setupRealtimeSubscriptions()');
                 if (!results.dashboardRefresh) console.log('   - Run: startDashboardAutoRefresh()');
                 if (!results.healthChecks) console.log('   - Run: startRealtimeHealthChecks()');
+                if (criticalFailures.length > 0) {
+                    console.log('   - Critical issues detected:', criticalFailures.join('; '));
+                }
+            }
+
+            // Auto-recover if requested and we detected critical failures
+            if (autoRecover && criticalFailures.length > 0) {
+                console.warn('🚨 [System Health] Critical failures detected:', criticalFailures);
+                const reason = `System health check failed: ${criticalFailures.join(', ')}`;
+                await handleBootstrapRecovery(reason);
+                results.recoveryTriggered = true;
             }
 
             return results;
