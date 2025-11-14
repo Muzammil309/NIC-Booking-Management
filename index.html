@@ -2453,6 +2453,31 @@
         // Periodic data refresh interval
         let dashboardRefreshInterval = null;
 
+        // ===== GENERIC TIMEOUT WRAPPER FOR ASYNC OPERATIONS =====
+        /**
+         * Wraps a promise with a timeout so that hanging network calls do not block the UI forever.
+         * If the timeout is reached, the returned promise rejects with a descriptive error.
+         */
+        async function withTimeout(promise, ms, description) {
+            const label = description || 'Operation';
+            let timeoutId;
+
+            const timeoutPromise = new Promise((_, reject) => {
+                timeoutId = setTimeout(() => {
+                    reject(new Error(`${label} timed out after ${ms}ms`));
+                }, ms);
+            });
+
+            try {
+                const result = await Promise.race([promise, timeoutPromise]);
+                clearTimeout(timeoutId);
+                return result;
+            } catch (err) {
+                clearTimeout(timeoutId);
+                throw err;
+            }
+        }
+
         // ===== SESSION VALIDATION WRAPPER =====
 
         /**
@@ -4369,12 +4394,18 @@
                     console.log(`🔍 [DEBUG] Attempt ${retryCount + 1}/${maxRetries} - Querying users table...`);
 
                     try {
-                        // Directly query the users table using the authenticated user ID
-                        const { data, error } = await supabaseClient
+                        // Directly query the users table using the authenticated user ID, but guard it with a timeout
+                        const queryPromise = supabaseClient
                             .from('users')
                             .select('*')
                             .eq('id', user.id)
                             .maybeSingle();
+
+                        const { data, error } = await withTimeout(
+                            queryPromise,
+                            10000,
+                            'User profile query'
+                        );
 
                         console.log('🔍 [DEBUG] Query completed. Data:', data);
                         console.log('🔍 [DEBUG] Query error:', error);
