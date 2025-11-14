@@ -4573,6 +4573,24 @@
                 console.log('🔄 Bootstrap Data - Starting for user:', user.id);
                 console.log('🔄 User metadata:', user.user_metadata);
 
+                // Step 0: Validate session before making any database queries
+                console.log('🔐 Step 0: Validating session...');
+                const validSession = await validateSession();
+
+                if (!validSession) {
+                    console.error('❌❌❌ CRITICAL: Session validation failed - session is invalid or expired');
+                    console.error('❌❌❌ This indicates a corrupted session in localStorage');
+
+                    // Trigger recovery immediately instead of trying to query with a bad token
+                    await handleBootstrapRecovery('Session validation failed - corrupted or expired session');
+
+                    console.log('🔄 [Bootstrap] Recovery triggered due to invalid session, waiting for page reload...');
+                    return;
+                }
+
+                console.log('✅ Session validated successfully');
+                console.log('🔍 [DEBUG] Session expires at:', new Date(validSession.expires_at * 1000).toISOString());
+
                 // Step 1: Load user profile with retry logic
                 console.log('📝 Step 1: Loading user profile...');
                 console.log('🔍 [DEBUG] User ID to query:', user.id);
