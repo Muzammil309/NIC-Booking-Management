@@ -2381,45 +2381,46 @@
 
         // ===== AGGRESSIVE CACHE BUSTING ON STARTUP =====
         /**
-         * This runs IMMEDIATELY on page load to detect and fix cache issues
-         * It compares the stored version with the current version and forces reload if different
+         * Runs IMMEDIATELY on page load and ties the cached state to the build timestamp.
+         * If the stored build ID doesn't match the current one, clear storage and reload.
          */
         (function aggressiveCacheBusting() {
-            const CURRENT_VERSION = '2.0.0';
-            const STORAGE_KEY = 'nic_app_version';
+            const VERSION_KEY = 'nic_app_build_id';
 
             try {
-                // Get stored version from localStorage
-                const storedVersion = localStorage.getItem(STORAGE_KEY);
+                const metaVersion = document.querySelector('meta[name="app-version"]');
+                const metaTimestamp = document.querySelector('meta[name="build-timestamp"]');
 
-                console.log('🔍 [Cache Check] Stored version:', storedVersion);
-                console.log('🔍 [Cache Check] Current version:', CURRENT_VERSION);
+                const appVersion = metaVersion ? metaVersion.content : '2.0.0';
+                const buildTimestamp = metaTimestamp ? metaTimestamp.content : 'dev';
 
-                // If versions don't match, we need to clear cache and reload
-                if (storedVersion && storedVersion !== CURRENT_VERSION) {
-                    console.log('🔄 [Cache Check] Version mismatch detected! Clearing cache and reloading...');
+                const currentBuildId = `${appVersion}::${buildTimestamp}`;
+                const storedBuildId = localStorage.getItem(VERSION_KEY);
 
-                    // Clear localStorage
+                console.log('🔍 [Cache Check] Stored build ID:', storedBuildId);
+                console.log('🔍 [Cache Check] Current build ID:', currentBuildId);
+
+                if (storedBuildId && storedBuildId !== currentBuildId) {
+                    console.log('🔄 [Cache Check] Build mismatch detected! Clearing cache and reloading...');
+
+                    // Clear localStorage and sessionStorage
                     localStorage.clear();
-
-                    // Clear sessionStorage
                     sessionStorage.clear();
 
-                    // Store new version
-                    localStorage.setItem(STORAGE_KEY, CURRENT_VERSION);
+                    // Persist new build ID so we don't loop
+                    localStorage.setItem(VERSION_KEY, currentBuildId);
 
                     // Force hard reload (bypass cache)
                     window.location.reload(true);
                     return;
                 }
 
-                // Store current version if not stored
-                if (!storedVersion) {
-                    console.log('✅ [Cache Check] First load, storing version:', CURRENT_VERSION);
-                    localStorage.setItem(STORAGE_KEY, CURRENT_VERSION);
+                if (!storedBuildId) {
+                    console.log('✅ [Cache Check] First load, storing build ID:', currentBuildId);
+                    localStorage.setItem(VERSION_KEY, currentBuildId);
                 }
 
-                console.log('✅ [Cache Check] Version match, continuing...');
+                console.log('✅ [Cache Check] Build ID match, continuing...');
 
             } catch (error) {
                 console.error('❌ [Cache Check] Error during cache check:', error);
@@ -10564,8 +10565,8 @@
 
         // ===== VERSION DETECTION & AUTO-RELOAD SYSTEM =====
         /**
-         * Detects when a new version of the app is deployed and prompts user to reload
-         * This prevents users from using stale cached versions
+         * Detects when a new version of the app is deployed and prompts user to reload.
+         * Uses both the app version and the build timestamp to uniquely identify a build.
          */
         const APP_VERSION = '2.0.0';
         const VERSION_CHECK_INTERVAL = 5 * 60 * 1000; // Check every 5 minutes
@@ -10574,6 +10575,14 @@
         function getCurrentVersion() {
             const metaTag = document.querySelector('meta[name="app-version"]');
             return metaTag ? metaTag.content : APP_VERSION;
+        }
+
+        // Get a stable build identifier (version + build timestamp)
+        function getCurrentBuildId() {
+            const version = getCurrentVersion();
+            const metaTimestamp = document.querySelector('meta[name="build-timestamp"]');
+            const timestamp = metaTimestamp ? metaTimestamp.content : 'dev';
+            return `${version}::${timestamp}`;
         }
 
         // Check if a new version is available
@@ -10596,17 +10605,23 @@
 
                 const html = await response.text();
 
-                // Extract version from the fetched HTML
+                // Extract version and build timestamp from the fetched HTML
                 const versionMatch = html.match(/<meta name="app-version" content="([^"]+)">/);
+                const timestampMatch = html.match(/<meta name="build-timestamp" content="([^"]+)">/);
+
                 const latestVersion = versionMatch ? versionMatch[1] : null;
+                const latestTimestamp = timestampMatch ? timestampMatch[1] : null;
+                const latestBuildId = latestVersion && latestTimestamp
+                    ? `${latestVersion}::${latestTimestamp}`
+                    : latestVersion;
 
-                const currentVersion = getCurrentVersion();
+                const currentBuildId = getCurrentBuildId();
 
-                console.log('🔍 [Version Check] Current:', currentVersion, '| Latest:', latestVersion);
+                console.log('🔍 [Version Check] Current build ID:', currentBuildId, '| Latest build ID:', latestBuildId);
 
-                if (latestVersion && latestVersion !== currentVersion) {
+                if (latestBuildId && latestBuildId !== currentBuildId) {
                     console.log('🆕 [Version Check] New version available!');
-                    showNewVersionNotification(currentVersion, latestVersion);
+                    showNewVersionNotification(getCurrentVersion(), latestVersion || 'unknown');
                 }
             } catch (error) {
                 console.error('❌ [Version Check] Error:', error);
