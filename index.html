@@ -2454,6 +2454,11 @@
         const MAX_RECONNECT_ATTEMPTS = 5;
         const RECONNECT_BASE_DELAY = 2000; // 2 seconds
 
+        // Global reconnection cooldown to prevent infinite loops
+        let globalReconnectionInProgress = false;
+        let lastGlobalReconnectionAttempt = 0;
+        const GLOBAL_RECONNECTION_COOLDOWN = 60000; // 60 seconds
+
         // Periodic data refresh interval
         let dashboardRefreshInterval = null;
 
@@ -2646,6 +2651,21 @@
             } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
                 console.error(`❌ [Realtime] ${tableName} subscription ${status}`);
 
+                // Check if global reconnection is already in progress
+                if (globalReconnectionInProgress) {
+                    console.warn(`⚠️ [Realtime] Global reconnection already in progress, skipping ${tableName} reconnection`);
+                    return;
+                }
+
+                // Check global cooldown to prevent rapid successive reconnection attempts
+                const now = Date.now();
+                const timeSinceLastAttempt = now - lastGlobalReconnectionAttempt;
+                if (timeSinceLastAttempt < GLOBAL_RECONNECTION_COOLDOWN) {
+                    const remainingCooldown = Math.ceil((GLOBAL_RECONNECTION_COOLDOWN - timeSinceLastAttempt) / 1000);
+                    console.warn(`⚠️ [Realtime] Global reconnection cooldown active. ${remainingCooldown}s remaining. Skipping ${tableName} reconnection.`);
+                    return;
+                }
+
                 // Attempt to reconnect with exponential backoff
                 const attempts = subscriptionReconnectAttempts[tableName];
 
@@ -2657,13 +2677,101 @@
 
                     setTimeout(() => {
                         console.log(`🔄 [Realtime] Reconnecting ${tableName} subscription...`);
-                        setupRealtimeSubscriptions();
+                        reconnectSingleSubscription(tableName);
                     }, delay);
                 } else {
                     console.error(`❌ [Realtime] Max reconnection attempts reached for ${tableName}. Manual refresh required.`);
                     // Show user-friendly error message
                     showNotification(`Real-time updates for ${tableName} are temporarily unavailable. Please refresh the page.`, 'warning');
                 }
+            }
+        }
+
+        /**
+         * Reconnect a single subscription without affecting others
+         * This prevents cascading failures where closing all channels triggers more CLOSED events
+         */
+        function reconnectSingleSubscription(tableName) {
+            try {
+                console.log(`🔧 [Realtime] Reconnecting single subscription: ${tableName}`);
+
+                // Set global flag to prevent concurrent reconnections
+                globalReconnectionInProgress = true;
+                lastGlobalReconnectionAttempt = Date.now();
+
+                // Remove only the specific channel
+                if (tableName === 'users' && usersChannel) {
+                    supabaseClient.removeChannel(usersChannel);
+                    usersChannel = null;
+                } else if (tableName === 'startups' && startupsChannel) {
+                    supabaseClient.removeChannel(startupsChannel);
+                    startupsChannel = null;
+                } else if (tableName === 'bookings' && bookingsChannel) {
+                    supabaseClient.removeChannel(bookingsChannel);
+                    bookingsChannel = null;
+                } else if (tableName === 'rooms' && roomsChannel) {
+                    supabaseClient.removeChannel(roomsChannel);
+                    roomsChannel = null;
+                }
+
+                // Recreate only the specific subscription
+                if (tableName === 'users') {
+                    usersChannel = supabaseClient
+                        .channel('users-changes')
+                        .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, (payload) => {
+                            console.log('🔔 [Realtime] Users table change:', payload);
+                            if (currentUser && payload.new && payload.new.id === currentUser.id) {
+                                currentUser = payload.new;
+                                updateUIForUserRole(currentUser.role);
+                            }
+                        })
+                        .subscribe((status) => {
+                            handleSubscriptionStatus('users', status, usersChannel);
+                        });
+                } else if (tableName === 'startups') {
+                    startupsChannel = supabaseClient
+                        .channel('startups-changes')
+                        .on('postgres_changes', { event: '*', schema: 'public', table: 'startups' }, (payload) => {
+                            console.log('🔔 [Realtime] Startups table change:', payload);
+                            loadDashboardData();
+                        })
+                        .subscribe((status) => {
+                            handleSubscriptionStatus('startups', status, startupsChannel);
+                        });
+                } else if (tableName === 'bookings') {
+                    bookingsChannel = supabaseClient
+                        .channel('bookings-changes')
+                        .on('postgres_changes', { event: '*', schema: 'public', table: 'bookings' }, (payload) => {
+                            console.log('🔔 [Realtime] Bookings table change:', payload);
+                            loadDashboardData();
+                            loadBookingsData();
+                            loadScheduleData();
+                        })
+                        .subscribe((status) => {
+                            handleSubscriptionStatus('bookings', status, bookingsChannel);
+                        });
+                } else if (tableName === 'rooms') {
+                    roomsChannel = supabaseClient
+                        .channel('rooms-changes')
+                        .on('postgres_changes', { event: '*', schema: 'public', table: 'rooms' }, (payload) => {
+                            console.log('🔔 [Realtime] Rooms table change:', payload);
+                            loadDashboardData();
+                            loadRoomsData();
+                        })
+                        .subscribe((status) => {
+                            handleSubscriptionStatus('rooms', status, roomsChannel);
+                        });
+                }
+
+                // Clear the global flag after a short delay to allow the subscription to establish
+                setTimeout(() => {
+                    globalReconnectionInProgress = false;
+                    console.log(`✅ [Realtime] Global reconnection flag cleared for ${tableName}`);
+                }, 5000);
+
+            } catch (error) {
+                console.error(`❌ [Realtime] Error reconnecting ${tableName} subscription:`, error);
+                globalReconnectionInProgress = false;
             }
         }
 
