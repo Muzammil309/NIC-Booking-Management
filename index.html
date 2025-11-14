@@ -2434,6 +2434,10 @@
         let allBookings = [];
         let allStartups = [];
 
+        // Bootstrap / recovery tracking
+        let bootstrapRecoveryAttempted = false;
+        let isBootstrapping = false;
+
         // Real-time subscription channels
         let usersChannel = null;
         let startupsChannel = null;
@@ -4408,12 +4412,18 @@
                 console.warn('🚨 [Bootstrap Recovery] Critical bootstrap failure detected:', reason);
 
                 // Avoid infinite recovery loops within a single page load
-                const alreadyAttempted = sessionStorage.getItem('nic_bootstrap_recovery_attempted');
-                if (alreadyAttempted) {
+                if (bootstrapRecoveryAttempted) {
                     console.warn('🚨 [Bootstrap Recovery] Recovery already attempted in this session, not repeating.');
                     return;
                 }
-                sessionStorage.setItem('nic_bootstrap_recovery_attempted', '1');
+                bootstrapRecoveryAttempted = true;
+
+                // Clear any stale guard flag from older builds (defensive cleanup)
+                try {
+                    sessionStorage.removeItem('nic_bootstrap_recovery_attempted');
+                } catch (storageError) {
+                    console.warn('⚠️ [Bootstrap Recovery] Unable to clear legacy recovery flag:', storageError);
+                }
 
                 // Best-effort sign out to clear Supabase auth state
                 try {
@@ -4437,6 +4447,12 @@
         }
 
         async function bootstrapData(user) {
+
+            if (isBootstrapping) {
+                console.warn('⚠️ [Bootstrap] bootstrapData is already in progress, skipping duplicate call.');
+                return;
+            }
+            isBootstrapping = true;
 
             try {
                 console.log('🔄 Bootstrap Data - Starting for user:', user.id);
@@ -4500,17 +4516,12 @@
                     console.error('❌❌❌ User email:', user.email);
 
                     // Delegate to centralized recovery logic which avoids infinite reload loops
-                    const alreadyAttempted = sessionStorage.getItem('nic_bootstrap_recovery_attempted');
                     await handleBootstrapRecovery('User profile query failed after retries');
 
-                    // If recovery was already attempted once in this page load and we still
-                    // cannot load the profile, surface a clear error instead of hanging
-                    if (alreadyAttempted) {
-                        throw new Error('Failed to load user profile from database even after recovery. This may be due to Row Level Security policies or connectivity issues. Please try logging out and back in or contact support.');
-                    }
-
-                    // Normal path: let the recovery reload the page
-                    return;
+                    // After we have asked recovery to run, stop this bootstrap attempt.
+                    // The in-progress flag will be cleared in the finally-block and,
+                    // if recovery succeeds, a fresh page load will start a new bootstrap.
+                    throw new Error('User profile query failed after retries. Recovery has been triggered to reset the session.');
                 }
 
                 console.log('✅ User profile loaded:', userProfile);
@@ -4653,6 +4664,9 @@
 
                 // Show error to user
                 alert('Failed to load user data. Please refresh the page and try again.\n\nError: ' + error.message);
+            } finally {
+                // Always clear the in-progress flag so future attempts can run
+                isBootstrapping = false;
             }
         }
 
