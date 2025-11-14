@@ -4410,6 +4410,10 @@
         async function handleBootstrapRecovery(reason) {
             try {
                 console.warn('🚨 [Bootstrap Recovery] Critical bootstrap failure detected:', reason);
+                console.log('🧪 [Bootstrap Recovery] Flags at entry:', {
+                    bootstrapRecoveryAttempted,
+                    isBootstrapping
+                });
 
                 // Avoid infinite recovery loops within a single page load
                 if (bootstrapRecoveryAttempted) {
@@ -4417,29 +4421,47 @@
                     return;
                 }
                 bootstrapRecoveryAttempted = true;
+                console.log('🧪 [Bootstrap Recovery] Marked bootstrapRecoveryAttempted = true');
 
                 // Clear any stale guard flag from older builds (defensive cleanup)
                 try {
+                    console.log('🧪 [Bootstrap Recovery] Clearing legacy sessionStorage flag if present');
                     sessionStorage.removeItem('nic_bootstrap_recovery_attempted');
                 } catch (storageError) {
                     console.warn('⚠️ [Bootstrap Recovery] Unable to clear legacy recovery flag:', storageError);
                 }
 
-                // Best-effort sign out to clear Supabase auth state
+                // Best-effort sign out to clear Supabase auth state (do NOT block recovery on this)
                 try {
-                    await supabaseClient.auth.signOut();
-                    console.log('✅ [Bootstrap Recovery] Supabase session cleared via signOut()');
+                    console.log('🧪 [Bootstrap Recovery] Attempting Supabase signOut (non-blocking)...');
+                    const signOutResult = supabaseClient?.auth?.signOut?.();
+                    if (signOutResult && typeof signOutResult.then === 'function') {
+                        signOutResult
+                            .then(() => {
+                                console.log('✅ [Bootstrap Recovery] Supabase session cleared via signOut()');
+                            })
+                            .catch((signOutError) => {
+                                console.error('⚠️ [Bootstrap Recovery] Error during async signOut:', signOutError);
+                            });
+                    } else {
+                        console.warn('⚠️ [Bootstrap Recovery] supabaseClient.auth.signOut is not a Promise-returning function');
+                    }
                 } catch (signOutError) {
-                    console.error('⚠️ [Bootstrap Recovery] Error during signOut:', signOutError);
+                    console.error('⚠️ [Bootstrap Recovery] Error during signOut call setup:', signOutError);
                 }
 
                 // Use the same aggressive reload path as manual cache clearing
-                if (window.forceReloadApp) {
-                    console.log('🔄 [Bootstrap Recovery] Calling forceReloadApp() to fully reset caches');
-                    window.forceReloadApp();
-                } else {
-                    console.log('🔄 [Bootstrap Recovery] Reloading page with hard refresh fallback');
-                    window.location.reload(true);
+                try {
+                    console.log('🧪 [Bootstrap Recovery] Preparing to call forceReloadApp / hard reload');
+                    if (window.forceReloadApp) {
+                        console.log('🔄 [Bootstrap Recovery] Calling forceReloadApp() to fully reset caches');
+                        window.forceReloadApp();
+                    } else {
+                        console.log('🔄 [Bootstrap Recovery] Reloading page with hard refresh fallback');
+                        window.location.reload(true);
+                    }
+                } catch (reloadError) {
+                    console.error('❌ [Bootstrap Recovery] Error while attempting to reload page:', reloadError);
                 }
             } catch (recoveryError) {
                 console.error('❌ [Bootstrap Recovery] Unexpected error while attempting recovery:', recoveryError);
