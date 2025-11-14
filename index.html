@@ -4368,25 +4368,12 @@
                     console.log(`🔍 [DEBUG] Attempt ${retryCount + 1}/${maxRetries} - Querying users table...`);
 
                     try {
-                        // Check auth session before query
-                        const { data: { session } } = await supabaseClient.auth.getSession();
-                        console.log('🔍 [DEBUG] Current auth session:', session);
-                        console.log('🔍 [DEBUG] Session user ID:', session?.user?.id);
-                        console.log('🔍 [DEBUG] Querying for user ID:', user.id);
-                        console.log('🔍 [DEBUG] IDs match?', session?.user?.id === user.id);
-
-                        // Add timeout to prevent hanging
-                        const queryPromise = supabaseClient
+                        // Directly query the users table using the authenticated user ID
+                        const { data, error } = await supabaseClient
                             .from('users')
                             .select('*')
                             .eq('id', user.id)
                             .maybeSingle();
-
-                        const timeoutPromise = new Promise((_, reject) =>
-                            setTimeout(() => reject(new Error('Query timeout after 10 seconds')), 10000)
-                        );
-
-                        const { data, error } = await Promise.race([queryPromise, timeoutPromise]);
 
                         console.log('🔍 [DEBUG] Query completed. Data:', data);
                         console.log('🔍 [DEBUG] Query error:', error);
