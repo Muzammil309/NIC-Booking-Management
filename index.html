@@ -2830,8 +2830,11 @@
         /**
          * Health check for real-time subscriptions
          * Verifies all subscriptions are active and reconnects if needed
+         * Respects global reconnection cooldown to prevent conflicts
          */
-        async function checkRealtimeHealth() {
+        async function checkRealtimeHealth(options = {}) {
+            const { forceReconnect = false } = options;
+
             console.log('🏥 [Health Check] Checking real-time subscription health...');
 
             const channels = [
@@ -2859,6 +2862,22 @@
             }
 
             if (!allHealthy) {
+                // Check global reconnection cooldown before attempting reconnection
+                const now = Date.now();
+                const timeSinceLastAttempt = now - lastGlobalReconnectionAttempt;
+
+                if (!forceReconnect && timeSinceLastAttempt < GLOBAL_RECONNECTION_COOLDOWN) {
+                    const remainingCooldown = Math.ceil((GLOBAL_RECONNECTION_COOLDOWN - timeSinceLastAttempt) / 1000);
+                    console.warn(`⚠️ [Health Check] Global reconnection cooldown active. ${remainingCooldown}s remaining. Skipping reconnection.`);
+                    console.log('ℹ️ [Health Check] Subscriptions will auto-reconnect when cooldown expires');
+                    return false;
+                }
+
+                if (globalReconnectionInProgress) {
+                    console.warn('⚠️ [Health Check] Global reconnection already in progress, skipping duplicate attempt');
+                    return false;
+                }
+
                 console.log('🔄 [Health Check] Some subscriptions unhealthy, reconnecting...');
                 setupRealtimeSubscriptions();
             } else {
@@ -11141,9 +11160,10 @@
                         return;
                     }
 
-                    // Reconnect real-time subscriptions
-                    console.log('🔄 [Visibility] Reconnecting real-time subscriptions...');
-                    setupRealtimeSubscriptions();
+                    // Check real-time subscription health and reconnect if needed
+                    // This respects the global reconnection cooldown to prevent conflicts
+                    console.log('🔄 [Visibility] Checking real-time subscription health...');
+                    await checkRealtimeHealth();
 
                     // Refresh current page data
                     const currentPage = window.location.hash;
