@@ -4871,6 +4871,8 @@
 
         // Auth state handling
         async function handleAuthState() {
+            console.log('🔐 [handleAuthState] Checking initial auth state...');
+
             if (!supabaseClient) return showAuth('login');
 
             // Check if we should force fresh login (uncomment next line to force re-authentication every time)
@@ -4880,6 +4882,15 @@
             if (error) console.warn('getSession error', error);
 
             if (session?.user) {
+                console.log('🔐 [handleAuthState] Session found for user:', session.user.email);
+
+                // Check if user is already bootstrapped (e.g., from a previous page load in SPA)
+                if (currentUser) {
+                    console.log('ℹ️ [handleAuthState] User already bootstrapped, skipping initial bootstrap');
+                    showApp();
+                    return;
+                }
+
                 // Verify the session is still valid by checking user profile
                 try {
                     const { data: userProfile, error: profileError } = await supabaseClient
@@ -4894,6 +4905,7 @@
                         return showAuth('login');
                     }
 
+                    console.log('🔐 [handleAuthState] Starting initial bootstrap...');
                     showApp();
                     await bootstrapData(session.user);
                 } catch (err) {
@@ -4902,6 +4914,7 @@
                     showAuth('login');
                 }
             } else {
+                console.log('🔐 [handleAuthState] No session found, showing login');
                 showAuth('login');
             }
         }
@@ -4909,14 +4922,36 @@
         // Listen for auth state changes
         supabaseClient?.auth.onAuthStateChange(async (event, session) => {
             console.log('🔐 [Auth] State change event:', event);
+            console.log('🔐 [Auth] Current state:', {
+                hasSession: !!session,
+                hasCurrentUser: !!currentUser,
+                isBootstrapping: isBootstrapping
+            });
 
             if (event === 'TOKEN_REFRESHED') {
                 console.log('✅ [Auth] Session token refreshed successfully');
                 // Session was automatically refreshed, no action needed
                 // The new token is already being used by the client
+                // Do NOT trigger bootstrap on token refresh
+                return;
             } else if (event === 'SIGNED_IN') {
                 console.log('✅ [Auth] User signed in');
+
+                // Only bootstrap if user is NOT already bootstrapped
+                if (currentUser) {
+                    console.log('ℹ️ [Auth] User already bootstrapped, skipping re-bootstrap');
+                    console.log('ℹ️ [Auth] Current user:', currentUser.email, 'Role:', currentUser.role);
+                    return;
+                }
+
+                // Only bootstrap if not already in progress
+                if (isBootstrapping) {
+                    console.log('ℹ️ [Auth] Bootstrap already in progress, skipping duplicate call');
+                    return;
+                }
+
                 if (session?.user) {
+                    console.log('🔄 [Auth] Starting initial bootstrap for user:', session.user.email);
                     showApp();
                     await bootstrapData(session.user);
                 }
@@ -4924,20 +4959,42 @@
                 console.log('🔐 [Auth] User signed out');
                 // Clean up real-time subscriptions when user logs out
                 cleanupRealtimeSubscriptions();
+                // Clear current user
+                currentUser = null;
+                currentStartup = null;
                 showAuth('login');
             } else if (event === 'USER_UPDATED') {
                 console.log('🔐 [Auth] User updated');
                 // User data was updated, refresh if needed
+                // Do NOT trigger full bootstrap, just update the user object
+                if (currentUser && session?.user) {
+                    console.log('🔄 [Auth] Updating current user data');
+                    // Refresh user profile from database
+                    const { data: updatedProfile } = await supabaseClient
+                        .from('users')
+                        .select('*')
+                        .eq('id', session.user.id)
+                        .maybeSingle();
+
+                    if (updatedProfile) {
+                        currentUser = updatedProfile;
+                        updateUIForUserRole(currentUser.role);
+                    }
+                }
             }
 
             // Fallback: if we have a session but no specific event handling
-            if (session?.user && !currentUser) {
+            // This should only run on initial page load or after a hard refresh
+            if (session?.user && !currentUser && !isBootstrapping) {
                 console.log('🔐 [Auth] Session exists but no currentUser, bootstrapping...');
                 showApp();
                 await bootstrapData(session.user);
-            } else if (!session) {
-                // No session, show login
+            } else if (!session && currentUser) {
+                // Session expired but we still have currentUser - clean up
+                console.log('⚠️ [Auth] Session expired, cleaning up...');
                 cleanupRealtimeSubscriptions();
+                currentUser = null;
+                currentStartup = null;
                 showAuth('login');
             }
         });
