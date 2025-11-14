@@ -4379,6 +4379,41 @@
 
         // ===== AUTHENTICATION INTEGRATION =====
         async function bootstrapData(user) {
+        // Handles critical bootstrap failures (e.g., stuck user profile query or stale sessions)
+        async function handleBootstrapRecovery(reason) {
+            try {
+                console.warn('🚨 [Bootstrap Recovery] Critical bootstrap failure detected:', reason);
+
+                // Avoid infinite recovery loops within a single page load
+                const alreadyAttempted = sessionStorage.getItem('nic_bootstrap_recovery_attempted');
+                if (alreadyAttempted) {
+                    console.warn('🚨 [Bootstrap Recovery] Recovery already attempted in this session, not repeating.');
+                    return;
+                }
+                sessionStorage.setItem('nic_bootstrap_recovery_attempted', '1');
+
+                // Best-effort sign out to clear Supabase auth state
+                try {
+                    await supabaseClient.auth.signOut();
+                    console.log('✅ [Bootstrap Recovery] Supabase session cleared via signOut()');
+                } catch (signOutError) {
+                    console.error('⚠️ [Bootstrap Recovery] Error during signOut:', signOutError);
+                }
+
+                // Use the same aggressive reload path as manual cache clearing
+                if (window.forceReloadApp) {
+                    console.log('🔄 [Bootstrap Recovery] Calling forceReloadApp() to fully reset caches');
+                    window.forceReloadApp();
+                } else {
+                    console.log('🔄 [Bootstrap Recovery] Reloading page with hard refresh fallback');
+                    window.location.reload(true);
+                }
+            } catch (recoveryError) {
+                console.error('❌ [Bootstrap Recovery] Unexpected error while attempting recovery:', recoveryError);
+            }
+        }
+
+
             try {
                 console.log('🔄 Bootstrap Data - Starting for user:', user.id);
                 console.log('🔄 User metadata:', user.user_metadata);
@@ -4440,9 +4475,18 @@
                     console.error('❌❌❌ User ID:', user.id);
                     console.error('❌❌❌ User email:', user.email);
 
-                    // DO NOT create fallback profile - this causes admin users to get role='startup'
-                    // Instead, throw an error to force user to try again
-                    throw new Error('Failed to load user profile from database. This may be due to Row Level Security policies blocking access. Please contact support or try logging out and back in.');
+                    // Delegate to centralized recovery logic which avoids infinite reload loops
+                    const alreadyAttempted = sessionStorage.getItem('nic_bootstrap_recovery_attempted');
+                    await handleBootstrapRecovery('User profile query failed after retries');
+
+                    // If recovery was already attempted once in this page load and we still
+                    // cannot load the profile, surface a clear error instead of hanging
+                    if (alreadyAttempted) {
+                        throw new Error('Failed to load user profile from database even after recovery. This may be due to Row Level Security policies or connectivity issues. Please try logging out and back in or contact support.');
+                    }
+
+                    // Normal path: let the recovery reload the page
+                    return;
                 }
 
                 console.log('✅ User profile loaded:', userProfile);
