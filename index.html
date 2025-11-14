@@ -4539,24 +4539,9 @@
                     console.warn('⚠️ [Bootstrap Recovery] Unable to clear legacy recovery flag:', storageError);
                 }
 
-                // Best-effort sign out to clear Supabase auth state (do NOT block recovery on this)
-                try {
-                    console.log('🧪 [Bootstrap Recovery] Attempting Supabase signOut (non-blocking)...');
-                    const signOutResult = supabaseClient?.auth?.signOut?.();
-                    if (signOutResult && typeof signOutResult.then === 'function') {
-                        signOutResult
-                            .then(() => {
-                                console.log('✅ [Bootstrap Recovery] Supabase session cleared via signOut()');
-                            })
-                            .catch((signOutError) => {
-                                console.error('⚠️ [Bootstrap Recovery] Error during async signOut:', signOutError);
-                            });
-                    } else {
-                        console.warn('⚠️ [Bootstrap Recovery] supabaseClient.auth.signOut is not a Promise-returning function');
-                    }
-                } catch (signOutError) {
-                    console.error('⚠️ [Bootstrap Recovery] Error during signOut call setup:', signOutError);
-                }
+                // Skip signOut to avoid triggering SIGNED_OUT event which would show login page
+                // The forceReloadApp() will clear all storage including Supabase session anyway
+                console.log('🧪 [Bootstrap Recovery] Skipping signOut to prevent login page redirect');
 
                 // Use the same aggressive reload path as manual cache clearing
                 try {
@@ -4649,9 +4634,10 @@
                     await handleBootstrapRecovery('User profile query failed after retries');
 
                     // After we have asked recovery to run, stop this bootstrap attempt.
-                    // The in-progress flag will be cleared in the finally-block and,
-                    // if recovery succeeds, a fresh page load will start a new bootstrap.
-                    throw new Error('User profile query failed after retries. Recovery has been triggered to reset the session.');
+                    // The page will reload, so we just return silently without throwing an error
+                    // that would trigger an alert popup.
+                    console.log('🔄 [Bootstrap] Recovery triggered, waiting for page reload...');
+                    return;
                 }
 
                 console.log('✅ User profile loaded:', userProfile);
